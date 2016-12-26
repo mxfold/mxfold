@@ -688,3 +688,8 @@ void SStruct::SetMapping(const std::vector<int> &mapping)
     this->mapping = mapping;
     ValidateMapping(mapping);
 }
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

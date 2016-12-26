@@ -597,3 +597,8 @@ inline bool IsComplementary(char c, char d)
         (c == 'G' && d == 'U') ||
         (c == 'U' && d == 'G');
 }
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

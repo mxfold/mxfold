@@ -265,3 +265,8 @@ const int MAX_DIMENSIONS = 4;
 // #define DAIFLETCHER
 
 #endif
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

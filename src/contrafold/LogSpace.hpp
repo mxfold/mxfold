@@ -278,3 +278,8 @@ inline void Fast_LogMinusEquals (float &x, float y)
 }
 
 #endif
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

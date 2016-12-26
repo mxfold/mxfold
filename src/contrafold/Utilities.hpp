@@ -214,3 +214,8 @@ std::string GetBaseName(const std::string &path);
 #include "Utilities.ipp"
 
 #endif
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

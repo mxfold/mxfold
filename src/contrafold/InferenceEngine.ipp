@@ -6,7 +6,6 @@
 // Wrapper macros for certain model features.
 //////////////////////////////////////////////////////////////////////
 
-extern int use_reactivity;
 // score for leaving s[i] unpaired
 
 #if defined(HAMMING_LOSS)
@@ -1264,7 +1263,7 @@ void InferenceEngine<RealT>::RegisterParameters(ParameterManager<RealT> &paramet
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
+void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reactivity)
 {
 
     std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
@@ -5901,3 +5900,8 @@ RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff) const
         ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
     return ret;
 }
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

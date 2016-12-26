@@ -419,3 +419,8 @@ std::string GetBaseName(const std::string &filename)
     const std::string::size_type separator_pos = filename.find_last_of(DIR_SEPARATOR_CHAR);
     return ((separator_pos == std::string::npos) ? filename : filename.substr(separator_pos + 1));
 }
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

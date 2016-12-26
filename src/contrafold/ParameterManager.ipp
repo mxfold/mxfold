@@ -266,3 +266,8 @@ int ParameterManager<RealT>::GetLogicalIndex(const std::pair<RealT, RealT> *phys
     if (iter == physical_to_logical.end()) Error("Request for unknown physical parameter.");
     return iter->second;
 }
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:

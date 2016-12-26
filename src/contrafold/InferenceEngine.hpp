@@ -386,7 +386,7 @@ public:
     void RegisterParameters(ParameterManager<RealT> &parameter_manager);
                             
     // load sequence
-    void LoadSequence(const SStruct &sstruct);
+    void LoadSequence(const SStruct &sstruct, int use_reactivity=0);
     
     // load parameter values                        
     void LoadValues(const std::vector<RealT> &values);
@@ -416,3 +416,8 @@ public:
 #include "InferenceEngine.ipp"
 
 #endif
+
+// Local Variables:
+// mode: C++
+// c-basic-offset: 4
+// End:
