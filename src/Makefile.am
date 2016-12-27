@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 bin_PROGRAMS = ngsfold
 
 ngsfold_SOURCES = \
-	main.cpp \
+	main.cpp cmdline.c cmdline.h \
 	contrafold/Config.hpp contrafold/LogSpace.hpp contrafold/Defaults.ipp \
 	contrafold/InferenceEngine.hpp contrafold/InferenceEngine.ipp \
 	contrafold/ParameterManager.hpp contrafold/ParameterManager.ipp \
