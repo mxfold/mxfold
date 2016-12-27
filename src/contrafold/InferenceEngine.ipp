@@ -2607,7 +2607,7 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
     
     // determine whether we allow each position to be unpaired
     for (int i = 1; i <= L; i++)
-      { 
+    { 
         allow_unpaired_position[i] =
             (true_mapping[i] == SStruct::UNKNOWN || 
              true_mapping[i] == SStruct::UNPAIRED);
@@ -2625,10 +2625,10 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
                 allow_unpaired[offset[i]+j-1] && 
                 allow_unpaired_position[j];
             allow_paired[offset[i]+j] =
-	      (i > 0 &&
-	       (true_mapping[i] == SStruct::UNKNOWN || /*true_mapping[i] == SStruct::PAIRED ||*/true_mapping[i] == j) &&
-	       (true_mapping[j] == SStruct::UNKNOWN || /*true_mapping[j] == SStruct::PAIRED ||*/true_mapping[j] == i) &&
-	       (allow_noncomplementary || IsComplementary(i,j)));
+                (i > 0 &&
+                 (true_mapping[i] == SStruct::UNKNOWN || true_mapping[i] == SStruct::PAIRED || true_mapping[i] == j) &&
+                 (true_mapping[j] == SStruct::UNKNOWN || true_mapping[j] == SStruct::PAIRED || true_mapping[j] == i) &&
+                 (allow_noncomplementary || IsComplementary(i,j)));
         }
     }
 }

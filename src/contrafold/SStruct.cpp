@@ -52,8 +52,7 @@ void SStruct::Load(const std::string &filename)
         case FileFormat_BPSEQ: LoadBPSEQ(filename); break;
         default: Error("Unable to determine file type.");
     }
-    //読み込めているか確認
-    //    std::cout<< filename.c_str() << std::endl;
+
     // perform character conversions
     for (size_t i = 0; i < sequences.size(); i++)
         sequences[i] = FilterSequence(sequences[i]);
@@ -122,8 +121,6 @@ void SStruct::LoadFASTA(const std::string &filename)
     std::ifstream data(filename.c_str());
     if (data.fail()) Error("Unable to open input file: %s", filename.c_str());
 
-    //一行ずつ読み込み
-    //dataにはfaileポインタが入っている。これをsに移譲してゆく
     // process sequences
     std::string s;
     while (std::getline(data, s))
@@ -132,7 +129,6 @@ void SStruct::LoadFASTA(const std::string &filename)
         if (s.length() == 0) continue;
 
         // check for MFA header
-	//ここでsequencevectorの更新が行われている
         if (s[0] == '>')
         {
             names.push_back(s.substr(1));
@@ -154,11 +150,10 @@ void SStruct::LoadFASTA(const std::string &filename)
     // sanity-checks
     if (sequences.size() == 0) Error("No sequences read.");
     if (sequences[0].length() == 1) Error("Zero-length sequence read.");
-    
-      for (size_t i = 1; i < sequences.size(); i++)
+    for (size_t i = 1; i < sequences.size(); i++)
         if (sequences[i].length() != sequences[0].length())
             Error("Not all sequences have the same length.");
-    
+ 
     // determine if any of the sequences could be a consensus sequence
     bool consensus_found = false;
     size_t i = 0;
@@ -172,10 +167,9 @@ void SStruct::LoadFASTA(const std::string &filename)
         // extract consensus mapping
         if (is_consensus)
         {
-	  
-	  if (consensus_found)
-	    Error("More than one consensus base-pairing structure found.");
-	  else
+            if (consensus_found)
+                Error("More than one consensus base-pairing structure found.");
+            else
             {
                 mapping = ConvertParensToMapping(FilterParens(sequences[i]));
                 sequences.erase(sequences.begin() + i);
@@ -186,6 +180,7 @@ void SStruct::LoadFASTA(const std::string &filename)
         }
         i++;
     }
+
     // supply empty mapping if none found
     if (!consensus_found)
     {
@@ -238,12 +233,12 @@ void SStruct::LoadRAW(const std::string &filename)
 //
 // Create object from BPSEQ file.  Assumes that exactly one sequence
 // is provided.  Base-pairings in the file may contain pseudoknots.
-// Unpaired nucleotides should be annotated with base-pairing '0', and
+// Unpaired nucleotides should be annotated with base-pairing '0',
 // nucleotides with no known pairing should be annotated with
-// base-pairing '-1'.
-//ペアは"-2"
+// base-pairing '-1', and paired nucleoteides with unknown partners
+// should be annotated with '-2'.
 //////////////////////////////////////////////////////////////////////
-//template<class RealT>
+
 void SStruct::LoadBPSEQ(const std::string &filename)
 {
     // clear any previous data
@@ -256,7 +251,7 @@ void SStruct::LoadBPSEQ(const std::string &filename)
     //filenameの0から10文字をfilename_topにinsert
     filename_top="";
     filename_top.insert(0,filename,8,10);
-//std::cout << filename_top << std::endl;
+
     // initialize
     names.push_back(filename);
     sequences.push_back("@");
@@ -270,14 +265,14 @@ void SStruct::LoadBPSEQ(const std::string &filename)
     // process file
     std::string token;
     int row = 0;
-  while (data >> token)
+    while (data >> token)
     {
-      // read row        
-      int index = 0;
-      if (!ConvertToNumber(token, index)) Error("Could not read row number: %s", filename.c_str());
-      if (index <= 0) Error("Row numbers must be positive: %s", filename.c_str());
-      if (index != row+1) Error("Rows of BPSEQ file must occur in increasing order: %s", filename.c_str());
-      row = index;
+        // read row        
+        int index = 0;
+        if (!ConvertToNumber(token, index)) Error("Could not read row number: %s", filename.c_str());
+        if (index <= 0) Error("Row numbers must be positive: %s", filename.c_str());
+        if (index != row+1) Error("Rows of BPSEQ file must occur in increasing order: %s", filename.c_str());
+        row = index;
 
         // read sequence letter
         if (!(data >> token)) Error("Expected sequence letter after row number: %s", filename.c_str());
@@ -286,7 +281,7 @@ void SStruct::LoadBPSEQ(const std::string &filename)
 
         //if(filename_top=="NGS_DDDDDD")
         if(filename_top=="NGS_SINGLE")
-          {
+        {
 	 
             float reactivity_to=0;
             data >> token;
@@ -294,36 +289,31 @@ void SStruct::LoadBPSEQ(const std::string &filename)
             sequences.back().push_back(ch);
             reactivity_unpair.push_back(reactivity_to);
             reactivity_pair.push_back(0);
-          mapping.push_back(0);
-          }
+            mapping.push_back(0);
+        }
         else if(filename_top=="NGS_DOUBLE")
-          {
+        {
             float reactivity_to=0;
             data >> token;
             ConvertToNumber(token, reactivity_to);
             sequences.back().push_back(ch);
             reactivity_unpair.push_back(0);
             reactivity_pair.push_back(reactivity_to);
-          mapping.push_back(0);
-          }
-
-        else{
-          // read mapping        
-          int maps_to = 0;
-          if (!(data >> token)) Error("Expected mapping after sequence letter: %s", filename.c_str());
-          if (!ConvertToNumber(token, maps_to)) Error("Could not read matching row number: %s", filename.c_str());
-          //if (maps_to < -1) Error("Matching row numbers must be greater than or equal to -1: %s", filename.c_str());
-          if (maps_to < -2) Error("Matching row numbers must be greater than or equal to -1: %s", filename.c_str());  
-          sequences.back().push_back(ch);
-          mapping.push_back(maps_to);
-       reactivity_unpair.push_back(0);
+            mapping.push_back(0);
+        }
+        else
+        {
+            // read mapping        
+            int maps_to = 0;
+            if (!(data >> token)) Error("Expected mapping after sequence letter: %s", filename.c_str());
+            if (!ConvertToNumber(token, maps_to)) Error("Could not read matching row number: %s", filename.c_str());
+            if (maps_to < PAIRED) Error("Matching row numbers must be greater than or equal to -2: %s", filename.c_str());  
+            sequences.back().push_back(ch);
+            mapping.push_back(maps_to);
+            reactivity_unpair.push_back(0);
             reactivity_pair.push_back(0);
         }
     }
-//std::cout << reactivity_unpair.size() << std::endl;
-//std::cout << mapping.size() << std::endl;
-//int i=0;
-//for (i=0 ; i<reactivity_unpair.size() ; i++){std::cout << mapping[i] << " "<< reactivity_unpair[i] << std::endl;}
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -336,8 +326,8 @@ SStruct::SStruct(const SStruct &rhs) :
     names(rhs.names),
     sequences(rhs.sequences),
     mapping(rhs.mapping),
-reactivity_unpair(rhs.reactivity_unpair),
-reactivity_pair(rhs.reactivity_pair)
+    reactivity_unpair(rhs.reactivity_unpair),
+    reactivity_pair(rhs.reactivity_pair)
 {}
 
 //////////////////////////////////////////////////////////////////////
@@ -362,8 +352,8 @@ const SStruct &SStruct::operator=(const SStruct &rhs)
         names = rhs.names;
         sequences = rhs.sequences;
         mapping = rhs.mapping;
-reactivity_unpair=rhs.reactivity_unpair;
-reactivity_pair=rhs.reactivity_pair;
+        reactivity_unpair=rhs.reactivity_unpair;
+        reactivity_pair=rhs.reactivity_pair;
     }
 
     return *this;
