@@ -8,10 +8,20 @@ purpose "NGSfold: Improving RNA secondary structure prediction with weak label l
 
 usage "ngsfold [OPTIONS]"
 
-option "train"                - "Train the parameters from given data"
-       			      	string typestr="output-file" optional
+option "noncomplementary"     - "allow non-canonical base pairs"
+       			      	flag off
 option "predict"              - "Predict interactions"
        			      	string typestr="parameter-file" optional
+option "train"                - "Train the parameters from given data"
+       			      	string typestr="output-file" optional
+
+section "Prediction mode"
+
+option "bpseq"                - "Output predicted results as the BPSEQ format"
+       			      	flag off
+
+section "Training mode"
+
 option "eta"		      e "Initial step width for the subgradient optimization"
        			      	float default="0.5" optional
 option "pos-w"		      w "The weight for positive interactions"
@@ -20,3 +30,4 @@ option "neg-w"		      - "The weight for negative interactions"
        			        float default="1" optional
 option "lambda"		      D "The weight for the L1 regularization term"
        			      	float default="0.125" optional
+

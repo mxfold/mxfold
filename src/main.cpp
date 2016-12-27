@@ -21,10 +21,19 @@ public:
 
   NGSfold& parse_options(int& argc, char**& argv);
 
-  int run();
+  int run()
+  {
+    return train_mode_ ? train() : predict();
+  }
+
+private:
+  int train();
+  int predict();
 
 private:
   bool train_mode_;
+  bool noncomplementary_;
+  bool output_bpseq_;
   std::string out_file_;
   std::string param_file_;
   float pos_w_;
@@ -50,6 +59,9 @@ NGSfold::parse_options(int& argc, char**& argv)
     train_mode_ = false;
     param_file_ = args_info.predict_arg;
   }
+  
+  noncomplementary_ = args_info.noncomplementary_flag==1;
+  output_bpseq_ = args_info.bpseq_flag==1;
   pos_w_ = args_info.pos_w_arg;
   neg_w_ = args_info.neg_w_arg;
   lambda_ = args_info.lambda_arg;
@@ -71,17 +83,40 @@ NGSfold::parse_options(int& argc, char**& argv)
   return *this;
 }
 
-int 
-NGSfold::run()
+int
+NGSfold::train()
 {
-  if (train_mode_)
-  {
+  return 0;
+}
 
-  }
+int
+NGSfold::predict()
+{
+  ParameterManager<double> parameter_manager;
+  InferenceEngine<double> inference_engine(noncomplementary_);
+
+  // set parameters
+  std::vector<double> w;
+  if (!param_file_.empty())
+    parameter_manager.ReadFromFile(param_file_, w);
+  else if (noncomplementary_)
+    w = GetDefaultNoncomplementaryValues<double>();
   else
-  {
+    w = GetDefaultComplementaryValues<double>();
 
-  }
+  // predict ss
+  SStruct sstruct;
+  sstruct.Load(args_[0]);
+  SStruct solution(sstruct);
+  inference_engine.LoadSequence(sstruct);
+  inference_engine.ComputeViterbi();
+  solution.SetMapping(inference_engine.PredictPairingsViterbi());
+
+  if (output_bpseq_)
+    solution.WriteBPSEQ(std::cout);
+  else
+    solution.WriteParens(std::cout);
+
   return 0;
 }
 
@@ -93,5 +128,5 @@ main(int argc, char* argv[])
   } catch (const char* str) {
     std::cerr << str << std::endl;
   }
-  return 0;
+  return -1;
 }

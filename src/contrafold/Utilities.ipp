@@ -33,10 +33,10 @@ inline bool operator<(const triple<T1,T2,T3> &x,
 {
     return 
         x.first < y.first ||
-        !(y.first < x.first) &&
-        (x.second < y.second ||
-         !(y.second < x.second) &&
-         x.third < y.third);
+                  (!(y.first < x.first) &&
+                   (x.second < y.second ||
+                    (!(y.second < x.second) &&
+                     x.third < y.third)));
 }
 
 template<typename T1, typename T2, typename T3>

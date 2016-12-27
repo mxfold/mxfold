@@ -39,12 +39,16 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
-  char * train_arg;	/**< @brief Train the parameters from given data.  */
-  char * train_orig;	/**< @brief Train the parameters from given data original value given at command line.  */
-  const char *train_help; /**< @brief Train the parameters from given data help description.  */
+  int noncomplementary_flag;	/**< @brief allow non-canonical base pairs (default=off).  */
+  const char *noncomplementary_help; /**< @brief allow non-canonical base pairs help description.  */
   char * predict_arg;	/**< @brief Predict interactions.  */
   char * predict_orig;	/**< @brief Predict interactions original value given at command line.  */
   const char *predict_help; /**< @brief Predict interactions help description.  */
+  char * train_arg;	/**< @brief Train the parameters from given data.  */
+  char * train_orig;	/**< @brief Train the parameters from given data original value given at command line.  */
+  const char *train_help; /**< @brief Train the parameters from given data help description.  */
+  int bpseq_flag;	/**< @brief Output predicted results as the BPSEQ format (default=off).  */
+  const char *bpseq_help; /**< @brief Output predicted results as the BPSEQ format help description.  */
   float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='0.5').  */
   char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
@@ -60,8 +64,10 @@ struct gengetopt_args_info
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
-  unsigned int train_given ;	/**< @brief Whether train was given.  */
+  unsigned int noncomplementary_given ;	/**< @brief Whether noncomplementary was given.  */
   unsigned int predict_given ;	/**< @brief Whether predict was given.  */
+  unsigned int train_given ;	/**< @brief Whether train was given.  */
+  unsigned int bpseq_given ;	/**< @brief Whether bpseq was given.  */
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */

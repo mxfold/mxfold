@@ -36,8 +36,12 @@ const char *gengetopt_args_info_description = "";
 const char *gengetopt_args_info_help[] = {
   "  -h, --help                    Print help and exit",
   "  -V, --version                 Print version and exit",
-  "      --train=output-file       Train the parameters from given data",
+  "      --noncomplementary        allow non-canonical base pairs  (default=off)",
   "      --predict=parameter-file  Predict interactions",
+  "      --train=output-file       Train the parameters from given data",
+  "\nprediction mode:",
+  "      --bpseq                   Output predicted results as the BPSEQ format\n                                  (default=off)",
+  "\ntraining mode:",
   "  -e, --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`0.5')",
   "  -w, --pos-w=FLOAT             The weight for positive interactions\n                                  (default=`4')",
   "      --neg-w=FLOAT             The weight for negative interactions\n                                  (default=`1')",
@@ -46,6 +50,7 @@ const char *gengetopt_args_info_help[] = {
 };
 
 typedef enum {ARG_NO
+  , ARG_FLAG
   , ARG_STRING
   , ARG_FLOAT
 } cmdline_parser_arg_type;
@@ -68,8 +73,10 @@ void clear_given (struct gengetopt_args_info *args_info)
 {
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
-  args_info->train_given = 0 ;
+  args_info->noncomplementary_given = 0 ;
   args_info->predict_given = 0 ;
+  args_info->train_given = 0 ;
+  args_info->bpseq_given = 0 ;
   args_info->eta_given = 0 ;
   args_info->pos_w_given = 0 ;
   args_info->neg_w_given = 0 ;
@@ -80,10 +87,12 @@ static
 void clear_args (struct gengetopt_args_info *args_info)
 {
   FIX_UNUSED (args_info);
-  args_info->train_arg = NULL;
-  args_info->train_orig = NULL;
+  args_info->noncomplementary_flag = 0;
   args_info->predict_arg = NULL;
   args_info->predict_orig = NULL;
+  args_info->train_arg = NULL;
+  args_info->train_orig = NULL;
+  args_info->bpseq_flag = 0;
   args_info->eta_arg = 0.5;
   args_info->eta_orig = NULL;
   args_info->pos_w_arg = 4;
@@ -102,12 +111,14 @@ void init_args_info(struct gengetopt_args_info *args_info)
 
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
-  args_info->train_help = gengetopt_args_info_help[2] ;
+  args_info->noncomplementary_help = gengetopt_args_info_help[2] ;
   args_info->predict_help = gengetopt_args_info_help[3] ;
-  args_info->eta_help = gengetopt_args_info_help[4] ;
-  args_info->pos_w_help = gengetopt_args_info_help[5] ;
-  args_info->neg_w_help = gengetopt_args_info_help[6] ;
-  args_info->lambda_help = gengetopt_args_info_help[7] ;
+  args_info->train_help = gengetopt_args_info_help[4] ;
+  args_info->bpseq_help = gengetopt_args_info_help[6] ;
+  args_info->eta_help = gengetopt_args_info_help[8] ;
+  args_info->pos_w_help = gengetopt_args_info_help[9] ;
+  args_info->neg_w_help = gengetopt_args_info_help[10] ;
+  args_info->lambda_help = gengetopt_args_info_help[11] ;
   
 }
 
@@ -194,10 +205,10 @@ static void
 cmdline_parser_release (struct gengetopt_args_info *args_info)
 {
   unsigned int i;
-  free_string_field (&(args_info->train_arg));
-  free_string_field (&(args_info->train_orig));
   free_string_field (&(args_info->predict_arg));
   free_string_field (&(args_info->predict_orig));
+  free_string_field (&(args_info->train_arg));
+  free_string_field (&(args_info->train_orig));
   free_string_field (&(args_info->eta_orig));
   free_string_field (&(args_info->pos_w_orig));
   free_string_field (&(args_info->neg_w_orig));
@@ -241,10 +252,14 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "help", 0, 0 );
   if (args_info->version_given)
     write_into_file(outfile, "version", 0, 0 );
-  if (args_info->train_given)
-    write_into_file(outfile, "train", args_info->train_orig, 0);
+  if (args_info->noncomplementary_given)
+    write_into_file(outfile, "noncomplementary", 0, 0 );
   if (args_info->predict_given)
     write_into_file(outfile, "predict", args_info->predict_orig, 0);
+  if (args_info->train_given)
+    write_into_file(outfile, "train", args_info->train_orig, 0);
+  if (args_info->bpseq_given)
+    write_into_file(outfile, "bpseq", 0, 0 );
   if (args_info->eta_given)
     write_into_file(outfile, "eta", args_info->eta_orig, 0);
   if (args_info->pos_w_given)
@@ -419,6 +434,9 @@ int update_arg(void *field, char **orig_field,
     val = possible_values[found];
 
   switch(arg_type) {
+  case ARG_FLAG:
+    *((int *)field) = !*((int *)field);
+    break;
   case ARG_FLOAT:
     if (val) *((float *)field) = (float)strtod (val, &stop_char);
     break;
@@ -449,6 +467,7 @@ int update_arg(void *field, char **orig_field,
   /* store the original value */
   switch(arg_type) {
   case ARG_NO:
+  case ARG_FLAG:
     break;
   default:
     if (value && orig_field) {
@@ -505,8 +524,10 @@ cmdline_parser_internal (
       static struct option long_options[] = {
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
-        { "train",	1, NULL, 0 },
+        { "noncomplementary",	0, NULL, 0 },
         { "predict",	1, NULL, 0 },
+        { "train",	1, NULL, 0 },
+        { "bpseq",	0, NULL, 0 },
         { "eta",	1, NULL, 'e' },
         { "pos-w",	1, NULL, 'w' },
         { "neg-w",	1, NULL, 0 },
@@ -568,16 +589,14 @@ cmdline_parser_internal (
           break;
 
         case 0:	/* Long option with no short option */
-          /* Train the parameters from given data.  */
-          if (strcmp (long_options[option_index].name, "train") == 0)
+          /* allow non-canonical base pairs.  */
+          if (strcmp (long_options[option_index].name, "noncomplementary") == 0)
           {
           
           
-            if (update_arg( (void *)&(args_info->train_arg), 
-                 &(args_info->train_orig), &(args_info->train_given),
-                &(local_args_info.train_given), optarg, 0, 0, ARG_STRING,
-                check_ambiguity, override, 0, 0,
-                "train", '-',
+            if (update_arg((void *)&(args_info->noncomplementary_flag), 0, &(args_info->noncomplementary_given),
+                &(local_args_info.noncomplementary_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "noncomplementary", '-',
                 additional_error))
               goto failure;
           
@@ -592,6 +611,32 @@ cmdline_parser_internal (
                 &(local_args_info.predict_given), optarg, 0, 0, ARG_STRING,
                 check_ambiguity, override, 0, 0,
                 "predict", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Train the parameters from given data.  */
+          else if (strcmp (long_options[option_index].name, "train") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->train_arg), 
+                 &(args_info->train_orig), &(args_info->train_given),
+                &(local_args_info.train_given), optarg, 0, 0, ARG_STRING,
+                check_ambiguity, override, 0, 0,
+                "train", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Output predicted results as the BPSEQ format.  */
+          else if (strcmp (long_options[option_index].name, "bpseq") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->bpseq_flag), 0, &(args_info->bpseq_given),
+                &(local_args_info.bpseq_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "bpseq", '-',
                 additional_error))
               goto failure;
           
