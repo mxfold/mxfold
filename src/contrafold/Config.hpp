@@ -163,11 +163,12 @@ const double MM_SMOOTHING = 1.0;
 //自作パラメータ
 #define PARAMS_HAIRPIN_5_NUCLEOTIDES               1
 #define PARAMS_HAIRPIN_6_NUCLEOTIDES               1
-#define PARAMS_HAIRPIN_7_NUCLEOTIDES               1
+#define PARAMS_HAIRPIN_7_NUCLEOTIDES               0
 
 #define PARAMS_BULGE_0x4_NUCLEOTIDES               1
 #define PARAMS_BULGE_0x5_NUCLEOTIDES               1
 #define PARAMS_BULGE_0x6_NUCLEOTIDES               1
+#define PARAMS_BULGE_0x7_NUCLEOTIDES               0
 
 #define PARAMS_INTERNAL_1x3_NUCLEOTIDES            1
 #define PARAMS_INTERNAL_2x3_NUCLEOTIDES            1

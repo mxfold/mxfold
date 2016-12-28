@@ -23,7 +23,10 @@ public:
 
   int run()
   {
-    return train_mode_ ? train() : predict();
+    if (train_mode_)
+      return train();
+    else
+      return predict();
   }
 
 private:
@@ -66,7 +69,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   neg_w_ = args_info.neg_w_arg;
   lambda_ = args_info.lambda_arg;
   eta0_ = args_info.eta_arg;
-  
+
   if (args_info.inputs_num==0)
   {
     cmdline_parser_print_help();
@@ -92,25 +95,27 @@ NGSfold::train()
 int
 NGSfold::predict()
 {
-  ParameterManager<double> parameter_manager;
-  InferenceEngine<double> inference_engine(noncomplementary_);
-
   // set parameters
+  ParameterManager<double>* parameter_manager = new ParameterManager<double>;
   std::vector<double> w;
   if (!param_file_.empty())
-    parameter_manager.ReadFromFile(param_file_, w);
+    parameter_manager->ReadFromFile(param_file_, w);
   else if (noncomplementary_)
     w = GetDefaultNoncomplementaryValues<double>();
   else
     w = GetDefaultComplementaryValues<double>();
-
+  delete parameter_manager;
+  
   // predict ss
+  InferenceEngine<double>* inference_engine = new InferenceEngine<double>(noncomplementary_);
   SStruct sstruct;
   sstruct.Load(args_[0]);
   SStruct solution(sstruct);
-  inference_engine.LoadSequence(sstruct);
-  inference_engine.ComputeViterbi();
-  solution.SetMapping(inference_engine.PredictPairingsViterbi());
+  inference_engine->LoadValues(w);
+  inference_engine->LoadSequence(sstruct);
+  inference_engine->ComputeViterbi();
+  solution.SetMapping(inference_engine->PredictPairingsViterbi());
+  delete inference_engine;
 
   if (output_bpseq_)
     solution.WriteBPSEQ(std::cout);

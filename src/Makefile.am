@@ -7,5 +7,6 @@ ngsfold_SOURCES = \
 	contrafold/Config.hpp contrafold/LogSpace.hpp contrafold/Defaults.ipp \
 	contrafold/InferenceEngine.hpp contrafold/InferenceEngine.ipp \
 	contrafold/ParameterManager.hpp contrafold/ParameterManager.ipp \
+	contrafold/ParameterHash.hpp contrafold/ParameterHash.cpp \
 	contrafold/SStruct.cpp contrafold/SStruct.hpp \
 	contrafold/Utilities.cpp contrafold/Utilities.hpp contrafold/Utilities.ipp 

@@ -101,6 +101,7 @@ am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am__dirstamp = $(am__leading_dot)dirstamp
 am_ngsfold_OBJECTS = main.$(OBJEXT) cmdline.$(OBJEXT) \
+	contrafold/ParameterHash.$(OBJEXT) \
 	contrafold/SStruct.$(OBJEXT) contrafold/Utilities.$(OBJEXT)
 ngsfold_OBJECTS = $(am_ngsfold_OBJECTS)
 ngsfold_LDADD = $(LDADD)
@@ -183,9 +184,9 @@ AWK = @AWK@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
-CPP = @CPP@
 CPPFLAGS = @CPPFLAGS@
 CXX = @CXX@
+CXXCPP = @CXXCPP@
 CXXDEPMODE = @CXXDEPMODE@
 CXXFLAGS = @CXXFLAGS@
 CYGPATH_W = @CYGPATH_W@
@@ -197,6 +198,7 @@ ECHO_T = @ECHO_T@
 EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 GREP = @GREP@
+HAVE_CXX11 = @HAVE_CXX11@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -271,6 +273,7 @@ ngsfold_SOURCES = \
 	contrafold/Config.hpp contrafold/LogSpace.hpp contrafold/Defaults.ipp \
 	contrafold/InferenceEngine.hpp contrafold/InferenceEngine.ipp \
 	contrafold/ParameterManager.hpp contrafold/ParameterManager.ipp \
+	contrafold/ParameterHash.hpp contrafold/ParameterHash.cpp \
 	contrafold/SStruct.cpp contrafold/SStruct.hpp \
 	contrafold/Utilities.cpp contrafold/Utilities.hpp contrafold/Utilities.ipp 
 
@@ -355,6 +358,8 @@ contrafold/$(am__dirstamp):
 contrafold/$(DEPDIR)/$(am__dirstamp):
 	@$(MKDIR_P) contrafold/$(DEPDIR)
 	@: > contrafold/$(DEPDIR)/$(am__dirstamp)
+contrafold/ParameterHash.$(OBJEXT): contrafold/$(am__dirstamp) \
+	contrafold/$(DEPDIR)/$(am__dirstamp)
 contrafold/SStruct.$(OBJEXT): contrafold/$(am__dirstamp) \
 	contrafold/$(DEPDIR)/$(am__dirstamp)
 contrafold/Utilities.$(OBJEXT): contrafold/$(am__dirstamp) \
@@ -373,6 +378,7 @@ distclean-compile:
 
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmdline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@contrafold/$(DEPDIR)/ParameterHash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@contrafold/$(DEPDIR)/SStruct.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@contrafold/$(DEPDIR)/Utilities.Po@am__quote@
 

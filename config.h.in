@@ -1,5 +1,8 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* define if the compiler supports basic C++11 syntax */
+#undef HAVE_CXX11
+
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
 
@@ -12,11 +15,17 @@
 /* Define to 1 if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 
+/* define if the compiler implements namespaces */
+#undef HAVE_NAMESPACES
+
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
+
+/* define if the compiler supports Standard Template Library */
+#undef HAVE_STL
 
 /* Define to 1 if you have the <strings.h> header file. */
 #undef HAVE_STRINGS_H

@@ -8,7 +8,11 @@ AM_CONFIG_HEADER(config.h)
 AC_CONFIG_SRCDIR([src/main.cpp])
 
 # Checks for programs.
+AC_PROG_CC
 AC_PROG_CXX
+AC_LANG(C++)
+AC_CXX_HAVE_STL
+AX_CXX_COMPILE_STDCXX_11
 
 # Checks for libraries.
 
