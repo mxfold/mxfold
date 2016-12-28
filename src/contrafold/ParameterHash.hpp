@@ -23,7 +23,8 @@ public:
 
   void ReadFromFile(const std::string& filename);
   void WriteToFile(const std::string& filename) const;
-  
+
+  // access to parameters
 #if PARAMS_BASE_PAIR
   ValueT  base_pair(BYTE i, BYTE j) const;
   ValueT& base_pair(BYTE i, BYTE j);

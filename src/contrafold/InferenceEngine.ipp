@@ -3,111 +3,6 @@
 //////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////
-// Wrapper macros for certain model features.
-//////////////////////////////////////////////////////////////////////
-
-// score for leaving s[i] unpaired
-
-#if defined(HAMMING_LOSS)
-#define ScoreUnpairedPosition(i) (loss_unpaired_position[i]+reactivity_unpaired_position[i])
-
-#else
-#define ScoreUnpairedPosition(i) (RealT(0)+reactivity_unpaired_position[i])
-#endif
-
-#define CountUnpairedPosition(i,v)
-
-// score for leaving s[i+1...j] unpaired
-
-#if defined(HAMMING_LOSS)
-#define ScoreUnpaired(i,j) (loss_unpaired[offset[i]+j]+reactivity_unpaired[offset[i]+j])
-#else
-#define ScoreUnpaired(i,j) (RealT(0)+reactivity_unpaired[offset[i]+j])
-#endif
-#define CountUnpaired(i,j,v)
-
-// score for a base pair which is not part of any helix
-
-#if PARAMS_ISOLATED_BASE_PAIR
-#define ScoreIsolated() score_isolated_base_pair.first
-#define CountIsolated(v) { score_isolated_base_pair.second += (v); }
-#else
-#define ScoreIsolated() RealT(0)
-#define CountIsolated(v)
-#endif
-
-// base score for a multi-branch loop
-
-#if PARAMS_MULTI_LENGTH
-#define ScoreMultiBase() score_multi_base.first
-#define CountMultiBase(v) { score_multi_base.second += (v); }
-#else
-#define ScoreMultiBase() RealT(0)
-#define CountMultiBase(v)
-#endif
-
-// score for a base-pair adjacent to a multi-branch loop
-
-#if PARAMS_MULTI_LENGTH
-#define ScoreMultiPaired() score_multi_paired.first
-#define CountMultiPaired(v) { score_multi_paired.second += (v); }
-#else
-#define ScoreMultiPaired() RealT(0)
-#define CountMultiPaired(v)
-#endif
-
-// score for each unpaired position in a multi-branch loop
-
-#if PARAMS_MULTI_LENGTH
-#define ScoreMultiUnpaired(i) (score_multi_unpaired.first + ScoreUnpairedPosition(i))
-#define CountMultiUnpaired(i,v) { score_multi_unpaired.second += (v); CountUnpairedPosition(i,v); }
-#else
-#define ScoreMultiUnpaired(i) (ScoreUnpairedPosition(i))
-#define CountMultiUnpaired(i,v) { CountUnpairedPosition(i,v); }
-#endif
-
-// score for each base-pair adjacent to an external loop
-
-#if PARAMS_EXTERNAL_LENGTH
-#define ScoreExternalPaired() score_external_paired.first
-#define CountExternalPaired(v) { score_external_paired.second += (v); }
-#else
-#define ScoreExternalPaired() RealT(0)
-#define CountExternalPaired(v)
-#endif
-
-// score for each unpaired position in an external loop
-
-#if PARAMS_EXTERNAL_LENGTH
-#define ScoreExternalUnpaired(i) (score_external_unpaired.first + ScoreUnpairedPosition(i))
-#define CountExternalUnpaired(i,v) { score_external_unpaired.second += (v); CountUnpairedPosition(i,v); }
-#else
-#define ScoreExternalUnpaired(i) (ScoreUnpairedPosition(i))
-#define CountExternalUnpaired(i,v) { CountUnpairedPosition(i,v); }
-#endif
-
-// score for a helix stacking pair of the form:
-//
-//       |         |
-//    s[i+1] == s[j-1]
-//       |         |
-//     s[i] ==== s[j]
-//       |         |
-
-#if PARAMS_HELIX_STACKING
-#if PROFILE
-#define ScoreHelixStacking(i,j) profile_score_helix_stacking[i*(L+1)+j].first
-#define CountHelixStacking(i,j,v) { profile_score_helix_stacking[i*(L+1)+j].second += (v); }
-#else
-#define ScoreHelixStacking(i,j) score_helix_stacking[s[i]][s[j]][s[i+1]][s[j-1]].first
-#define CountHelixStacking(i,j,v) { score_helix_stacking[s[i]][s[j]][s[i+1]][s[j-1]].second += (v); }
-#endif
-#else
-#define ScoreHelixStacking(i,j) RealT(0)
-#define CountHelixStacking(i,j,v)
-#endif
-
-//////////////////////////////////////////////////////////////////////
 // UPDATE_MAX()
 //
 // Macro for updating a score/traceback pointer which does not
@@ -256,1007 +151,6 @@ InferenceEngine<RealT>::~InferenceEngine()
 {}
 
 //////////////////////////////////////////////////////////////////////
-// InferenceEngine::RegisterParameters()
-//
-// Establish a mapping between parameters in the inference
-// engine and parameters in the parameter manager.
-//////////////////////////////////////////////////////////////////////
-
-template<class RealT>
-void InferenceEngine<RealT>::RegisterParameters(ParameterManager<RealT> &parameter_manager)
-{
-    char buffer[1000];
-    char buffer2[1000];
-
-    cache_initialized = false;
-    this->parameter_manager = &parameter_manager;
-    parameter_manager.ClearParameters();
-    
-#if SINGLE_HYPERPARAMETER
-    parameter_manager.AddParameterGroup("all_params");
-#endif
-    
-#if PARAMS_BASE_PAIR
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("base_pair");
-#endif
-    for (int i = 0; i <= M; i++)
-    {
-        for (int j = 0; j <= M; j++)
-        {
-	  //M=4だから
-            if (i == M || j == M)
-            {
-                score_base_pair[i][j] = std::pair<RealT,RealT>(0, 0);
-            }
-            else
-            {
-	      //bufferにbase_pair_ACなどを格納
-                sprintf(buffer, "base_pair_%c%c", alphabet[i], alphabet[j]);
-                sprintf(buffer2, "base_pair_%c%c", alphabet[j], alphabet[i]);
-                if (strcmp(buffer, buffer2) < 0)
-                    parameter_manager.AddParameterMapping(buffer, &score_base_pair[i][j]);
-                else
-                    parameter_manager.AddParameterMapping(buffer2, &score_base_pair[i][j]);
-            }
-        }
-    }
-#endif
-    
-#if PARAMS_BASE_PAIR_DIST
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("base_pair_dist_at_least");
-#endif
-    for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
-    {
-        sprintf(buffer, "base_pair_dist_at_least_%d", BP_DIST_THRESHOLDS[i]);
-        parameter_manager.AddParameterMapping(buffer, &score_base_pair_dist_at_least[i]);
-    }
-#endif
-    
-#if PARAMS_TERMINAL_MISMATCH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("terminal_mismatch");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int j1 = 0; j1 <= M; j1++)
-        {
-            for (int i2 = 0; i2 <= M; i2++)
-            {
-                for (int j2 = 0; j2 <= M; j2++)
-                {
-                    if (i1 == M || j1 == M || i2 == M || j2 == M)
-                    {
-                        score_terminal_mismatch[i1][j1][i2][j2] = std::pair<RealT,RealT>(0, 0);
-                    }
-                    else
-                    {
-                        sprintf(buffer, "terminal_mismatch_%c%c%c%c", alphabet[i1], alphabet[j1], alphabet[i2], alphabet[j2]);
-                        parameter_manager.AddParameterMapping(buffer, &score_terminal_mismatch[i1][j1][i2][j2]);
-                    }
-                }
-            }
-        }
-    }
-#endif
-    
-#if PARAMS_HAIRPIN_LENGTH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("hairpin_length_at_least");
-#endif
-    for (int i = 0; i <= D_MAX_HAIRPIN_LENGTH; i++)
-    {
-        sprintf(buffer, "hairpin_length_at_least_%d", i);
-        parameter_manager.AddParameterMapping(buffer, &score_hairpin_length_at_least[i]);
-    }
-#endif
-    
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("hairpin_3_nucleotides");  
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            for (int i3 = 0; i3 <= M; i3++)
-            {
-                if (i1 == M || i2 == M || i3 == M)
-                {
-                    score_hairpin_3_nucleotides[i1][i2][i3] = std::pair<RealT,RealT>(0, 0);
-                }
-                else
-                {
-                    sprintf(buffer, "hairpin_3_nucleotides_%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3]);
-                    parameter_manager.AddParameterMapping(buffer, &score_hairpin_3_nucleotides[i1][i2][i3]);
-                }
-            }
-        }
-    }
-#endif
-    
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("hairpin_4_nucleotides");  
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            for (int i3 = 0; i3 <= M; i3++)
-            {
-                for (int i4 = 0; i4 <= M; i4++)
-                {
-                    if (i1 == M || i2 == M || i3 == M || i4 == M)
-                    {
-                        score_hairpin_4_nucleotides[i1][i2][i3][i4] = std::pair<RealT,RealT>(0, 0);
-                    }
-                    else
-                    {
-                        sprintf(buffer, "hairpin_4_nucleotides_%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4]);
-                        parameter_manager.AddParameterMapping(buffer, &score_hairpin_4_nucleotides[i1][i2][i3][i4]);
-                    }
-                }
-            }
-        }
-    }
-#endif
-    
-#if PARAMS_HELIX_LENGTH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("helix_length_at_least");
-#endif
-    for (int i = 0; i <= D_MAX_HELIX_LENGTH; i++)
-    {
-      //へリックスは少なくとも3
-        if (i < 3)
-        {
-            score_helix_length_at_least[i] = std::pair<RealT,RealT>(0, 0);
-        }
-        else
-        {
-            sprintf(buffer, "helix_length_at_least_%d", i);
-            parameter_manager.AddParameterMapping(buffer, &score_helix_length_at_least[i]);
-        }
-    }
-#endif
-    
-#if PARAMS_ISOLATED_BASE_PAIR
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("isolated_base_pair");
-#endif
-    parameter_manager.AddParameterMapping("isolated_base_pair", &score_isolated_base_pair);
-#endif
-    
-#if PARAMS_INTERNAL_EXPLICIT
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_explicit");
-#endif
-    for (int i = 0; i <= D_MAX_INTERNAL_EXPLICIT_LENGTH; i++)
-    {
-        for (int j = 0; j <= D_MAX_INTERNAL_EXPLICIT_LENGTH; j++)
-        {
-            if (i == 0 || j == 0)
-            {
-                score_internal_explicit[i][j] = std::pair<RealT,RealT>(0, 0);
-            }
-            else
-            {
-                sprintf(buffer, "internal_explicit_%d_%d", std::min(i, j), std::max(i, j));
-                parameter_manager.AddParameterMapping(buffer, &score_internal_explicit[i][j]);
-            }
-        }
-    }
-#endif
-
-#if PARAMS_BULGE_LENGTH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("bulge_length_at_least");
-#endif
-    for (int i = 0; i <= D_MAX_BULGE_LENGTH; i++)
-    {
-        if (i == 0)
-        {
-            score_bulge_length_at_least[i] = std::pair<RealT,RealT>(0, 0);
-        }
-        else
-        {
-            sprintf(buffer, "bulge_length_at_least_%d", i);
-            parameter_manager.AddParameterMapping(buffer, &score_bulge_length_at_least[i]);
-        }
-    }
-#endif
-    
-#if PARAMS_INTERNAL_LENGTH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_length_at_least");
-#endif
-    for (int i = 0; i <= D_MAX_INTERNAL_LENGTH; i++)
-    {
-        if (i < 2)
-        {
-            score_internal_length_at_least[i] = std::pair<RealT,RealT>(0, 0);
-        }
-        else
-        {
-            sprintf(buffer, "internal_length_at_least_%d", i);
-            parameter_manager.AddParameterMapping(buffer, &score_internal_length_at_least[i]);
-        }
-    }
-#endif
-    
-#if PARAMS_INTERNAL_SYMMETRY
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_symmetric_length_at_least");
-#endif
-    for (int i = 0; i <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; i++)
-    {
-        if (i == 0)
-        {
-            score_internal_symmetric_length_at_least[i] = std::pair<RealT,RealT>(0, 0);
-        }
-        else
-        {
-            sprintf(buffer, "internal_symmetric_length_at_least_%d", i);
-            parameter_manager.AddParameterMapping(buffer, &score_internal_symmetric_length_at_least[i]);
-        }
-    }
-#endif
-
-#if PARAMS_INTERNAL_ASYMMETRY
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_asymmetry_at_least");
-#endif
-    for (int i = 0; i <= D_MAX_INTERNAL_ASYMMETRY; i++)
-    {
-        if (i == 0)
-        {
-            score_internal_asymmetry_at_least[i] = std::pair<RealT,RealT>(0, 0);
-        }
-        else
-        {
-            sprintf(buffer, "internal_asymmetry_at_least_%d", i);
-            parameter_manager.AddParameterMapping(buffer, &score_internal_asymmetry_at_least[i]);
-        }
-    }
-#endif
-
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("bulge_0x1_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        if (i1 == M)
-        {
-            score_bulge_0x1_nucleotides[i1] = std::pair<RealT,RealT>(0, 0);
-            score_bulge_1x0_nucleotides[i1] = std::pair<RealT,RealT>(0, 0);
-        }
-        else
-        {
-            sprintf(buffer, "bulge_0x1_nucleotides_%c", alphabet[i1]);
-            parameter_manager.AddParameterMapping(buffer, &score_bulge_0x1_nucleotides[i1]);
-            parameter_manager.AddParameterMapping(buffer, &score_bulge_1x0_nucleotides[i1]);
-        }
-    }
-#endif
-
-#if PARAMS_BULGE_0x2_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("bulge_0x2_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            if (i1 == M || i2 == M)
-            {
-                score_bulge_0x2_nucleotides[i1][i2] = std::pair<RealT,RealT>(0, 0);
-                score_bulge_2x0_nucleotides[i1][i2] = std::pair<RealT,RealT>(0, 0);
-            }
-            else
-            {
-                sprintf(buffer, "bulge_0x2_nucleotides_%c%c", alphabet[i1], alphabet[i2]);
-                parameter_manager.AddParameterMapping(buffer, &score_bulge_0x2_nucleotides[i1][i2]);
-                parameter_manager.AddParameterMapping(buffer, &score_bulge_2x0_nucleotides[i1][i2]);
-            }
-        }
-    }
-#endif
-    
-#if PARAMS_BULGE_0x3_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("bulge_0x3_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            for (int i3 = 0; i3 <= M; i3++)
-            {
-	      if (i1 == M || i2 == M || i3==M)//加筆
-                {
-                    score_bulge_0x3_nucleotides[i1][i2][i3] = std::pair<RealT,RealT>(0, 0);
-                    score_bulge_3x0_nucleotides[i1][i2][i3] = std::pair<RealT,RealT>(0, 0);
-                }
-                else
-                {
-                    sprintf(buffer, "bulge_0x3_nucleotides_%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3]);
-                    parameter_manager.AddParameterMapping(buffer, &score_bulge_0x3_nucleotides[i1][i2][i3]);
-                    parameter_manager.AddParameterMapping(buffer, &score_bulge_3x0_nucleotides[i1][i2][i3]);
-                }
-            }
-        }
-    }
-#endif
-
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_1x1_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            if (i1 == M || i2 == M)
-            {
-                score_internal_1x1_nucleotides[i1][i2] = std::pair<RealT,RealT>(0, 0);
-            }
-            else 
-            {          
-                sprintf(buffer, "internal_1x1_nucleotides_%c%c", alphabet[i1], alphabet[i2]);
-                sprintf(buffer2, "internal_1x1_nucleotides_%c%c", alphabet[i2], alphabet[i1]);
-                if (strcmp(buffer, buffer2) < 0)
-                    parameter_manager.AddParameterMapping(buffer, &score_internal_1x1_nucleotides[i1][i2]);
-                else
-                    parameter_manager.AddParameterMapping(buffer2, &score_internal_1x1_nucleotides[i1][i2]);
-            }
-        }
-    }
-#endif
-  
-#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_1x2_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            for (int i3 = 0; i3 <= M; i3++)
-            {
-                if (i1 == M || i2 == M || i3 == M)
-                {
-                    score_internal_1x2_nucleotides[i1][i2][i3] = std::pair<RealT,RealT>(0, 0);
-                }
-                else
-                {
-                    sprintf(buffer, "internal_1x2_nucleotides_%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3]);
-                    parameter_manager.AddParameterMapping(buffer, &score_internal_1x2_nucleotides[i1][i2][i3]);
-                    sprintf(buffer, "internal_2x1_nucleotides_%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3]);
-                    parameter_manager.AddParameterMapping(buffer, &score_internal_2x1_nucleotides[i1][i2][i3]);
-                }
-            }
-        }
-    }
-#endif
-  
-#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("internal_2x2_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int i2 = 0; i2 <= M; i2++)
-        {
-            for (int i3 = 0; i3 <= M; i3++)
-            {
-                for (int i4 = 0; i4 <= M; i4++)
-                {
-                    if (i1 == M || i2 == M || i3 == M || i4 == M)
-                    {
-                        score_internal_2x2_nucleotides[i1][i2][i3][i4] = std::pair<RealT,RealT>(0, 0);
-                    }
-                    else
-                    {
-                        sprintf(buffer, "internal_2x2_nucleotides_%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4]);
-                        sprintf(buffer2, "internal_2x2_nucleotides_%c%c%c%c", alphabet[i3], alphabet[i4], alphabet[i1], alphabet[i2]);
-                        if (strcmp(buffer, buffer2) < 0)
-                            parameter_manager.AddParameterMapping(buffer, &score_internal_2x2_nucleotides[i1][i2][i3][i4]);
-                        else
-                            parameter_manager.AddParameterMapping(buffer2, &score_internal_2x2_nucleotides[i1][i2][i3][i4]);
-                    }
-                }
-            }
-        }
-    }
-#endif
-
-#if PARAMS_HELIX_STACKING
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("helix_stacking");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int j1 = 0; j1 <= M; j1++)
-        {
-            for (int i2 = 0; i2 <= M; i2++)
-            {
-                for (int j2 = 0; j2 <= M; j2++)
-                {
-                    if (i1 == M || j1 == M || i2 == M || j2 == M)
-                    {
-                        score_helix_stacking[i1][j1][i2][j2] = std::pair<RealT,RealT>(0, 0);
-                    }
-                    else
-                    {
-                        sprintf(buffer, "helix_stacking_%c%c%c%c", alphabet[i1], alphabet[j1], alphabet[i2], alphabet[j2]);
-                        sprintf(buffer2, "helix_stacking_%c%c%c%c", alphabet[j2], alphabet[i2], alphabet[j1], alphabet[i1]);
-                        if (strcmp(buffer, buffer2) < 0)
-                            parameter_manager.AddParameterMapping(buffer, &score_helix_stacking[i1][j1][i2][j2]);
-                        else
-                            parameter_manager.AddParameterMapping(buffer2, &score_helix_stacking[i1][j1][i2][j2]);
-                    }
-                }
-            }
-        }
-    }
-#endif
-
-#if PARAMS_HELIX_CLOSING
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("helix_closing");
-#endif
-    for (int i = 0; i <= M; i++)
-    {
-        for (int j = 0; j <= M; j++)
-        {
-            if (i == M || j == M)
-            {
-                score_helix_closing[i][j] = std::pair<RealT,RealT>(0, 0);
-            }
-            else
-            {
-                sprintf(buffer, "helix_closing_%c%c", alphabet[i], alphabet[j]);
-                parameter_manager.AddParameterMapping(buffer, &score_helix_closing[i][j]);
-            }
-        }
-    }
-#endif
-
-#if PARAMS_MULTI_LENGTH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("multi_length");
-#endif
-    parameter_manager.AddParameterMapping("multi_base", &score_multi_base);
-    parameter_manager.AddParameterMapping("multi_unpaired", &score_multi_unpaired);
-    parameter_manager.AddParameterMapping("multi_paired", &score_multi_paired);
-#endif
-
-#if PARAMS_DANGLE
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("dangle");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int j1 = 0; j1 <= M; j1++)
-        {
-            for (int i2 = 0; i2 <= M; i2++)
-            {
-                if (i1 == M || j1 == M || i2 == M)
-                {
-                    score_dangle_left[i1][j1][i2] = std::pair<RealT,RealT>(0, 0);
-                }
-                else
-                {
-                    sprintf(buffer, "dangle_left_%c%c%c", alphabet[i1], alphabet[j1], alphabet[i2]);
-                    parameter_manager.AddParameterMapping(buffer, &score_dangle_left[i1][j1][i2]);
-                }
-            }
-        }
-    }
-  
-    for (int i1 = 0; i1 <= M; i1++)
-    {
-        for (int j1 = 0; j1 <= M; j1++)
-        {
-            for (int j2 = 0; j2 <= M; j2++)
-            {
-                if (i1 == M || j1 == M || j2 == M)
-                {
-                    score_dangle_right[i1][j1][j2] = std::pair<RealT,RealT>(0, 0);
-                }
-                else
-                {
-                    sprintf(buffer, "dangle_right_%c%c%c", alphabet[i1], alphabet[j1], alphabet[j2]);
-                    parameter_manager.AddParameterMapping(buffer, &score_dangle_right[i1][j1][j2]);
-                }
-            }
-        }
-    }
-#endif
-
-#if PARAMS_EXTERNAL_LENGTH
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("external_length");
-#endif
-    parameter_manager.AddParameterMapping("external_unpaired", &score_external_unpaired);
-    parameter_manager.AddParameterMapping("external_paired", &score_external_paired);
-#endif
-
-    //自作パラメータ
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("hairpin_5_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-      {
-        for (int i2 = 0; i2 <= M; i2++)
-	  {
-            for (int i3 = 0; i3 <= M; i3++)
-	      {
-                for (int i4 = 0; i4 <= M; i4++)
-		  {
-		    for (int i5 = 0; i5 <= M; i5++)
-		      {
-			if (i1 == M || i2 == M || i3 == M || i4 == M || i5 == M)
-			  {
-			    score_hairpin_5_nucleotides[i1][i2][i3][i4][i5] = std::pair<RealT,RealT>(0, 0);
-			  }
-			else
-			  {
-			    sprintf(buffer, "hairpin_5_nucleotides_%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3] , alphabet[i4], alphabet[i5]);
-			    parameter_manager.AddParameterMapping(buffer, &score_hairpin_5_nucleotides[i1][i2][i3][i4][i5]);
-			  }
-		      }
-		  }
-	      }
-	  }
-      }
-#endif
-
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-    parameter_manager.AddParameterGroup("hairpin_6_nucleotides");
-#endif
-    for (int i1 = 0; i1 <= M; i1++)
-      {
-        for (int i2 = 0; i2 <= M; i2++)
-          {
-            for (int i3 = 0; i3 <= M; i3++)
-              {
-                for (int i4 = 0; i4 <= M; i4++)
-                  {
-                    for (int i5 = 0; i5 <= M; i5++)
-                      {
-			for (int i6 = 0; i6 <= M; i6++)
-			  {
-			    if (i1 == M || i2 == M || i3 == M || i4 == M || i5 == M || i6 == M)
-			      {
-				score_hairpin_6_nucleotides[i1][i2][i3][i4][i5][i6] = std::pair<RealT,RealT>(0, 0);
-			      }
-			    else
-			      {
-				sprintf(buffer, "hairpin_6_nucleotides_%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3] , alphabet[i4], alphabet[i5], alphabet[i6]);
-				parameter_manager.AddParameterMapping(buffer, &score_hairpin_6_nucleotides[i1][i2][i3][i4][i5][i6]);
-			      }
-			  }
-		      }
-		  }
-	      }
-	  }
-      }
-
-#endif
-
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	parameter_manager.AddParameterGroup("hairpin_7_nucleotides");
-#endif
-	for (int i1 = 0; i1 <= M; i1++)
-	  {
-	    for (int i2 = 0; i2 <= M; i2++)
-	      {
-		for (int i3 = 0; i3 <= M; i3++)
-		  {
-		    for (int i4 = 0; i4 <= M; i4++)
-		      {
-			for (int i5 = 0; i5 <= M; i5++)
-			  {
-			    for (int i6 = 0; i6 <= M; i6++)
-			      {
-				for (int i7 = 0; i7 <= M; i7++)
-				  {
-				    if (i1 == M || i2 == M || i3 == M || i4 == M || i5 == M || i6 == M || i7==M)
-				      {
-					score_hairpin_7_nucleotides[i1][i2][i3][i4][i5][i6][i7] = std::pair<RealT,RealT>(0, 0);
-				      }
-				    else
-				      {
-					sprintf(buffer, "hairpin_7_nucleotides_%c%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3] , alphabet[i4], alphabet[i5], alphabet[i6],alphabet[i7]);
-					parameter_manager.AddParameterMapping(buffer, &score_hairpin_7_nucleotides[i1][i2][i3][i4][i5][i6][i7]);
-				      }
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-	  }
-#endif
-
-#if PARAMS_BULGE_0x4_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	parameter_manager.AddParameterGroup("bulge_0x4_nucleotides");
-#endif
-	for (int i1 = 0; i1 <= M; i1++)
-	  {
-	    for (int i2 = 0; i2 <= M; i2++)
-	      {
-		for (int i3 = 0; i3 <= M; i3++)
-		  {
-		    for (int i4 = 0; i4 <= M; i4++)
-		      {
-			if (i1 == M || i2 == M || i3 == M || i4 == M)
-			  {
-			    score_bulge_0x4_nucleotides[i1][i2][i3][i4] = std::pair<RealT,RealT>(0, 0);
-			    score_bulge_4x0_nucleotides[i1][i2][i3][i4] = std::pair<RealT,RealT>(0, 0);
-			  }
-			else
-			  {
-			    sprintf(buffer, "bulge_0x4_nucleotides_%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3],alphabet[i4]);
-			    parameter_manager.AddParameterMapping(buffer, &score_bulge_0x4_nucleotides[i1][i2][i3][i4]);
-			    parameter_manager.AddParameterMapping(buffer, &score_bulge_4x0_nucleotides[i1][i2][i3][i4]);
-			  }
-		      }
-		  }
-	      }
-	  }
-#endif
-
-
-#if PARAMS_BULGE_0x5_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-        parameter_manager.AddParameterGroup("bulge_0x5_nucleotides");
-#endif
-        for (int i1 = 0; i1 <= M; i1++)
-          {
-            for (int i2 = 0; i2 <= M; i2++)
-              {
-                for (int i3 = 0; i3 <= M; i3++)
-                  {
-                    for (int i4 = 0; i4 <= M; i4++)
-                      {
-			for (int i5 = 0; i5 <= M; i5++)
-			  {
-			    if (i1 == M || i2 == M || i3 == M || i4 == M || i5 == M)
-			      {
-				score_bulge_0x5_nucleotides[i1][i2][i3][i4][i5] = std::pair<RealT,RealT>(0, 0);
-				score_bulge_5x0_nucleotides[i1][i2][i3][i4][i5] = std::pair<RealT,RealT>(0, 0);
-			      }
-			    else
-			      {
-				sprintf(buffer, "bulge_0x5_nucleotides_%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3],alphabet[i4],alphabet[i5]);
-				parameter_manager.AddParameterMapping(buffer, &score_bulge_0x5_nucleotides[i1][i2][i3][i4][i5]);
-				parameter_manager.AddParameterMapping(buffer, &score_bulge_5x0_nucleotides[i1][i2][i3][i4][i5]);
-			      }
-			  }
-		      }
-		  }
-	      }
-	  }
-#endif
-
-#if PARAMS_BULGE_0x6_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-        parameter_manager.AddParameterGroup("bulge_0x6_nucleotides");
-#endif
-        for (int i1 = 0; i1 <= M; i1++)
-          {
-            for (int i2 = 0; i2 <= M; i2++)
-              {
-                for (int i3 = 0; i3 <= M; i3++)
-                  {
-                    for (int i4 = 0; i4 <= M; i4++)
-                      {
-                        for (int i5 = 0; i5 <= M; i5++)
-                          {
-			    for (int i6 = 0; i6 <= M; i6++)
-			      {
-				if (i1 == M || i2 == M || i3 == M || i4 == M || i5 == M || i6 == M)
-				  {
-				    score_bulge_0x6_nucleotides[i1][i2][i3][i4][i5][i6] = std::pair<RealT,RealT>(0, 0);
-				    score_bulge_6x0_nucleotides[i1][i2][i3][i4][i5][i6] = std::pair<RealT,RealT>(0, 0);
-				  }
-				else
-				  {
-				    sprintf(buffer, "bulge_0x6_nucleotides_%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3],alphabet[i4],alphabet[i5],alphabet[i6]);
-				    parameter_manager.AddParameterMapping(buffer, &score_bulge_0x6_nucleotides[i1][i2][i3][i4][i5][i6]);
-				    parameter_manager.AddParameterMapping(buffer, &score_bulge_6x0_nucleotides[i1][i2][i3][i4][i5][i6]);
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-          }
-#endif
-	/*
-#if PARAMS_BULGE_0x7_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	parameter_manager.AddParameterGroup("bulge_0x7_nucleotides");
-#endif
-	for (int i1 = 0; i1 <= M; i1++)
-	  {
-	    for (int i2 = 0; i2 <= M; i2++)
-	      {
-		for (int i3 = 0; i3 <= M; i3++)
-		  {
-		    for (int i4 = 0; i4 <= M; i4++)
-		      {
-			for (int i5 = 0; i5 <= M; i5++)
-			  {
-			    for (int i6 = 0; i6 <= M; i6++)
-			      {
-				for (int i7 = 0; i7 <= M; i7++)
-				  {
-				    if (i1 == M || i2 == M || i3 == M || i4 == M || i5 == M || i6 == M || i7==M)
-				      {
-					score_bulge_0x7_nucleotides[i1][i2][i3][i4][i5][i6][i7] = std::pair<RealT,RealT>(0, 0);
-					score_bulge_7x0_nucleotides[i1][i2][i3][i4][i5][i6][i7] = std::pair<RealT,RealT>(0, 0);
-				      }
-				    else
-				      {
-					sprintf(buffer, "bulge_0x6_nucleotides_%c%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3],alphabet[i4],alphabet[i5],alphabet[i6],alphabet[i7]);
-					parameter_manager.AddParameterMapping(buffer, &score_bulge_0x7_nucleotides[i1][i2][i3][i4][i5][i6][i7]);
-					parameter_manager.AddParameterMapping(buffer, &score_bulge_7x0_nucleotides[i1][i2][i3][i4][i5][i6][i7]);
-				      }
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-	  }
-#endif
-	*/	
-#if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	parameter_manager.AddParameterGroup("internal_1x3_nucleotides");
-#endif
-	for (int i1 = 0; i1 <= M; i1++)
-	  {
-	    for (int i2 = 0; i2 <= M; i2++)
-	      {
-		for (int i3 = 0; i3 <= M; i3++)
-		  {
-		    for (int i4 = 0; i4 <= M; i4++)
-		      {
-			if (i1 == M || i2 == M || i3 == M || i4==M)
-			  {
-			    score_internal_1x3_nucleotides[i1][i2][i3][i4] = std::pair<RealT,RealT>(0, 0);
-			  }
-			else
-			  {
-			    sprintf(buffer, "internal_1x3_nucleotides_%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4]);
-			    parameter_manager.AddParameterMapping(buffer, &score_internal_1x3_nucleotides[i1][i2][i3][i4]);
-			    sprintf(buffer, "internal_3x1_nucleotides_%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4]);
-			    parameter_manager.AddParameterMapping(buffer, &score_internal_3x1_nucleotides[i1][i2][i3][i4]);
-			  }
-		      }
-		  }
-	      }
-	  }
-#endif	
-
-#if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	    parameter_manager.AddParameterGroup("internal_2x3_nucleotides");
-#endif
-	    for (int i1 = 0; i1 <= M; i1++)
-	      {
-		for (int i2 = 0; i2 <= M; i2++)
-		  {
-		    for (int i3 = 0; i3 <= M; i3++)
-		      {
-			for (int i4 = 0; i4 <= M; i4++)
-			  {
-			    for (int i5 = 0; i5 <= M; i5++)
-			      {
-				if (i1 == M || i2 == M || i3 == M || i4==M || i5==M)
-				  {
-				    score_internal_2x3_nucleotides[i1][i2][i3][i4][i5] = std::pair<RealT,RealT>(0, 0);
-				  }
-				else
-				  {
-				    sprintf(buffer, "internal_2x3_nucleotides_%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5]);
-				    parameter_manager.AddParameterMapping(buffer, &score_internal_2x3_nucleotides[i1][i2][i3][i4][i5]);
-				    sprintf(buffer, "internal_3x2_nucleotides_%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5]);
-				    parameter_manager.AddParameterMapping(buffer, &score_internal_3x2_nucleotides[i1][i2][i3][i4][i5]);
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-#endif
-
-#if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-            parameter_manager.AddParameterGroup("internal_3x3_nucleotides");
-#endif
-            for (int i1 = 0; i1 <= M; i1++)
-              {
-                for (int i2 = 0; i2 <= M; i2++)
-                  {
-                    for (int i3 = 0; i3 <= M; i3++)
-                      {
-                        for (int i4 = 0; i4 <= M; i4++)
-                          {
-                            for (int i5 = 0; i5 <= M; i5++)
-                              {
-				for (int i6 = 0; i6 <= M; i6++)
-				  {
-				    if (i1 == M || i2 == M || i3 == M || i4==M || i5==M || i6==M)
-				      {
-					score_internal_3x3_nucleotides[i1][i2][i3][i4][i5][i6] = std::pair<RealT,RealT>(0, 0);
-				      }
-				    else
-				      {
-					sprintf(buffer, "internal_3x3_nucleotides_%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5], alphabet[i6]);
-					parameter_manager.AddParameterMapping(buffer, &score_internal_3x3_nucleotides[i1][i2][i3][i4][i5][i6]);
-				      }
-				  }
-			      }
-			  }
-		      }
-		  }
-              }
-#endif
-#if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	    parameter_manager.AddParameterGroup("internal_1x4_nucleotides");
-#endif
-	    for (int i1 = 0; i1 <= M; i1++)
-	      {
-		for (int i2 = 0; i2 <= M; i2++)
-		  {
-		    for (int i3 = 0; i3 <= M; i3++)
-		      {
-			for (int i4 = 0; i4 <= M; i4++)
-			  {
-			    for (int i5 = 0; i5 <= M; i5++)
-			      {
-				if (i1 == M || i2 == M || i3 == M || i4==M || i5==M)
-				  {
-				    score_internal_1x4_nucleotides[i1][i2][i3][i4][i5] = std::pair<RealT,RealT>(0, 0);
-				  }
-				else
-				  {
-				    sprintf(buffer, "internal_1x4_nucleotides_%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5]);
-				    parameter_manager.AddParameterMapping(buffer, &score_internal_1x4_nucleotides[i1][i2][i3][i4][i5]);
-				    sprintf(buffer, "internal_4x1_nucleotides_%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5]);
-				    parameter_manager.AddParameterMapping(buffer, &score_internal_4x1_nucleotides[i1][i2][i3][i4][i5]);
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-#endif
-#if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	    parameter_manager.AddParameterGroup("internal_2x4_nucleotides");
-#endif
-	    for (int i1 = 0; i1 <= M; i1++)
-	      {
-		for (int i2 = 0; i2 <= M; i2++)
-		  {
-		    for (int i3 = 0; i3 <= M; i3++)
-		      {
-			for (int i4 = 0; i4 <= M; i4++)
-			  {
-			    for (int i5 = 0; i5 <= M; i5++)
-			      {
-				for (int i6 = 0; i6 <= M; i6++)
-				  {
-				    if (i1 == M || i2 == M || i3 == M || i4==M || i5==M || i6==M)
-				      {
-					score_internal_2x4_nucleotides[i1][i2][i3][i4][i5][i6] = std::pair<RealT,RealT>(0, 0);
-				      }
-				    else
-				      {
-					sprintf(buffer, "internal_2x4_nucleotides_%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5], alphabet[i6]);
-					parameter_manager.AddParameterMapping(buffer, &score_internal_2x4_nucleotides[i1][i2][i3][i4][i5][i6]);
-					sprintf(buffer, "internal_4x2_nucleotides_%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5], alphabet[i6]);
-					parameter_manager.AddParameterMapping(buffer, &score_internal_4x2_nucleotides[i1][i2][i3][i4][i5][i6]);
-				      }
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-#endif
-#if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	    parameter_manager.AddParameterGroup("internal_3x4_nucleotides");
-#endif
-	    for (int i1 = 0; i1 <= M; i1++)
-	      {
-		for (int i2 = 0; i2 <= M; i2++)
-		  {
-		    for (int i3 = 0; i3 <= M; i3++)
-		      {
-			for (int i4 = 0; i4 <= M; i4++)
-			  {
-			    for (int i5 = 0; i5 <= M; i5++)
-			      {
-				for (int i6 = 0; i6 <= M; i6++)
-				  {
-				    for (int i7 = 0; i7 <= M; i7++)
-				      {
-					if (i1 == M || i2 == M || i3 == M || i4==M || i5==M || i6==M || i7==M)
-					  {
-					    score_internal_3x4_nucleotides[i1][i2][i3][i4][i5][i6][i7] = std::pair<RealT,RealT>(0, 0);
-					  }
-					else
-					  {
-					    sprintf(buffer, "internal_3x4_nucleotides_%c%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5], alphabet[i6], alphabet[i7]);
-					    parameter_manager.AddParameterMapping(buffer, &score_internal_3x4_nucleotides[i1][i2][i3][i4][i5][i6][i7]);
-					    sprintf(buffer, "internal_4x3_nucleotides_%c%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5], alphabet[i6], alphabet[i7]);
-					    parameter_manager.AddParameterMapping(buffer, &score_internal_4x3_nucleotides[i1][i2][i3][i4][i5][i6][i7]);
-					  }
-				      }
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-#endif
-#if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-#if MULTIPLE_HYPERPARAMETERS
-	    parameter_manager.AddParameterGroup("internal_4x4_nucleotides");
-#endif
-	    for (int i1 = 0; i1 <= M; i1++)
-	      {
-		for (int i2 = 0; i2 <= M; i2++)
-		  {
-		    for (int i3 = 0; i3 <= M; i3++)
-		      {
-			for (int i4 = 0; i4 <= M; i4++)
-			  {
-			    for (int i5 = 0; i5 <= M; i5++)
-			      {
-				for (int i6 = 0; i6 <= M; i6++)
-				  {
-				    for (int i7 = 0; i7 <= M; i7++)
-				      {
-					for (int i8 = 0; i8 <= M; i8++)
-					  {
-					    if (i1 == M || i2 == M || i3 == M || i4==M || i5==M || i6==M || i7==M || i8==M)
-					      {
-						score_internal_4x4_nucleotides[i1][i2][i3][i4][i5][i6][i7][i8] = std::pair<RealT,RealT>(0, 0);
-					      }
-					    else
-					      {
-						sprintf(buffer, "internal_4x4_nucleotides_%c%c%c%c%c%c%c%c", alphabet[i1], alphabet[i2], alphabet[i3], alphabet[i4], alphabet[i5], alphabet[i6], alphabet[i7] , alphabet[i8]);
-						parameter_manager.AddParameterMapping(buffer, &score_internal_4x4_nucleotides[i1][i2][i3][i4][i5][i6][i7][i8]);
-					      }
-					  }
-				      }
-				  }
-			      }
-			  }
-		      }
-		  }
-	      }
-#endif		    
-}
-
-//////////////////////////////////////////////////////////////////////
 // InferenceEngine::LoadSequence()
 //
 // Load an RNA sequence.
@@ -1265,7 +159,6 @@ void InferenceEngine<RealT>::RegisterParameters(ParameterManager<RealT> &paramet
 template<class RealT>
 void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reactivity)
 {
-
     std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
     const std::vector<float> &reactivity_unpair= sstruct.GetReactivityUnpair();
     cache_initialized = false;
@@ -1442,8 +335,6 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reacti
     }
 
     //std::cout << reactivity_unpaired_position[18] << std::endl;
-
-
     for (int i = 0; i <= L; i++)
     {
         reactivity_unpaired[offset[i]+i] = RealT(0);
@@ -1456,7 +347,6 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reacti
             reactivity_paired[offset[i]+j] =0; 
         }
     }
-
 
     // allow all ranges to be unpaired, and all pairs of letters
     // to be paired; set the respective losses to zero    
@@ -1502,6 +392,7 @@ void InferenceEngine<RealT>::InitializeCache()
 {
     if (cache_initialized) return;
     cache_initialized = true;
+    auto& pm = *parameter_manager;
 
     // initialize length and distance scoring
 #if PARAMS_BASE_PAIR_DIST
@@ -1509,47 +400,47 @@ void InferenceEngine<RealT>::InitializeCache()
         cache_score_base_pair_dist[j].first = RealT(0);
     for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
         for (int j = BP_DIST_THRESHOLDS[i]; j <= BP_DIST_LAST_THRESHOLD; j++)
-            cache_score_base_pair_dist[j].first += score_base_pair_dist_at_least[i].first;
+            cache_score_base_pair_dist[j].first += pm.base_pair_dist_at_least(i);
 #endif
     
 #if PARAMS_HAIRPIN_LENGTH
-    cache_score_hairpin_length[0].first = score_hairpin_length_at_least[0].first;
+    cache_score_hairpin_length[0].first = pm.hairpin_length_at_least(0);
     for (int i = 1; i <= D_MAX_HAIRPIN_LENGTH; i++)
-        cache_score_hairpin_length[i].first = cache_score_hairpin_length[i-1].first + score_hairpin_length_at_least[i].first;
+        cache_score_hairpin_length[i].first = cache_score_hairpin_length[i-1].first + pm.hairpin_length_at_least(i);
 #endif
 
 #if PARAMS_HELIX_LENGTH
-    cache_score_helix_length[0].first = score_helix_length_at_least[0].first;
+    cache_score_helix_length[0].first = pm.helix_length_at_least(0);
     for (int i = 1; i <= D_MAX_HELIX_LENGTH; i++)
-        cache_score_helix_length[i].first = cache_score_helix_length[i-1].first + score_helix_length_at_least[i].first;
+        cache_score_helix_length[i].first = cache_score_helix_length[i-1].first + pm.helix_length_at_least(i);
 #endif
 
 #if PARAMS_BULGE_LENGTH
     RealT temp_cache_score_bulge_length[D_MAX_BULGE_LENGTH+1];
-    temp_cache_score_bulge_length[0] = score_bulge_length_at_least[0].first;
+    temp_cache_score_bulge_length[0] = pm.bulge_length_at_least(0);
     for (int i = 1; i <= D_MAX_BULGE_LENGTH; i++)
-        temp_cache_score_bulge_length[i] = temp_cache_score_bulge_length[i-1] + score_bulge_length_at_least[i].first;
+        temp_cache_score_bulge_length[i] = temp_cache_score_bulge_length[i-1] + pm.bulge_length_at_least(i);
 #endif
     
 #if PARAMS_INTERNAL_LENGTH
     RealT temp_cache_score_internal_length[D_MAX_INTERNAL_LENGTH+1];
-    temp_cache_score_internal_length[0] = score_internal_length_at_least[0].first;
+    temp_cache_score_internal_length[0] = pm.internal_length_at_least(0);
     for (int i = 1; i <= D_MAX_INTERNAL_LENGTH; i++)
-        temp_cache_score_internal_length[i] = temp_cache_score_internal_length[i-1] + score_internal_length_at_least[i].first;
+        temp_cache_score_internal_length[i] = temp_cache_score_internal_length[i-1] + pm.internal_length_at_least(i);
 #endif
     
 #if PARAMS_INTERNAL_SYMMETRY
     RealT temp_cache_score_internal_symmetric_length[D_MAX_INTERNAL_SYMMETRIC_LENGTH+1];
-    temp_cache_score_internal_symmetric_length[0] = score_internal_symmetric_length_at_least[0].first;
+    temp_cache_score_internal_symmetric_length[0] = pm.internal_symmetric_length_at_least(0);
     for (int i = 1; i <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; i++)
-        temp_cache_score_internal_symmetric_length[i] = temp_cache_score_internal_symmetric_length[i-1] + score_internal_symmetric_length_at_least[i].first;
+        temp_cache_score_internal_symmetric_length[i] = temp_cache_score_internal_symmetric_length[i-1] + pm.internal_symmetric_length_at_least(i);
 #endif
     
 #if PARAMS_INTERNAL_ASYMMETRY
     RealT temp_cache_score_internal_asymmetry[D_MAX_INTERNAL_ASYMMETRY+1];
-    temp_cache_score_internal_asymmetry[0] = score_internal_asymmetry_at_least[0].first;
+    temp_cache_score_internal_asymmetry[0] = pm.internal_asymmetry_at_least(0);
     for (int i = 1; i <= D_MAX_INTERNAL_ASYMMETRY; i++)
-        temp_cache_score_internal_asymmetry[i] = temp_cache_score_internal_asymmetry[i-1] + score_internal_asymmetry_at_least[i].first;
+        temp_cache_score_internal_asymmetry[i] = temp_cache_score_internal_asymmetry[i-1] + pm.internal_asymmetry_at_least(i);
 #endif
     
     // precompute score for single-branch loops of length l1 and l2
@@ -1576,7 +467,7 @@ void InferenceEngine<RealT>::InitializeCache()
             {
 #if PARAMS_INTERNAL_EXPLICIT
                 if (l1 <= D_MAX_INTERNAL_EXPLICIT_LENGTH && l2 <= D_MAX_INTERNAL_EXPLICIT_LENGTH)
-                    cache_score_single[l1][l2].first += score_internal_explicit[l1][l2].first;
+                    cache_score_single[l1][l2].first += pm.internal_explicit(l1, l2);
 #endif
 #if PARAMS_INTERNAL_LENGTH
                 cache_score_single[l1][l2].first += temp_cache_score_internal_length[std::min(D_MAX_INTERNAL_LENGTH, l1+l2)];
@@ -2101,6 +992,7 @@ void InferenceEngine<RealT>::ClearCounts()
 template<class RealT>
 void InferenceEngine<RealT>::FinalizeCounts()
 {
+    auto& pc = *parameter_count;
 #if FAST_HELIX_LENGTHS
 
     // reverse helix partial sums    
@@ -2138,19 +1030,19 @@ void InferenceEngine<RealT>::FinalizeCounts()
 #if PARAMS_BASE_PAIR_DIST
     for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
         for (int j = BP_DIST_THRESHOLDS[i]; j <= BP_DIST_LAST_THRESHOLD; j++)
-            score_base_pair_dist_at_least[i].second += cache_score_base_pair_dist[j].second;
+            pc.base_pair_dist_at_least(i) += cache_score_base_pair_dist[j].second;
 #endif
     
 #if PARAMS_HAIRPIN_LENGTH
     for (int i = 0; i <= D_MAX_HAIRPIN_LENGTH; i++)
         for (int j = i; j <= D_MAX_HAIRPIN_LENGTH; j++)
-            score_hairpin_length_at_least[i].second += cache_score_hairpin_length[j].second;
+            pc.hairpin_length_at_least(i) += cache_score_hairpin_length[j].second;
 #endif
     
 #if PARAMS_HELIX_LENGTH
     for (int i = 0; i <= D_MAX_HELIX_LENGTH; i++)
         for (int j = i; j <= D_MAX_HELIX_LENGTH; j++)
-            score_helix_length_at_least[i].second += cache_score_helix_length[j].second;
+            pc.helix_length_at_least(i) += cache_score_helix_length[j].second;
 #endif
 
     // allocate temporary storage
@@ -2195,7 +1087,7 @@ void InferenceEngine<RealT>::FinalizeCounts()
             {
 #if PARAMS_INTERNAL_EXPLICIT
                 if (l1 <= D_MAX_INTERNAL_EXPLICIT_LENGTH && l2 <= D_MAX_INTERNAL_EXPLICIT_LENGTH)
-                    score_internal_explicit[l1][l2].second += cache_score_single[l1][l2].second;
+                    pc.internal_explicit(l1, l2) += cache_score_single[l1][l2].second;
 #endif
 #if PARAMS_INTERNAL_LENGTH
                 temp_cache_counts_internal_length[std::min(D_MAX_INTERNAL_LENGTH, l1+l2)] += cache_score_single[l1][l2].second;
@@ -2214,25 +1106,25 @@ void InferenceEngine<RealT>::FinalizeCounts()
 #if PARAMS_BULGE_LENGTH
     for (int i = 0; i <= D_MAX_BULGE_LENGTH; i++)
         for (int j = i; j <= D_MAX_BULGE_LENGTH; j++)
-            score_bulge_length_at_least[i].second += temp_cache_counts_bulge_length[j];
+            pc.bulge_length_at_least(i) += temp_cache_counts_bulge_length[j];
 #endif
     
 #if PARAMS_INTERNAL_LENGTH
     for (int i = 0; i <= D_MAX_INTERNAL_LENGTH; i++)
         for (int j = i; j <= D_MAX_INTERNAL_LENGTH; j++)
-            score_internal_length_at_least[i].second += temp_cache_counts_internal_length[j];
+            pc.internal_length_at_least(i) += temp_cache_counts_internal_length[j];
 #endif
     
 #if PARAMS_INTERNAL_SYMMETRY
     for (int i = 0; i <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; i++)
         for (int j = i; j <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; j++)
-            score_internal_symmetric_length_at_least[i].second += temp_cache_counts_internal_symmetric_length[j];
+            pc.internal_symmetric_length_at_least(i) += temp_cache_counts_internal_symmetric_length[j];
 #endif
     
 #if PARAMS_INTERNAL_ASYMMETRY
     for (int i = 0; i <= D_MAX_INTERNAL_ASYMMETRY; i++)
         for (int j = i; j <= D_MAX_INTERNAL_ASYMMETRY; j++)
-            score_internal_asymmetry_at_least[i].second += temp_cache_counts_internal_asymmetry[j];
+            pc.internal_asymmetry_at_least(i) += temp_cache_counts_internal_asymmetry[j];
 #endif
 
     // finalize profile counts
@@ -2270,24 +1162,24 @@ void InferenceEngine<RealT>::FinalizeCounts()
 	    //自作パラメータ
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
             if (j == 0)
-	      {
+            {
                 const int pos[5] = {i+1, i+2, i+3, i+4,i+5};
                 ConvertProfileCount(profile_score_hairpin_5_nucleotides[i].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_hairpin_5_nucleotides));
-	      }
+            }
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
             if (j == 0)
-	      {
+            {
                 const int pos[6] = {i+1, i+2, i+3, i+4, ,i+5, i+6};
                 ConvertProfileCount(profile_score_hairpin_6_nucleotides[i].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_hairpin_6_nucleotides));
-	      }
+            }
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
             if (j == 0)
-	      {
+            {
                 const int pos[7] = {i+1, i+2, i+3, i+4, i+5, i+6, i+7};
                 ConvertProfileCount(profile_score_hairpin_7_nucleotides[i].second, pos, 7, reinterpret_cast<std::pair<RealT, RealT> *>(score_hairpin_7_nucleotides));
-	      }
+            }
 #endif
 	    //自作終了
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
@@ -2329,39 +1221,39 @@ void InferenceEngine<RealT>::FinalizeCounts()
 	    //自作パラメータ
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
             if (i == 0)
-	      {
+            {
                 const int pos[4] = {j-3,j-2, j-1, j};
                 ConvertProfileCount(profile_score_bulge_0x4_nucleotides[j].second, pos, 4, reinterpret_cast<std::pair<RealT, RealT> *>(score_bulge_0x4_nucleotides));
-	      }
+            }
             if (j == 0)
-	      {
+            {
                 const int pos[4] = {i+1, i+2, i+3, i+4};
                 ConvertProfileCount(profile_score_bulge_4x0_nucleotides[i].second, pos, 4, reinterpret_cast<std::pair<RealT, RealT> *>(score_bulge_4x0_nucleotides));
-	      }
+            }
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
             if (i == 0)
-	      {
+            {
                 const int pos[5] = {j-4, j-3, j-2, j-1, j};
                 ConvertProfileCount(profile_score_bulge_0x5_nucleotides[j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_bulge_0x5_nucleotides));
-	      }
+            }
             if (j == 0)
-	      {
+            {
                 const int pos[5] = {i+1, i+2, i+3,i+4,i+5};
                 ConvertProfileCount(profile_score_bulge_5x0_nucleotides[i].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_bulge_5x0_nucleotides));
-	      }
+            }
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
             if (i == 0)
-	      {
+            {
                 const int pos[6] = {j-5, j-4, j-3, j-2, j-1, j};
                 ConvertProfileCount(profile_score_bulge_0x6_nucleotides[j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_bulge_0x6_nucleotides));
-	      }
+            }
             if (j == 0)
-	      {
+            {
                 const int pos[6] = {i+1, i+2, i+3, i+4, i+5, i+6};
                 ConvertProfileCount(profile_score_bulge_6x0_nucleotides[i].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_bulge_6x0_nucleotides));
-	      }
+            }
 #endif            
 	    //自作終了
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
@@ -2608,6 +1500,217 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
     }
 }
 
+
+
+// score for leaving s[i] unpaired
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreUnpairedPosition(int i) const
+{
+#if defined(HAMMING_LOSS)
+    return loss_unpaired_position[i]+reactivity_unpaired_position[i];
+#else
+    return RealT(0)+reactivity_unpaired_position[i];
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountUnpairedPosition(int i, RealT v)
+{
+}
+
+// score for leaving s[i+1...j] unpaired
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreUnpaired(int i, int j) const
+{
+#if defined(HAMMING_LOSS)
+    return loss_unpaired[offset[i]+j]+reactivity_unpaired[offset[i]+j];
+#else
+    return RealT(0)+reactivity_unpaired[offset[i]+j];
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountUnpaired(int i,int j, RealT v)
+{
+}
+
+// score for a base pair which is not part of any helix
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreIsolated() const
+{
+#if PARAMS_ISOLATED_BASE_PAIR
+    auto& pm = *parameter_manager;
+    return pm.isolated_base_pair();
+#else
+    return RealT(0);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountIsolated(RealT v)
+{
+#if PARAMS_ISOLATED_BASE_PAIR
+    auto& pc = *parameter_count;
+    pc.isolated_base_pair() += (v);
+#endif
+}
+
+// base score for a multi-branch loop
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreMultiBase() const
+{
+#if PARAMS_MULTI_LENGTH
+    auto& pm = *parameter_manager;
+    return pm.multi_base();
+#else
+    return RealT(0);
+#endif    
+}
+    
+template<class RealT>
+inline void InferenceEngine<RealT>::CountMultiBase(RealT v)
+{
+#if PARAMS_MULTI_LENGTH
+    auto& pc = *parameter_count;
+    pc.multi_base() += (v);
+#endif
+}
+
+// score for a base-pair adjacent to a multi-branch loop
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
+{
+#if PARAMS_MULTI_LENGTH
+    auto& pm = *parameter_manager;
+    return pm.multi_paired();
+#else
+    return RealT(0);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountMultiPaired(RealT v)
+{
+#if PARAMS_MULTI_LENGTH
+    auto& pc = *parameter_count;
+    pc.multi_paired() += (v);
+#endif
+}
+
+// score for each unpaired position in a multi-branch loop
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
+{
+#if PARAMS_MULTI_LENGTH
+    auto& pm = *parameter_manager;
+    return pm.multi_unpaired() + ScoreUnpairedPosition(i);
+#else
+    return ScoreUnpairedPosition(i);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, RealT v)
+{
+#if PARAMS_MULTI_LENGTH
+    auto& pc = *parameter_count;
+    pc.multi_unpaired() += v; 
+    CountUnpairedPosition(i,v);
+#else
+    CountUnpairedPosition(i,v);
+#endif
+}
+
+// score for each base-pair adjacent to an external loop
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreExternalPaired() const
+{
+#if PARAMS_EXTERNAL_LENGTH
+    auto& pm = *parameter_manager;
+    return pm.external_paired();
+#else
+    return RealT(0);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountExternalPaired(RealT v)
+{
+#if PARAMS_EXTERNAL_LENGTH
+    auto& pc = *parameter_count;
+    pc.external_paired() += (v);
+#endif
+}
+
+// score for each unpaired position in an external loop
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreExternalUnpaired(int i) const
+{
+#if PARAMS_EXTERNAL_LENGTH
+    auto& pm = *parameter_manager;
+    return pm.external_unpaired() + ScoreUnpairedPosition(i);
+#else
+    return ScoreUnpairedPosition(i);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, RealT v)
+{
+#if PARAMS_EXTERNAL_LENGTH
+    auto& pc = *parameter_count;
+    pc.external_unpaired() += v;
+    CountUnpairedPosition(i,v);
+#else
+    CountUnpairedPosition(i,v); 
+#endif
+}
+
+// score for a helix stacking pair of the form:
+//
+//       |         |
+//    s[i+1] == s[j-1]
+//       |         |
+//     s[i] ==== s[j]
+//       |         |
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreHelixStacking(int i, int j) const
+{
+#if PARAMS_HELIX_STACKING
+#if PROFILE
+    return profile_score_helix_stacking[i*(L+1)+j].first;
+#else
+    auto& pm = *parameter_manager;
+    return pm.helix_stacking(s[i], s[j], s[i+1], s[j-1]);
+#endif
+#else
+    return RealT(0);
+#endif
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountHelixStacking(int i,int j, RealT v)
+{
+#if PARAMS_HELIX_STACKING
+#if PROFILE
+    profile_score_helix_stacking[i*(L+1)+j].second += (v);
+#else
+    auto& pc = *parameter_count;
+    pc.helix_stacking(s[i], s[j], s[i+1], s[j-1]) += (v);
+#endif
+#endif
+}
+
+
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::ScoreJunctionA()
 // InferenceEngine::CountJunctionA()
@@ -2640,6 +1743,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
     // we allow i to be as large as L and j to be as small as 0.
     
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
+    auto& pm = *parameter_manager;
 
     return
         RealT(0)
@@ -2647,7 +1751,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
 #if PROFILE
         + profile_score_helix_closing[i*(L+1)+j].first
 #else                                          
-        + score_helix_closing[s[i]][s[j+1]].first
+        + pm.helix_closing(s[i], s[j+1])
 #endif
 #endif
 #if PARAMS_DANGLE
@@ -2655,8 +1759,8 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
         + (i < L ? profile_score_dangle_left[i*(L+1)+j].first : RealT(0))
         + (j > 0 ? profile_score_dangle_right[i*(L+1)+j].first : RealT(0))
 #else
-        + (i < L ? score_dangle_left[s[i]][s[j+1]][s[i+1]].first : RealT(0))
-        + (j > 0 ? score_dangle_right[s[i]][s[j+1]][s[j]].first : RealT(0))
+        + (i < L ? pm.dangle_left(s[i], s[j+1], s[i+1]) : RealT(0))
+        + (j > 0 ? pm.dangle_right(s[i], s[j+1], s[j]) : RealT(0))
 #endif
 #endif
         ;
@@ -2666,12 +1770,13 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
 {
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
+    auto& pc = *parameter_count;
     
 #if PARAMS_HELIX_CLOSING
 #if PROFILE
     profile_score_helix_closing[i*(L+1)+j].second += value;
 #else
-    score_helix_closing[s[i]][s[j+1]].second += value;
+    pc.helix_closing(s[i], s[j+1]) += value;
 #endif
 #endif
 #if PARAMS_DANGLE
@@ -2679,8 +1784,8 @@ inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
     if (i < L) profile_score_dangle_left[i*(L+1)+j].second += value;
     if (j > 0) profile_score_dangle_right[i*(L+1)+j].second += value;
 #else                                                               
-    if (i < L) score_dangle_left[s[i]][s[j+1]][s[i+1]].second += value;
-    if (j > 0) score_dangle_right[s[i]][s[j+1]][s[j]].second += value;
+    if (i < L) pc.dangle_left(s[i], s[j+1], s[i+1]) += value;
+    if (j > 0) pc.dangle_right(s[i], s[j+1], s[j]) += value;
 #endif
 #endif
 }
@@ -2716,20 +1821,21 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionB(int i, int j) const
     // from the edges of the sequence (i.e., i < L && j > 0).
     //外部ループアリ
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+    auto& pm = *parameter_manager;
     
     return RealT(0)
 #if PARAMS_HELIX_CLOSING
 #if PROFILE
         + profile_score_helix_closing[i*(L+1)+j].first
 #else
-        + score_helix_closing[s[i]][s[j+1]].first
+        + pm.helix_closing(s[i], s[j+1])
 #endif
 #endif
 #if PARAMS_TERMINAL_MISMATCH
 #if PROFILE
         + profile_score_terminal_mismatch[i*(L+1)+j].first
 #else                                           
-        + score_terminal_mismatch[s[i]][s[j+1]][s[i+1]][s[j]].first
+        + pm.terminal_mismatch(s[i], s[j+1], s[i+1], s[j])
 #endif
 #endif
         ;
@@ -2739,19 +1845,20 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
 {
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+    auto& pc = *parameter_count;
     
 #if PARAMS_HELIX_CLOSING
 #if PROFILE
     profile_score_helix_closing[i*(L+1)+j].second += value;
 #else
-    score_helix_closing[s[i]][s[j+1]].second += value;
+    pc.helix_closing(s[i], s[j+1]) += value;
 #endif
 #endif
 #if PARAMS_TERMINAL_MISMATCH
 #if PROFILE
     profile_score_terminal_mismatch[i*(L+1)+j].second += value;
 #else
-    score_terminal_mismatch[s[i]][s[j+1]][s[i+1]][s[j]].second += value;
+    pc.terminal_mismatch(s[i], s[j+1], s[i+1], s[j]) += value;
 #endif
 #endif
 }
@@ -2766,11 +1873,11 @@ inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 {
-
     // Clearly, i and j must refer to actual letters of the sequence,
     // and no letter may base-pair to itself.
     
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
+    auto& pm = *parameter_manager;
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
@@ -2780,7 +1887,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 #if PROFILE
         + profile_score_base_pair[i*(L+1)+j].first
 #else
-        + score_base_pair[s[i]][s[j]].first
+        + pm.base_pair(s[i], s[j])
 #endif
 #endif
 #if PARAMS_BASE_PAIR_DIST
@@ -2798,12 +1905,13 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountBasePair(int i, int j, RealT value)
 {
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
+    auto& pc = *parameter_count;
     
 #if PARAMS_BASE_PAIR
 #if PROFILE
     profile_score_base_pair[i*(L+1)+j].second += value;
 #else
-    score_base_pair[s[i]][s[j]].second += value;
+    pc.base_pair(s[i], s[j]) += value;
 #endif
 #endif
 #if PARAMS_BASE_PAIR_DIST
@@ -2839,6 +1947,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
     // that only valid hairpins are considered.
     
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
+    auto& pm = *parameter_manager;
     
     return 
         ScoreUnpaired(i,j)
@@ -2850,14 +1959,14 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #if PROFILE
         + (j - i == 3 ? profile_score_hairpin_3_nucleotides[i].first : RealT(0))
 #else
-        + (j - i == 3 ? score_hairpin_3_nucleotides[s[i+1]][s[i+2]][s[i+3]].first : RealT(0))
+        + (j - i == 3 ? pm.hairpin_3_nucleotides(s[i+1], s[i+2], s[i+3]) : RealT(0))
 #endif                                          
 #endif
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
 #if PROFILE
         + (j - i == 4 ? profile_score_hairpin_4_nucleotides[i].first : RealT(0))
 #else
-        + (j - i == 4 ? score_hairpin_4_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]].first : RealT(0))
+        + (j - i == 4 ? pm.hairpin_4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) : RealT(0))
 #endif
 #endif
       //自作パラメータ
@@ -2865,21 +1974,21 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #if PROFILE
       + (j - i == 5 ? profile_score_hairpin_5_nucleotides[i].first : RealT(0))
 #else
-      + (j - i == 5 ? score_hairpin_5_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]].first : RealT(0))
+      + (j - i == 5 ? pm.hairpin_5_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) : RealT(0))
 #endif
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
 #if PROFILE
       + (j - i == 6 ? profile_score_hairpin_6_nucleotides[i].first : RealT(0))
 #else
-      + (j - i == 6 ? score_hairpin_6_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]].first : RealT(0))
+      + (j - i == 6 ? pm.hairpin_6_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) : RealT(0))
 #endif
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
 #if PROFILE
       + (j - i == 7 ? profile_score_hairpin_7_nucleotides[i].first : RealT(0))
 #else
-      + (j - i == 7 ? score_hairpin_7_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]][s[i+7]].first : RealT(0))
+      + (j - i == 7 ? pm.hairpin_7_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
 #endif
 #endif
       //自作終了
@@ -2890,6 +1999,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 {
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
+    auto& pc = *parameter_count;
     
     CountUnpaired(i,j,value);
     CountJunctionB(i,j,value);
@@ -2900,14 +2010,14 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #if PROFILE
     if (j - i == 3) profile_score_hairpin_3_nucleotides[i].second += value;
 #else
-    if (j - i == 3) score_hairpin_3_nucleotides[s[i+1]][s[i+2]][s[i+3]].second += value;
+    if (j - i == 3) pc.hairpin_3_nucleotides(s[i+1], s[i+2], s[i+3]) += value;
 #endif
 #endif
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
 #if PROFILE
     if (j - i == 4) profile_score_hairpin_4_nucleotides[i].second += value;
 #else
-    if (j - i == 4) score_hairpin_4_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]].second += value;
+    if (j - i == 4) pc.hairpin_4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) += value;
 #endif
 #endif
     //自作パラメータ
@@ -2915,14 +2025,14 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #if PROFILE
     if (j - i == 5) profile_score_hairpin_5_nucleotides[i].second += value;
 #else
-    if (j - i == 5) score_hairpin_5_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]].second += value;
+    if (j - i == 5) pc.hairpin_5_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) += value;
 #endif
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
 #if PROFILE
     if (j - i == 6) profile_score_hairpin_6_nucleotides[i].second += value;
 #else
-    if (j - i == 6) score_hairpin_6_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]].second += value;
+    if (j - i == 6) pc.hairpin_6_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) += value;
 #endif
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
@@ -3053,6 +2163,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
     // loop should only be used for dealing with single-branch loops, not stacking pairs.
     
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
+    auto& pm = *parameter_manager;
 
 #if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES ||  PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES ||PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES )
     const int l1 = p - i;
@@ -3069,8 +2180,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         + (l1 == 0 && l2 == 1 ? profile_score_bulge_0x1_nucleotides[j].first : RealT(0))
         + (l1 == 1 && l2 == 0 ? profile_score_bulge_1x0_nucleotides[i].first : RealT(0))
 #else
-        + (l1 == 0 && l2 == 1 ? score_bulge_0x1_nucleotides[s[j]].first : RealT(0))
-        + (l1 == 1 && l2 == 0 ? score_bulge_1x0_nucleotides[s[i+1]].first : RealT(0))
+        + (l1 == 0 && l2 == 1 ? pm.bulge_0x1_nucleotides(s[j]) : RealT(0))
+        + (l1 == 1 && l2 == 0 ? pm.bulge_1x0_nucleotides(s[i+1]) : RealT(0))
 #endif
 #endif
 #if PARAMS_BULGE_0x2_NUCLEOTIDES
@@ -3078,8 +2189,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         + (l1 == 0 && l2 == 2 ? profile_score_bulge_0x2_nucleotides[j].first : RealT(0))
         + (l1 == 2 && l2 == 0 ? profile_score_bulge_2x0_nucleotides[i].first : RealT(0))
 #else
-        + (l1 == 0 && l2 == 2 ? score_bulge_0x2_nucleotides[s[j-1]][s[j]].first : RealT(0))
-        + (l1 == 2 && l2 == 0 ? score_bulge_2x0_nucleotides[s[i+1]][s[i+2]].first : RealT(0))
+        + (l1 == 0 && l2 == 2 ? pm.bulge_0x2_nucleotides(s[j-1], s[j]) : RealT(0))
+        + (l1 == 2 && l2 == 0 ? pm.bulge_2x0_nucleotides(s[i+1], s[i+2]): RealT(0))
 #endif
 #endif
 #if PARAMS_BULGE_0x3_NUCLEOTIDES
@@ -3087,8 +2198,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         + (l1 == 0 && l2 == 3 ? profile_score_bulge_0x3_nucleotides[j].first : RealT(0))
         + (l1 == 3 && l2 == 0 ? profile_score_bulge_3x0_nucleotides[i].first : RealT(0))
 #else
-        + (l1 == 0 && l2 == 3 ? score_bulge_0x3_nucleotides[s[j-2]][s[j-1]][s[j]].first : RealT(0))
-        + (l1 == 3 && l2 == 0 ? score_bulge_3x0_nucleotides[s[i+1]][s[i+2]][s[i+3]].first : RealT(0))
+        + (l1 == 0 && l2 == 3 ? pm.bulge_0x3_nucleotides(s[j-2], s[j-1], s[j]) : RealT(0))
+        + (l1 == 3 && l2 == 0 ? pm.bulge_3x0_nucleotides(s[i+1], s[i+2], s[i+3]) : RealT(0))
 #endif
 #endif
       //自作パラメータ
@@ -3097,8 +2208,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 0 && l2 == 4 ? profile_score_bulge_0x4_nucleotides[j].first : RealT(0))
       + (l1 == 4 && l2 == 0 ? profile_score_bulge_4x0_nucleotides[i].first : RealT(0))
 #else
-      + (l1 == 0 && l2 == 4 ? score_bulge_0x4_nucleotides[s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 4 && l2 == 0 ? score_bulge_4x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]].first : RealT(0))
+      + (l1 == 0 && l2 == 4 ? pm.bulge_0x4_nucleotides(s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 4 && l2 == 0 ? pm.bulge_4x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) : RealT(0))
 #endif
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
@@ -3106,8 +2217,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 0 && l2 == 5 ? profile_score_bulge_0x5_nucleotides[j].first : RealT(0))
       + (l1 == 5 && l2 == 0 ? profile_score_bulge_5x0_nucleotides[i].first : RealT(0))
 #else
-      + (l1 == 0 && l2 == 5 ? score_bulge_0x5_nucleotides[s[j-4]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 5 && l2 == 0 ? score_bulge_5x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]].first : RealT(0))
+      + (l1 == 0 && l2 == 5 ? pm.bulge_0x5_nucleotides(s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 5 && l2 == 0 ? pm.bulge_5x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) : RealT(0))
 #endif
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
@@ -3115,27 +2226,25 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 0 && l2 == 6 ? profile_score_bulge_0x6_nucleotides[j].first : RealT(0))
       + (l1 == 6 && l2 == 0 ? profile_score_bulge_6x0_nucleotides[i].first : RealT(0))
 #else
-      + (l1 == 0 && l2 == 6 ? score_bulge_0x6_nucleotides[s[j-5]][s[j-4]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 6 && l2 == 0 ? score_bulge_6x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]].first : RealT(0))
+      + (l1 == 0 && l2 == 6 ? pm.bulge_0x6_nucleotides(s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 6 && l2 == 0 ? pm.bulge_6x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) : RealT(0))
 #endif
 #endif
-      /*
 #if PARAMS_BULGE_0x7_NUCLEOTIDES
 #if PROFILE
       + (l1 == 0 && l2 == 7 ? profile_score_bulge_0x7_nucleotides[j].first : RealT(0))
       + (l1 == 7 && l2 == 0 ? profile_score_bulge_7x0_nucleotides[i].first : RealT(0))
-      #else
-      + (l1 == 0 && l2 == 7 ? score_bulge_0x7_nucleotides[s[j-6]]s[j-5]][s[j-4]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 7 && l2 == 0 ? score_bulge_7x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]][s[i+7]].first : RealT(0))
+#else
+      + (l1 == 0 && l2 == 7 ? pm.bulge_0x7_nucleotides(s[j-6], s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 7 && l2 == 0 ? pm.bulge_7x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
 #endif
 #endif
-      */      
       //自作終了
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
 #if PROFILE
         + (l1 == 1 && l2 == 1 ? profile_score_internal_1x1_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-        + (l1 == 1 && l2 == 1 ? score_internal_1x1_nucleotides[s[i+1]][s[j]].first : RealT(0))
+        + (l1 == 1 && l2 == 1 ? pm.internal_1x1_nucleotides(s[i+1], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
@@ -3143,15 +2252,15 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         + (l1 == 1 && l2 == 2 ? profile_score_internal_1x2_nucleotides[i*(L+1)+j].first : RealT(0))
         + (l1 == 2 && l2 == 1 ? profile_score_internal_2x1_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-        + (l1 == 1 && l2 == 2 ? score_internal_1x2_nucleotides[s[i+1]][s[j-1]][s[j]].first : RealT(0))
-        + (l1 == 2 && l2 == 1 ? score_internal_2x1_nucleotides[s[i+1]][s[i+2]][s[j]].first : RealT(0))
+        + (l1 == 1 && l2 == 2 ? pm.internal_1x2_nucleotides(s[i+1], s[j-1], s[j]) : RealT(0))
+        + (l1 == 2 && l2 == 1 ? pm.internal_2x1_nucleotides(s[i+1], s[i+2], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
 #if PROFILE
         + (l1 == 2 && l2 == 2 ? profile_score_internal_2x2_nucleotides[i*(L+1)+j].first : RealT(0))
 #else                                                                   
-        + (l1 == 2 && l2 == 2 ? score_internal_2x2_nucleotides[s[i+1]][s[i+2]][s[j-1]][s[j]].first : RealT(0))
+        + (l1 == 2 && l2 == 2 ? pm.internal_2x2_nucleotides(s[i+1], s[i+2], s[j-1], s[j]) : RealT(0))
 #endif
 #endif
       //自作パラメータ
@@ -3160,8 +2269,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 1 && l2 == 3 ? profile_score_internal_1x3_nucleotides[i*(L+1)+j].first : RealT(0))
       + (l1 == 3 && l2 == 1 ? profile_score_internal_3x1_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-      + (l1 == 1 && l2 == 3 ? score_internal_1x3_nucleotides[s[i+1]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 3 && l2 == 1 ? score_internal_3x1_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j]].first : RealT(0))
+      + (l1 == 1 && l2 == 3 ? pm.internal_1x3_nucleotides(s[i+1], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 3 && l2 == 1 ? pm.internal_3x1_nucleotides(s[i+1], s[i+2], s[i+3], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
@@ -3169,15 +2278,15 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 2 && l2 == 3 ? profile_score_internal_2x3_nucleotides[i*(L+1)+j].first : RealT(0))
       + (l1 == 3 && l2 == 2 ? profile_score_internal_3x2_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-      + (l1 == 2 && l2 == 3 ? score_internal_2x3_nucleotides[s[i+1]][s[i+2]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 3 && l2 == 2 ? score_internal_3x2_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j-1]][s[j]].first : RealT(0))
+      + (l1 == 2 && l2 == 3 ? pm.internal_2x3_nucleotides(s[i+1], s[i+2], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 3 && l2 == 2 ? pm.internal_3x2_nucleotides(s[i+1], s[i+2], s[i+3], s[j-1], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
 #if PROFILE
       + (l1 == 3 && l2 == 3 ? profile_score_internal_3x3_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-      + (l1 == 3 && l2 == 3 ? score_internal_3x3_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
+      + (l1 == 3 && l2 == 3 ? pm.internal_3x3_nucleotides(s[i+1], s[i+2], s[i+3], s[j-2], s[j-1], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
@@ -3185,8 +2294,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 1 && l2 == 4 ? profile_score_internal_1x4_nucleotides[i*(L+1)+j].first : RealT(0))
       + (l1 == 4 && l2 == 1 ? profile_score_internal_4x1_nucleotides[i*(L+1)+j].first : RealT(0))
       #else
-      + (l1 == 1 && l2 == 4 ? score_internal_1x4_nucleotides[s[i+1]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 4 && l2 == 1 ? score_internal_4x1_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j]].first : RealT(0))
+      + (l1 == 1 && l2 == 4 ? pm.internal_1x4_nucleotides(s[i+1], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 4 && l2 == 1 ? pm.internal_4x1_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
@@ -3194,8 +2303,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 2 && l2 == 4 ? profile_score_internal_2x4_nucleotides[i*(L+1)+j].first : RealT(0))
       + (l1 == 4 && l2 == 2 ? profile_score_internal_4x2_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-      + (l1 == 2 && l2 == 4 ? score_internal_2x4_nucleotides[s[i+1]][s[i+2]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 4 && l2 == 2 ? score_internal_4x2_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j-1]][s[j]].first : RealT(0))
+      + (l1 == 2 && l2 == 4 ? pm.internal_2x4_nucleotides(s[i+1], s[i+2], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 4 && l2 == 2 ? pm.internal_4x2_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-1], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
@@ -3203,15 +2312,15 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 3 && l2 == 4 ? profile_score_internal_3x4_nucleotides[i*(L+1)+j].first : RealT(0))
       + (l1 == 4 && l2 == 3 ? profile_score_internal_4x3_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-      + (l1 == 3 && l2 == 4 ? score_internal_3x4_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
-      + (l1 == 4 && l2 == 3 ? score_internal_4x3_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
+      + (l1 == 3 && l2 == 4 ? pm.internal_3x4_nucleotides(s[i+1], s[i+2], s[i+3], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
+      + (l1 == 4 && l2 == 3 ? pm.internal_4x3_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-2], s[j-1], s[j]) : RealT(0))
 #endif
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
 #if PROFILE
       + (l1 == 4 && l2 == 4 ? profile_score_internal_4x4_nucleotides[i*(L+1)+j].first : RealT(0))
 #else
-      + (l1 == 4 && l2 == 4 ? score_internal_4x4_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j-3]][s[j-2]][s[j-1]][s[j]].first : RealT(0))
+      + (l1 == 4 && l2 == 4 ? pm.internal_4x4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
 #endif
 #endif      
 
@@ -3223,7 +2332,8 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, RealT value)
 {
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-
+    auto& pc = *parameter_count;
+    
 #if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES || PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES || PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES)
     const int l1 = p - i;
     const int l2 = j - q;
@@ -3238,8 +2348,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 1) profile_score_bulge_0x1_nucleotides[j].second += value;
     if (l1 == 1 && l2 == 0) profile_score_bulge_1x0_nucleotides[i].second += value;
 #else
-    if (l1 == 0 && l2 == 1) score_bulge_0x1_nucleotides[s[j]].second += value;
-    if (l1 == 1 && l2 == 0) score_bulge_1x0_nucleotides[s[i+1]].second += value;
+    if (l1 == 0 && l2 == 1) pc.bulge_0x1_nucleotides(s[j]) += value;
+    if (l1 == 1 && l2 == 0) pc.bulge_1x0_nucleotides(s[i+1]) += value;
 #endif
 #endif
 #if PARAMS_BULGE_0x2_NUCLEOTIDES
@@ -3247,8 +2357,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 2) profile_score_bulge_0x2_nucleotides[j].second += value;
     if (l1 == 2 && l2 == 0) profile_score_bulge_2x0_nucleotides[i].second += value;
 #else
-    if (l1 == 0 && l2 == 2) score_bulge_0x2_nucleotides[s[j-1]][s[j]].second += value;
-    if (l1 == 2 && l2 == 0) score_bulge_2x0_nucleotides[s[i+1]][s[i+2]].second += value;
+    if (l1 == 0 && l2 == 2) pc.bulge_0x2_nucleotides(s[j-1], s[j]) += value;
+    if (l1 == 2 && l2 == 0) pc.bulge_2x0_nucleotides(s[i+1], s[i+2]) += value;
 #endif
 #endif
 #if PARAMS_BULGE_0x3_NUCLEOTIDES
@@ -3256,8 +2366,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 3) profile_score_bulge_0x3_nucleotides[j].second += value;
     if (l1 == 3 && l2 == 0) profile_score_bulge_3x0_nucleotides[i].second += value;
 #else
-    if (l1 == 0 && l2 == 3) score_bulge_0x3_nucleotides[s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 3 && l2 == 0) score_bulge_3x0_nucleotides[s[i+1]][s[i+2]][s[i+3]].second += value;
+    if (l1 == 0 && l2 == 3) pc.bulge_0x3_nucleotides(s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 3 && l2 == 0) pc.bulge_3x0_nucleotides(s[i+1], s[i+2], s[i+3]) += value;
 #endif
 #endif
     //自作パラメータ
@@ -3266,8 +2376,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 4) profile_score_bulge_0x4_nucleotides[j].second += value;
     if (l1 == 4 && l2 == 0) profile_score_bulge_4x0_nucleotides[i].second += value;
 #else
-    if (l1 == 0 && l2 == 4) score_bulge_0x4_nucleotides[s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 4 && l2 == 0) score_bulge_4x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]].second += value;
+    if (l1 == 0 && l2 == 4) pc.bulge_0x4_nucleotides(s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 4 && l2 == 0) pc.bulge_4x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) += value;
 #endif
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
@@ -3275,8 +2385,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 5) profile_score_bulge_0x5_nucleotides[j].second += value;
     if (l1 == 5 && l2 == 0) profile_score_bulge_5x0_nucleotides[i].second += value;
 #else
-    if (l1 == 0 && l2 == 5) score_bulge_0x5_nucleotides[s[j-4]][s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 5 && l2 == 0) score_bulge_5x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]].second += value;
+    if (l1 == 0 && l2 == 5) pc.bulge_0x5_nucleotides(s[j-4], s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 5 && l2 == 0) pc.bulge_5x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) += value;
 #endif
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
@@ -3284,8 +2394,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 6) profile_score_bulge_0x6_nucleotides[j].second += value;
     if (l1 == 6 && l2 == 0) profile_score_bulge_6x0_nucleotides[i].second += value;
 #else
-    if (l1 == 0 && l2 == 6) score_bulge_0x6_nucleotides[s[j-5]][s[j-4]][s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 6 && l2 == 0) score_bulge_6x0_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]].second += value;
+    if (l1 == 0 && l2 == 6) pc.bulge_0x6_nucleotides(s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 6 && l2 == 0) pc.bulge_6x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) += value;
 #endif
 #endif
     //自作終了
@@ -3293,7 +2403,7 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
 #if PROFILE
     if (l1 == 1 && l2 == 1) profile_score_internal_1x1_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 1 && l2 == 1) score_internal_1x1_nucleotides[s[i+1]][s[j]].second += value;
+    if (l1 == 1 && l2 == 1) pc.internal_1x1_nucleotides(s[i+1], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
@@ -3301,15 +2411,15 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 1 && l2 == 2) profile_score_internal_1x2_nucleotides[i*(L+1)+j].second += value;
     if (l1 == 2 && l2 == 1) profile_score_internal_2x1_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 1 && l2 == 2) score_internal_1x2_nucleotides[s[i+1]][s[j-1]][s[j]].second += value;
-    if (l1 == 2 && l2 == 1) score_internal_2x1_nucleotides[s[i+1]][s[i+2]][s[j]].second += value;
+    if (l1 == 1 && l2 == 2) pc.internal_1x2_nucleotides(s[i+1], s[j-1], s[j]) += value;
+    if (l1 == 2 && l2 == 1) pc.internal_2x1_nucleotides(s[i+1], s[i+2], s[j]) += value;
 #endif    
 #endif
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
 #if PROFILE
     if (l1 == 2 && l2 == 2) profile_score_internal_2x2_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 2 && l2 == 2) score_internal_2x2_nucleotides[s[i+1]][s[i+2]][s[j-1]][s[j]].second += value;
+    if (l1 == 2 && l2 == 2) pc.internal_2x2_nucleotides(s[i+1], s[i+2], s[j-1], s[j]) += value;
 #endif
 #endif
     //自作パラメータ
@@ -3318,8 +2428,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 1 && l2 == 3) profile_score_internal_1x3_nucleotides[i*(L+1)+j].second += value;
     if (l1 == 3 && l2 == 1) profile_score_internal_3x1_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 1 && l2 == 3) score_internal_1x3_nucleotides[s[i+1]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 3 && l2 == 1) score_internal_3x1_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j]].second += value;
+    if (l1 == 1 && l2 == 3) pc.internal_1x3_nucleotides(s[i+1], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 3 && l2 == 1) pc.internal_3x1_nucleotides(s[i+1], s[i+2], s[i+3], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
@@ -3327,15 +2437,15 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 2 && l2 == 3) profile_score_internal_2x3_nucleotides[i*(L+1)+j].second += value;
     if (l1 == 3 && l2 == 2) profile_score_internal_3x2_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 2 && l2 == 3) score_internal_2x3_nucleotides[s[i+1]][s[i+2]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 3 && l2 == 2) score_internal_3x2_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j-1]][s[j]].second += value;
+    if (l1 == 2 && l2 == 3) pc.internal_2x3_nucleotides(s[i+1], s[i+2], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 3 && l2 == 2) pc.internal_3x2_nucleotides(s[i+1], s[i+2], s[i+3], s[j-1], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
 #if PROFILE
     if (l1 == 3 && l2 == 3) profile_score_internal_3x3_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 3 && l2 == 3) score_internal_3x3_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j-2]][s[j-1]][s[j]].second += value;
+    if (l1 == 3 && l2 == 3) pc.internal_3x3_nucleotides(s[i+1], s[i+2], s[i+3], s[j-2], s[j-1], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
@@ -3343,8 +2453,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 1 && l2 == 4) profile_score_internal_1x4_nucleotides[i*(L+1)+j].second += value;
     if (l1 == 4 && l2 == 1) profile_score_internal_4x1_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 1 && l2 == 4) score_internal_1x4_nucleotides[s[i+1]][s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 4 && l2 == 1) score_internal_4x1_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j]].second += value;
+    if (l1 == 1 && l2 == 4) pc.internal_1x4_nucleotides(s[i+1], s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 4 && l2 == 1) pc.internal_4x1_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
@@ -3352,8 +2462,8 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 2 && l2 == 4) profile_score_internal_2x4_nucleotides[i*(L+1)+j].second += value;
     if (l1 == 4 && l2 == 2) profile_score_internal_4x2_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 2 && l2 == 4) score_internal_2x4_nucleotides[s[i+1]][s[i+2]][s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 4 && l2 == 2) score_internal_4x2_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j-1]][s[j]].second += value;
+    if (l1 == 2 && l2 == 4) pc.internal_2x4_nucleotides(s[i+1], s[i+2], s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 4 && l2 == 2) pc.internal_4x2_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-1], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
@@ -3361,20 +2471,17 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 3 && l2 == 4) profile_score_internal_3x4_nucleotides[i*(L+1)+j].second += value;
     if (l1 == 4 && l2 == 3) profile_score_internal_4x3_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 3 && l2 == 4) score_internal_3x4_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
-    if (l1 == 4 && l2 == 3) score_internal_4x3_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j-2]][s[j-1]][s[j]].second += value;
+    if (l1 == 3 && l2 == 4) pc.internal_3x4_nucleotides(s[i+1], s[i+2], s[i+3], s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 4 && l2 == 3) pc.internal_4x3_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-2], s[j-1], s[j]) += value;
 #endif
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
 #if PROFILE
     if (l1 == 4 && l2 == 4) profile_score_internal_4x4_nucleotides[i*(L+1)+j].second += value;
 #else
-    if (l1 == 4 && l2 == 4) score_internal_4x4_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[j-3]][s[j-2]][s[j-1]][s[j]].second += value;
+    if (l1 == 4 && l2 == 4) pc.internal_4x4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-3], s[j-2], s[j-1], s[j]) += value;
 #endif
 #endif
-    
-    
-    //自作終了
 }
 
 //////////////////////////////////////////////////////////////////////

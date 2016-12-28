@@ -10,7 +10,7 @@
 #include <string>
 #include "Config.hpp"
 #include "SStruct.hpp"
-#include "ParameterManager.hpp"
+#include "ParameterHash.hpp"
 #include "Utilities.hpp"
 #include "LogSpace.hpp"
 #include <iostream>
@@ -25,7 +25,9 @@ class InferenceEngine
     unsigned char char_mapping[256];
     int is_complementary[M+1][M+1];
     bool cache_initialized;
-    ParameterManager<RealT> *parameter_manager;
+    //ParameterManager<RealT> *parameter_manager;
+    ParameterHash<RealT> *parameter_manager;
+    ParameterHash<unsigned int> *parameter_count;
     
     // dimensions
     int L, SIZE;
@@ -43,7 +45,7 @@ class InferenceEngine
     std::vector<int> allow_unpaired, allow_paired;
     std::vector<RealT> loss_unpaired_position;
     std::vector<RealT> loss_unpaired, loss_paired;
- std::vector<float> reactivity_unpaired_position;
+    std::vector<float> reactivity_unpaired_position;
     std::vector<float> reactivity_unpaired, reactivity_paired;
 
 
@@ -89,149 +91,15 @@ class InferenceEngine
     std::vector<RealT> posterior;
 
     // parameters
-
-#if PARAMS_BASE_PAIR
-    std::pair<RealT,RealT> score_base_pair[M+1][M+1];
-#endif
 #if PARAMS_BASE_PAIR_DIST
-    std::pair<RealT,RealT> score_base_pair_dist_at_least[D_MAX_BP_DIST_THRESHOLDS];
     std::pair<RealT,RealT> cache_score_base_pair_dist[BP_DIST_LAST_THRESHOLD+1];
 #endif
-#if PARAMS_TERMINAL_MISMATCH
-    std::pair<RealT,RealT> score_terminal_mismatch[M+1][M+1][M+1][M+1];
-#endif
 #if PARAMS_HAIRPIN_LENGTH
-    std::pair<RealT,RealT> score_hairpin_length_at_least[D_MAX_HAIRPIN_LENGTH+1];
     std::pair<RealT,RealT> cache_score_hairpin_length[D_MAX_HAIRPIN_LENGTH+1];
 #endif
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-    std::pair<RealT,RealT> score_hairpin_3_nucleotides[M+1][M+1][M+1];
-#endif
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-    std::pair<RealT,RealT> score_hairpin_4_nucleotides[M+1][M+1][M+1][M+1];
-#endif
 #if PARAMS_HELIX_LENGTH
-    std::pair<RealT,RealT> score_helix_length_at_least[D_MAX_HELIX_LENGTH+1];
     std::pair<RealT,RealT> cache_score_helix_length[D_MAX_HELIX_LENGTH+1];
 #endif
-#if PARAMS_ISOLATED_BASE_PAIR
-    std::pair<RealT,RealT> score_isolated_base_pair;
-#endif
-#if PARAMS_INTERNAL_EXPLICIT
-    std::pair<RealT,RealT> score_internal_explicit[D_MAX_INTERNAL_EXPLICIT_LENGTH+1][D_MAX_INTERNAL_EXPLICIT_LENGTH+1];
-#endif
-#if PARAMS_BULGE_LENGTH
-    std::pair<RealT,RealT> score_bulge_length_at_least[D_MAX_BULGE_LENGTH+1];
-#endif
-#if PARAMS_INTERNAL_LENGTH
-    std::pair<RealT,RealT> score_internal_length_at_least[D_MAX_INTERNAL_LENGTH+1];
-#endif
-#if PARAMS_INTERNAL_SYMMETRY
-    std::pair<RealT,RealT> score_internal_symmetric_length_at_least[D_MAX_INTERNAL_SYMMETRIC_LENGTH+1];
-#endif
-#if PARAMS_INTERNAL_ASYMMETRY
-    std::pair<RealT,RealT> score_internal_asymmetry_at_least[D_MAX_INTERNAL_ASYMMETRY+1];
-#endif
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-    std::pair<RealT,RealT> score_bulge_0x1_nucleotides[M+1];
-    std::pair<RealT,RealT> score_bulge_1x0_nucleotides[M+1];
-#endif
-#if PARAMS_BULGE_0x2_NUCLEOTIDES
-    std::pair<RealT,RealT> score_bulge_0x2_nucleotides[M+1][M+1];
-    std::pair<RealT,RealT> score_bulge_2x0_nucleotides[M+1][M+1];
-#endif
-#if PARAMS_BULGE_0x3_NUCLEOTIDES
-    std::pair<RealT,RealT> score_bulge_0x3_nucleotides[M+1][M+1][M+1];
-    std::pair<RealT,RealT> score_bulge_3x0_nucleotides[M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-    std::pair<RealT,RealT> score_internal_1x1_nucleotides[M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-    std::pair<RealT,RealT> score_internal_1x2_nucleotides[M+1][M+1][M+1];
-    std::pair<RealT,RealT> score_internal_2x1_nucleotides[M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-    std::pair<RealT,RealT> score_internal_2x2_nucleotides[M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_HELIX_STACKING
-    std::pair<RealT,RealT> score_helix_stacking[M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_HELIX_CLOSING
-    std::pair<RealT,RealT> score_helix_closing[M+1][M+1];
-#endif
-#if PARAMS_MULTI_LENGTH
-    std::pair<RealT,RealT> score_multi_base;
-    std::pair<RealT,RealT> score_multi_unpaired;
-    std::pair<RealT,RealT> score_multi_paired;
-#endif
-#if PARAMS_DANGLE
-    std::pair<RealT,RealT> score_dangle_left[M+1][M+1][M+1];
-    std::pair<RealT,RealT> score_dangle_right[M+1][M+1][M+1];
-#endif
-#if PARAMS_EXTERNAL_LENGTH
-    std::pair<RealT,RealT> score_external_unpaired;
-    std::pair<RealT,RealT> score_external_paired;
-#endif
-
-//自作パラメータ
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-  std::pair<RealT,RealT> score_hairpin_5_nucleotides[M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-  std::pair<RealT,RealT> score_hairpin_6_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-  std::pair<RealT,RealT> score_hairpin_7_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1][M+1];    
-#endif
-
-#if PARAMS_BULGE_0x4_NUCLEOTIDES
-  std::pair<RealT,RealT> score_bulge_0x4_nucleotides[M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_bulge_4x0_nucleotides[M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_BULGE_0x5_NUCLEOTIDES
-  std::pair<RealT,RealT> score_bulge_0x5_nucleotides[M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_bulge_5x0_nucleotides[M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_BULGE_0x6_NUCLEOTIDES
-  std::pair<RealT,RealT> score_bulge_0x6_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_bulge_6x0_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-  /*
-#if PARAMS_BULGE_0x7_NUCLEOTIDES
-  std::pair<RealT,RealT> score_bulge_0x7_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_bulge_7x0_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-  */
-
-#if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_1x3_nucleotides[M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_internal_3x1_nucleotides[M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_2x3_nucleotides[M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_internal_3x2_nucleotides[M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_3x3_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-
-#if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_1x4_nucleotides[M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_internal_4x1_nucleotides[M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_2x4_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_internal_4x2_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_3x4_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1][M+1];
-  std::pair<RealT,RealT> score_internal_4x3_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-#if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-  std::pair<RealT,RealT> score_internal_4x4_nucleotides[M+1][M+1][M+1][M+1][M+1][M+1][M+1][M+1];
-#endif
-
 
 #if PROFILE
 
@@ -281,71 +149,79 @@ class InferenceEngine
     std::vector<std::pair<RealT,RealT> > profile_score_dangle_right;
 #endif
 
-  //自作パラメータ,multi
+    //自作パラメータ,multi
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_hairpin_5_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_5_nucleotides;
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_hairpin_6_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_6_nucleotides;
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_hairpin_7_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_7_nucleotides;
 #endif
 
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x4_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_bulge_4x0_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x4_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_bulge_4x0_nucleotides;
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x5_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_bulge_5x0_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x5_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_bulge_5x0_nucleotides;
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x6_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_bulge_6x0_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x6_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_bulge_6x0_nucleotides;
 #endif
 
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_1x3_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_3x1_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_1x3_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x1_nucleotides;
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_2x3_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_3x2_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_2x3_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x2_nucleotides;
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_3x3_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x3_nucleotides;
 #endif
 
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_1x4_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_4x1_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_1x4_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x1_nucleotides;
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_2x4_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_4x2_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_2x4_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x2_nucleotides;
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_3x4_nucleotides;
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_4x3_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x4_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x3_nucleotides;
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-  std::vector<std::pair<RealT,RealT> > profile_score_internal_4x4_nucleotides;
+    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x4_nucleotides;
 #endif
   
 #endif
 
     // cache
-  //長さl1とl2の内部ループスコア
     std::pair<RealT,RealT> cache_score_single[C_MAX_SINGLE_LENGTH+1][C_MAX_SINGLE_LENGTH+1];
-  //へリックスの合計
     std::vector<std::pair<RealT,RealT> > cache_score_helix_sums;
 
     void FillScores(typename std::vector<std::pair<RealT, RealT> >::iterator begin, typename std::vector<std::pair<RealT, RealT> >::iterator end, RealT value);
     void FillCounts(typename std::vector<std::pair<RealT, RealT> >::iterator begin, typename std::vector<std::pair<RealT, RealT> >::iterator end, RealT value);
     int ComputeRowOffset(int i, int N) const;
     bool IsComplementary(int i, int j) const;
-    
+
+    RealT ScoreUnpairedPosition(int i) const;
+    RealT ScoreUnpaired(int i, int j) const;
+    RealT ScoreIsolated() const;
+    RealT ScoreMultiBase() const;
+    RealT ScoreMultiPaired() const;
+    RealT ScoreMultiUnpaired(int i) const;
+    RealT ScoreExternalPaired() const;
+    RealT ScoreExternalUnpaired(int i) const;
+    RealT ScoreHelixStacking(int i, int j) const;
+
     RealT ScoreJunctionA(int i, int j) const;
     RealT ScoreJunctionB(int i, int j) const;
     RealT ScoreBasePair(int i, int j) const;
@@ -354,6 +230,16 @@ class InferenceEngine
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;
     
+    void CountUnpairedPosition(int i, RealT v);
+    void CountUnpaired(int i,int j, RealT v);
+    void CountIsolated(RealT v);
+    void CountMultiBase(RealT v);
+    void CountMultiPaired(RealT v);
+    void CountMultiUnpaired(int i, RealT v);
+    void CountExternalPaired(RealT v);
+    void CountExternalUnpaired(int i, RealT v);
+    void CountHelixStacking(int i,int j, RealT v);
+
     void CountJunctionA(int i, int j, RealT value);
     void CountJunctionB(int i, int j, RealT value);
     void CountBasePair(int i, int j, RealT value);
@@ -366,7 +252,6 @@ class InferenceEngine
     std::pair<int,int> DecodeTraceback(int s) const;
 
     std::vector<RealT> GetCounts();
-  //std::vector<RealT> GetCounts2();
     void ClearCounts();
     void InitializeCache();
     void FinalizeCounts();
@@ -383,7 +268,7 @@ public:
     ~InferenceEngine();
 
     // register params with the parameter manager
-    void RegisterParameters(ParameterManager<RealT> &parameter_manager);
+    //void RegisterParameters(ParameterManager<RealT> &parameter_manager);
                             
     // load sequence
     void LoadSequence(const SStruct &sstruct, int use_reactivity=0);
