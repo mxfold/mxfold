@@ -116,6 +116,8 @@ void SStruct::LoadFASTA(const std::string &filename)
     std::vector<std::string>().swap(names);
     std::vector<std::string>().swap(sequences);
     std::vector<int>().swap(mapping);
+    std::vector<float>().swap(reactivity_unpair);
+    std::vector<float>().swap(reactivity_pair);
 
     // open file for reading
     std::ifstream data(filename.c_str());
@@ -186,6 +188,9 @@ void SStruct::LoadFASTA(const std::string &filename)
     {
         mapping = std::vector<int>(sequences[0].length(), UNKNOWN);
     }
+
+    reactivity_unpair.resize(sequences[0].length(), 0);
+    reactivity_pair.resize(sequences[0].length(), 0);    
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -201,6 +206,8 @@ void SStruct::LoadRAW(const std::string &filename)
     std::vector<std::string>().swap(names);
     std::vector<std::string>().swap(sequences);
     std::vector<int>().swap(mapping);
+    std::vector<float>().swap(reactivity_unpair);
+    std::vector<float>().swap(reactivity_pair);
 
     // initialize
     names.push_back(filename);
@@ -226,6 +233,9 @@ void SStruct::LoadRAW(const std::string &filename)
 
     // initialize empty secondary structure
     mapping.resize(sequences[0].length(), UNKNOWN);
+
+    reactivity_unpair.resize(sequences[0].length(), 0);
+    reactivity_pair.resize(sequences[0].length(), 0);    
 }
 
 //////////////////////////////////////////////////////////////////////

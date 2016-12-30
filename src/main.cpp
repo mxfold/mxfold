@@ -1,4 +1,5 @@
 #include <iostream>
+#include <stdexcept>
 #include "cmdline.h"
 #include "contrafold/Config.hpp"
 #include "contrafold/Utilities.hpp"
@@ -96,22 +97,24 @@ int
 NGSfold::predict()
 {
   // set parameters
-  ParameterManager<double>* parameter_manager = new ParameterManager<double>;
-  std::vector<double> w;
+  std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
+
   if (!param_file_.empty())
-    parameter_manager->ReadFromFile(param_file_, w);
+    pm->ReadFromFile(param_file_);
+#if 0
   else if (noncomplementary_)
     w = GetDefaultNoncomplementaryValues<double>();
   else
     w = GetDefaultComplementaryValues<double>();
   delete parameter_manager;
+#endif
   
   // predict ss
   InferenceEngine<double>* inference_engine = new InferenceEngine<double>(noncomplementary_);
   SStruct sstruct;
   sstruct.Load(args_[0]);
   SStruct solution(sstruct);
-  inference_engine->LoadValues(w);
+  inference_engine->LoadValues(std::move(pm));
   inference_engine->LoadSequence(sstruct);
   inference_engine->ComputeViterbi();
   solution.SetMapping(inference_engine->PredictPairingsViterbi());
@@ -132,6 +135,8 @@ main(int argc, char* argv[])
     return NGSfold().parse_options(argc, argv).run();
   } catch (const char* str) {
     std::cerr << str << std::endl;
+  } catch (std::exception e) {
+    std::cerr << e.what() << std::endl;
   }
   return -1;
 }

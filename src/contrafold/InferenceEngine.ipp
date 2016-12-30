@@ -20,8 +20,8 @@
 // Routines for setting scores and counts quickly. 
 //////////////////////////////////////////////////////////////////////
 
-template<class RealT>
-void InferenceEngine<RealT>::FillScores(typename std::vector<std::pair<RealT, RealT> >::iterator begin, typename std::vector<std::pair<RealT, RealT> >::iterator end, RealT value)
+template<class ITR, class V>
+void FillScores(ITR begin, ITR end, V value)
 {
     while (begin != end)
     {
@@ -30,8 +30,8 @@ void InferenceEngine<RealT>::FillScores(typename std::vector<std::pair<RealT, Re
     }
 }
 
-template<class RealT>
-void InferenceEngine<RealT>::FillCounts(typename std::vector<std::pair<RealT,RealT> >::iterator begin, typename std::vector<std::pair<RealT,RealT> >::iterator end, RealT value)
+template<class ITR, class V>
+void FillCounts(ITR begin, ITR end, V value)
 {
     while (begin != end)
     {
@@ -110,7 +110,7 @@ template<class RealT>
 InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary) :
     allow_noncomplementary(allow_noncomplementary),
     cache_initialized(false),
-    parameter_manager(NULL),
+    //parameter_manager(NULL),
     L(0),
     SIZE(0)
 #if PROFILE
@@ -518,24 +518,24 @@ void InferenceEngine<RealT>::InitializeCache()
 	    //自作パラメータ
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
             if (j == 0)
-	      {
+            {
                 const int pos[5] = {i+1, i+2, i+3, i+4,i+5};
                 ComputeProfileScore(profile_score_hairpin_5_nucleotides[i].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_hairpin_5_nucleotides));
-	      }
+            }
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
             if (j == 0)
-              {
+            {
                 const int pos[6] = {i+1, i+2, i+3, i+4,i+5,i+6};
                 ComputeProfileScore(profile_score_hairpin_6_nucleotides[i].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_hairpin_6_nucleotides));
-              }
+            }
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
             if (j == 0)
-              {
+            {
                 const int pos[7] = {i+1, i+2, i+3, i+4,i+5,i+6,i+7};
                 ComputeProfileScore(profile_score_hairpin_7_nucleotides[i].first, pos, 7, reinterpret_cast<std::pair<RealT,RealT> *>(score_hairpin_7_nucleotides));
-              }
+            }
 #endif
 	    //自作終わり
 
@@ -578,39 +578,39 @@ void InferenceEngine<RealT>::InitializeCache()
 	    //自作パラメータ
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
             if (i == 0)
-	      {
+            {
                 const int pos[4] = {j-3,j-2, j-1, j};
                 ComputeProfileScore(profile_score_bulge_0x4_nucleotides[j].first, pos, 4, reinterpret_cast<std::pair<RealT,RealT> *>(score_bulge_0x4_nucleotides));
-	      }
+            }
             if (j == 0)
-	      {
+            {
                 const int pos[4] = {i+1, i+2, i+3,i+4};
                 ComputeProfileScore(profile_score_bulge_4x0_nucleotides[i].first, pos, 4, reinterpret_cast<std::pair<RealT,RealT> *>(score_bulge_4x0_nucleotides));
-	      }
+            }
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
             if (i == 0)
-              {
+            {
                 const int pos[5] = {j-4,j-3,j-2, j-1, j};
                 ComputeProfileScore(profile_score_bulge_0x5_nucleotides[j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_bulge_0x5_nucleotides));
-              }
+            }
             if (j == 0)
-              {
+            {
                 const int pos[5] = {i+1, i+2, i+3,i+4,i+5};
                 ComputeProfileScore(profile_score_bulge_5x0_nucleotides[i].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_bulge_5x0_nucleotides));
-              }
+            }
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
             if (i == 0)
-              {
+            {
                 const int pos[6] = {j-5,j-4,j-3,j-2, j-1, j};
                 ComputeProfileScore(profile_score_bulge_0x6_nucleotides[j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_bulge_0x6_nucleotides));
-              }
+            }
             if (j == 0)
-              {
+            {
                 const int pos[6] = {i+1, i+2, i+3,i+4,i+5,i+6};
                 ComputeProfileScore(profile_score_bulge_6x0_nucleotides[i].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_bulge_6x0_nucleotides));
-              }
+            }
 #endif
 	    //自作終了            
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
@@ -638,70 +638,66 @@ void InferenceEngine<RealT>::InitializeCache()
 	    //自作パラメータ
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
             {
-	      const int pos[4] = {i+1, j-2, j-1, j};
-	      ComputeProfileScore(profile_score_internal_1x3_nucleotides[i*(L+1)+j].first, pos, 4, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_1x3_nucleotides));
+                const int pos[4] = {i+1, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_1x3_nucleotides[i*(L+1)+j].first, pos, 4, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_1x3_nucleotides));
             }
             {
-	      const int pos[4] = {i+1, i+2, i+3, j};
-	      ComputeProfileScore(profile_score_internal_3x1_nucleotides[i*(L+1)+j].first, pos, 4, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x1_nucleotides));
+                const int pos[4] = {i+1, i+2, i+3, j};
+                ComputeProfileScore(profile_score_internal_3x1_nucleotides[i*(L+1)+j].first, pos, 4, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x1_nucleotides));
             }
 #endif     
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
             {
-              const int pos[5] = {i+1, i+2, j-2, j-1, j};
-              ComputeProfileScore(profile_score_internal_2x3_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_2x3_nucleotides));
+                const int pos[5] = {i+1, i+2, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_2x3_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_2x3_nucleotides));
             }
             {
-              const int pos[5] = {i+1, i+2, i+3, j-1, j};
-              ComputeProfileScore(profile_score_internal_3x2_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x2_nucleotides));
+                const int pos[5] = {i+1, i+2, i+3, j-1, j};
+                ComputeProfileScore(profile_score_internal_3x2_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x2_nucleotides));
             }
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
             {
-              const int pos[6] = {i+1, i+2, i+3, j-2, j-1, j};
-              ComputeProfileScore(profile_score_internal_3x3_nucleotides[i*(L+1)+j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x3_nucleotides));
+                const int pos[6] = {i+1, i+2, i+3, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_3x3_nucleotides[i*(L+1)+j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x3_nucleotides));
             }
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
 	    {
-	      const int pos[5] = {i+1, j-3, j-2, j-1, j};
-	      ComputeProfileScore(profile_score_internal_1x4_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_1x4_nucleotides));
+                const int pos[5] = {i+1, j-3, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_1x4_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_1x4_nucleotides));
 	    }
 	    {
-	      const int pos[5] = {i+1, i+2, i+3, i+4, j};
-	      ComputeProfileScore(profile_score_internal_4x1_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x1_nucleotides));
+                const int pos[5] = {i+1, i+2, i+3, i+4, j};
+                ComputeProfileScore(profile_score_internal_4x1_nucleotides[i*(L+1)+j].first, pos, 5, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x1_nucleotides));
 	    }
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
 	    {
-	      const int pos[6] = {i+1, i+2, j-3, j-2, j-1, j};
-	      ComputeProfileScore(profile_score_internal_2x4_nucleotides[i*(L+1)+j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_2x4_nucleotides));
+                const int pos[6] = {i+1, i+2, j-3, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_2x4_nucleotides[i*(L+1)+j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_2x4_nucleotides));
 	    }
 	    {
-	      const int pos[6] = {i+1, i+2, i+3, i+4, j-1, j};
-	      ComputeProfileScore(profile_score_internal_4x2_nucleotides[i*(L+1)+j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x2_nucleotides));
+                const int pos[6] = {i+1, i+2, i+3, i+4, j-1, j};
+                ComputeProfileScore(profile_score_internal_4x2_nucleotides[i*(L+1)+j].first, pos, 6, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x2_nucleotides));
 	    }
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
 	    {
-	      const int pos[7] = {i+1, i+2, i+3, j-3, j-2, j-1, j};
-	      ComputeProfileScore(profile_score_internal_3x4_nucleotides[i*(L+1)+j].first, pos, 7, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x4_nucleotides));
+                const int pos[7] = {i+1, i+2, i+3, j-3, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_3x4_nucleotides[i*(L+1)+j].first, pos, 7, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_3x4_nucleotides));
 	    }
 	    {
-	      const int pos[7] = {i+1, i+2, i+3, i+4, j-2, j-1, j};
-	      ComputeProfileScore(profile_score_internal_4x3_nucleotides[i*(L+1)+j].first, pos, 7, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x3_nucleotides));
+                const int pos[7] = {i+1, i+2, i+3, i+4, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_4x3_nucleotides[i*(L+1)+j].first, pos, 7, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x3_nucleotides));
 	    }
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
 	    {
-	      const int pos[8] = {i+1, i+2, i+3, i+4, j-3, j-2, j-1, j};
-	      ComputeProfileScore(profile_score_internal_4x4_nucleotides[i*(L+1)+j].first, pos, 8, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x4_nucleotides));
+                const int pos[8] = {i+1, i+2, i+3, i+4, j-3, j-2, j-1, j};
+                ComputeProfileScore(profile_score_internal_4x4_nucleotides[i*(L+1)+j].first, pos, 8, reinterpret_cast<std::pair<RealT,RealT> *>(score_internal_4x4_nucleotides));
 	    }
 #endif
-	    
-	    
-	    
-	    
 	    //自作終了
 
 #if PARAMS_HELIX_STACKING
@@ -733,7 +729,7 @@ void InferenceEngine<RealT>::InitializeCache()
 
 #if FAST_HELIX_LENGTHS
     // precompute helix partial sums
-    FillScores(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), RealT(0));
+    FillScores(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), 0);
     for (int i = L; i >= 1; i--)
     {
         for (int j = i+3; j <= L; j++)
@@ -800,38 +796,12 @@ void InferenceEngine<RealT>::ComputeProfileScore(RealT &profile_score, const int
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-void InferenceEngine<RealT>::LoadValues(const std::vector<RealT> &values)
+typename InferenceEngine<RealT>::ParamPtr
+InferenceEngine<RealT>::LoadValues(ParamPtr pm)
 {
-    if (values.size() != parameter_manager->GetNumLogicalParameters()) Error("Parameter size mismatch.");
-    
     cache_initialized = false;
-    for (size_t i = 0; i < values.size(); i++)
-    {
-        std::vector<std::pair<RealT,RealT> *> physical_parameters = parameter_manager->GetPhysicalParameters(i);
-        for (size_t j = 0; j < physical_parameters.size(); j++)
-	  physical_parameters[j]->first = values[i];
-    }
-}
-
-//////////////////////////////////////////////////////////////////////
-// InferenceEngine::GetCounts()
-//
-// Return counts.
-//////////////////////////////////////////////////////////////////////
-
-template<class RealT>
-std::vector<RealT> InferenceEngine<RealT>::GetCounts()
-{
-    std::vector<RealT> counts(parameter_manager->GetNumLogicalParameters());
-    
-    // clear counts for physical parameters
-    for (size_t i = 0; i < parameter_manager->GetNumLogicalParameters(); i++)
-    {
-        std::vector<std::pair<RealT,RealT> *> physical_parameters = parameter_manager->GetPhysicalParameters(i);
-        for (size_t j = 0; j < physical_parameters.size(); j++)
-	  {counts[i] += physical_parameters[j]->second;}
-    }
-    return counts;
+    std::swap(pm, parameter_manager);
+    return std::move(pm);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -843,36 +813,28 @@ std::vector<RealT> InferenceEngine<RealT>::GetCounts()
 template<class RealT>
 void InferenceEngine<RealT>::ClearCounts()
 {
-    // clear counts for physical parameters
-    for (size_t i = 0; i < parameter_manager->GetNumLogicalParameters(); i++)
-    {
-        std::vector<std::pair<RealT,RealT> *> physical_parameters = parameter_manager->GetPhysicalParameters(i);
-        for (size_t j = 0; j < physical_parameters.size(); j++)
-            physical_parameters[j]->second = RealT(0);
-    }
-
     // clear counts for cache
 #if PARAMS_BASE_PAIR_DIST
     for (int i = 0; i <= BP_DIST_LAST_THRESHOLD; i++)
-        cache_score_base_pair_dist[i].second = RealT(0);
+        cache_score_base_pair_dist[i].second = 0;
 #endif
 
 #if PARAMS_HAIRPIN_LENGTH
     for (int i = 0; i <= D_MAX_HAIRPIN_LENGTH; i++)
-        cache_score_hairpin_length[i].second = RealT(0);
+        cache_score_hairpin_length[i].second = 0;
 #endif
 
 #if PARAMS_HELIX_LENGTH
     for (int i = 0; i <= D_MAX_HELIX_LENGTH; i++)
-        cache_score_helix_length[i].second = RealT(0);
+        cache_score_helix_length[i].second = 0;
 #endif
 
     for (int l1 = 0; l1 <= C_MAX_SINGLE_LENGTH; l1++)
         for (int l2 = 0; l2 <= C_MAX_SINGLE_LENGTH; l2++)
-            cache_score_single[l1][l2].second = RealT(0);
+            cache_score_single[l1][l2].second = 0;
     
 #if FAST_HELIX_LENGTHS
-    FillCounts(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), RealT(0));
+    FillCounts(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), 0);
 #endif
 
     // clear counts for profiles
@@ -964,9 +926,6 @@ void InferenceEngine<RealT>::ClearCounts()
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
     FillCounts(profile_score_internal_4x4_nucleotides.begin(), profile_score_internal_4x4_nucleotides.end(), RealT(0));
 #endif
-    
-    
-    
     //自作終わり
 #if PARAMS_HELIX_STACKING
     FillCounts(profile_score_helix_stacking.begin(), profile_score_helix_stacking.end(), RealT(0));
@@ -996,7 +955,7 @@ void InferenceEngine<RealT>::FinalizeCounts()
 #if FAST_HELIX_LENGTHS
 
     // reverse helix partial sums    
-    std::vector<std::pair<RealT,RealT> > reverse_sums(cache_score_helix_sums);
+    std::vector<std::pair<RealT,uint> > reverse_sums(cache_score_helix_sums);
     
     for (int i = 1; i <= L; i++)
     {
@@ -1047,23 +1006,23 @@ void InferenceEngine<RealT>::FinalizeCounts()
 
     // allocate temporary storage
 #if PARAMS_BULGE_LENGTH
-    RealT temp_cache_counts_bulge_length[D_MAX_BULGE_LENGTH+1];
-    std::fill(temp_cache_counts_bulge_length, temp_cache_counts_bulge_length + D_MAX_BULGE_LENGTH+1, RealT(0));
+    uint temp_cache_counts_bulge_length[D_MAX_BULGE_LENGTH+1];
+    std::fill(temp_cache_counts_bulge_length, temp_cache_counts_bulge_length + D_MAX_BULGE_LENGTH+1, 0);
 #endif
     
 #if PARAMS_INTERNAL_LENGTH
-    RealT temp_cache_counts_internal_length[D_MAX_INTERNAL_LENGTH+1];
-    std::fill(temp_cache_counts_internal_length, temp_cache_counts_internal_length + D_MAX_INTERNAL_LENGTH+1, RealT(0));
+    uint temp_cache_counts_internal_length[D_MAX_INTERNAL_LENGTH+1];
+    std::fill(temp_cache_counts_internal_length, temp_cache_counts_internal_length + D_MAX_INTERNAL_LENGTH+1, 0);
 #endif
     
 #if PARAMS_INTERNAL_SYMMETRY
-    RealT temp_cache_counts_internal_symmetric_length[D_MAX_INTERNAL_SYMMETRIC_LENGTH+1];
-    std::fill(temp_cache_counts_internal_symmetric_length, temp_cache_counts_internal_symmetric_length + D_MAX_INTERNAL_SYMMETRIC_LENGTH+1, RealT(0));
+    uint temp_cache_counts_internal_symmetric_length[D_MAX_INTERNAL_SYMMETRIC_LENGTH+1];
+    std::fill(temp_cache_counts_internal_symmetric_length, temp_cache_counts_internal_symmetric_length + D_MAX_INTERNAL_SYMMETRIC_LENGTH+1, 0);
 #endif
     
 #if PARAMS_INTERNAL_ASYMMETRY
-    RealT temp_cache_counts_internal_asymmetry[D_MAX_INTERNAL_ASYMMETRY+1];
-    std::fill(temp_cache_counts_internal_asymmetry, temp_cache_counts_internal_asymmetry + D_MAX_INTERNAL_ASYMMETRY+1, RealT(0));
+    uint temp_cache_counts_internal_asymmetry[D_MAX_INTERNAL_ASYMMETRY+1];
+    std::fill(temp_cache_counts_internal_asymmetry, temp_cache_counts_internal_asymmetry + D_MAX_INTERNAL_ASYMMETRY+1, 0);
 #endif
 
     // compute contributions
@@ -1281,64 +1240,64 @@ void InferenceEngine<RealT>::FinalizeCounts()
 	    //自作パラメータ
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
             {
-	      const int pos[4] = {i+1, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_1x3_nucleotides[i*(L+1)+j].second, pos, 4, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_1x3_nucleotides));
+                const int pos[4] = {i+1, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_1x3_nucleotides[i*(L+1)+j].second, pos, 4, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_1x3_nucleotides));
             }
             {
-	      const int pos[4] = {i+1, i+2, i+3, j};
-	      ConvertProfileCount(profile_score_internal_3x1_nucleotides[i*(L+1)+j].second, pos, 4, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x1_nucleotides));
+                const int pos[4] = {i+1, i+2, i+3, j};
+                ConvertProfileCount(profile_score_internal_3x1_nucleotides[i*(L+1)+j].second, pos, 4, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x1_nucleotides));
             }
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
             {
-	      const int pos[5] = {i+1, i+2, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_2x3_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_2x3_nucleotides));
+                const int pos[5] = {i+1, i+2, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_2x3_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_2x3_nucleotides));
             }
             {
-	      const int pos[5] = {i+1, i+2, i+3, j-1, j};
-	      ConvertProfileCount(profile_score_internal_3x2_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x2_nucleotides));
+                const int pos[5] = {i+1, i+2, i+3, j-1, j};
+                ConvertProfileCount(profile_score_internal_3x2_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x2_nucleotides));
             }
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
             {
-	      const int pos[6] = {i+1, i+2, i+3, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_3x3_nucleotides[i*(L+1)+j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x3_nucleotides));
+                const int pos[6] = {i+1, i+2, i+3, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_3x3_nucleotides[i*(L+1)+j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x3_nucleotides));
             }
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
 	    {
-	      const int pos[5] = {i+1, j-3, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_1x4_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_1x4_nucleotides));
+                const int pos[5] = {i+1, j-3, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_1x4_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_1x4_nucleotides));
 	    }
 	    {
-	      const int pos[5] = {i+1, i+2, i+3, i+4, j};
-	      ConvertProfileCount(profile_score_internal_4x1_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x1_nucleotides));
+                const int pos[5] = {i+1, i+2, i+3, i+4, j};
+                ConvertProfileCount(profile_score_internal_4x1_nucleotides[i*(L+1)+j].second, pos, 5, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x1_nucleotides));
 	    }
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
 	    {
-	      const int pos[6] = {i+1, i+2, j-3, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_2x4_nucleotides[i*(L+1)+j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_2x4_nucleotides));
+                const int pos[6] = {i+1, i+2, j-3, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_2x4_nucleotides[i*(L+1)+j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_2x4_nucleotides));
 	    }
 	    {
-	      const int pos[6] = {i+1, i+2, i+3, i+4, j-1, j};
-	      ConvertProfileCount(profile_score_internal_4x2_nucleotides[i*(L+1)+j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x2_nucleotides));
+                const int pos[6] = {i+1, i+2, i+3, i+4, j-1, j};
+                ConvertProfileCount(profile_score_internal_4x2_nucleotides[i*(L+1)+j].second, pos, 6, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x2_nucleotides));
 	    }
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
 	    {
-	      const int pos[7] = {i+1, i+2, i+3, j-3, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_3x4_nucleotides[i*(L+1)+j].second, pos, 7, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x4_nucleotides));
+                const int pos[7] = {i+1, i+2, i+3, j-3, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_3x4_nucleotides[i*(L+1)+j].second, pos, 7, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_3x4_nucleotides));
 	    }
 	    {
-	      const int pos[7] = {i+1, i+2, i+3, i+4, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_4x3_nucleotides[i*(L+1)+j].second, pos, 7, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x3_nucleotides));
+                const int pos[7] = {i+1, i+2, i+3, i+4, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_4x3_nucleotides[i*(L+1)+j].second, pos, 7, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x3_nucleotides));
 	    }
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
 	    {
-	      const int pos[8] = {i+1, i+2, i+3, i+4, j-3, j-2, j-1, j};
-	      ConvertProfileCount(profile_score_internal_4x4_nucleotides[i*(L+1)+j].second, pos, 8, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x4_nucleotides));
+                const int pos[8] = {i+1, i+2, i+3, i+4, j-3, j-2, j-1, j};
+                ConvertProfileCount(profile_score_internal_4x4_nucleotides[i*(L+1)+j].second, pos, 8, reinterpret_cast<std::pair<RealT, RealT> *>(score_internal_4x4_nucleotides));
 	    }
 #endif
 	    
@@ -1515,7 +1474,7 @@ inline RealT InferenceEngine<RealT>::ScoreUnpairedPosition(int i) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountUnpairedPosition(int i, RealT v)
+inline void InferenceEngine<RealT>::CountUnpairedPosition(int i, uint v)
 {
 }
 
@@ -1532,7 +1491,7 @@ inline RealT InferenceEngine<RealT>::ScoreUnpaired(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountUnpaired(int i,int j, RealT v)
+inline void InferenceEngine<RealT>::CountUnpaired(int i,int j, uint v)
 {
 }
 
@@ -1550,7 +1509,7 @@ inline RealT InferenceEngine<RealT>::ScoreIsolated() const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountIsolated(RealT v)
+inline void InferenceEngine<RealT>::CountIsolated(uint v)
 {
 #if PARAMS_ISOLATED_BASE_PAIR
     auto& pc = *parameter_count;
@@ -1572,7 +1531,7 @@ inline RealT InferenceEngine<RealT>::ScoreMultiBase() const
 }
     
 template<class RealT>
-inline void InferenceEngine<RealT>::CountMultiBase(RealT v)
+inline void InferenceEngine<RealT>::CountMultiBase(uint v)
 {
 #if PARAMS_MULTI_LENGTH
     auto& pc = *parameter_count;
@@ -1594,7 +1553,7 @@ inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountMultiPaired(RealT v)
+inline void InferenceEngine<RealT>::CountMultiPaired(uint v)
 {
 #if PARAMS_MULTI_LENGTH
     auto& pc = *parameter_count;
@@ -1616,7 +1575,7 @@ inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, RealT v)
+inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, uint v)
 {
 #if PARAMS_MULTI_LENGTH
     auto& pc = *parameter_count;
@@ -1641,7 +1600,7 @@ inline RealT InferenceEngine<RealT>::ScoreExternalPaired() const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountExternalPaired(RealT v)
+inline void InferenceEngine<RealT>::CountExternalPaired(uint v)
 {
 #if PARAMS_EXTERNAL_LENGTH
     auto& pc = *parameter_count;
@@ -1663,7 +1622,7 @@ inline RealT InferenceEngine<RealT>::ScoreExternalUnpaired(int i) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, RealT v)
+inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, uint v)
 {
 #if PARAMS_EXTERNAL_LENGTH
     auto& pc = *parameter_count;
@@ -1698,7 +1657,7 @@ inline RealT InferenceEngine<RealT>::ScoreHelixStacking(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountHelixStacking(int i,int j, RealT v)
+inline void InferenceEngine<RealT>::CountHelixStacking(int i,int j, uint v)
 {
 #if PARAMS_HELIX_STACKING
 #if PROFILE
@@ -1767,7 +1726,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, uint value)
 {
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
     auto& pc = *parameter_count;
@@ -1842,7 +1801,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionB(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, uint value)
 {
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
     auto& pc = *parameter_count;
@@ -1902,7 +1861,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountBasePair(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountBasePair(int i, int j, uint value)
 {
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     auto& pc = *parameter_count;
@@ -1996,7 +1955,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountHairpin(int i, int j, uint value)
 {
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
     auto& pc = *parameter_count;
@@ -2103,7 +2062,7 @@ inline RealT InferenceEngine<RealT>::ScoreHelix(int i, int j, int m) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountHelix(int i, int j, int m, RealT value)
+inline void InferenceEngine<RealT>::CountHelix(int i, int j, int m, uint value)
 {
     Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
     Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
@@ -2329,7 +2288,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, RealT value)
+inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, uint value)
 {
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     auto& pc = *parameter_count;
@@ -2532,7 +2491,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, RealT value)
+inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, uint value)
 {
     const int l1 = p - i;
     const int l2 = j - q;
@@ -2635,7 +2594,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
             {
                 RealT *p1 = &(FM1v[offset[i]+i+1]);
                 RealT *p2 = &(FMv[offset[i+1]+j]);
-                for (register int k = i+1; k < j; k++)
+                for (int k = i+1; k < j; k++)
                 {
                     UPDATE_MAX(FM2v, FM2t, (*p1) + (*p2), k);
                     ++p1;
@@ -3231,12 +3190,14 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
+typename InferenceEngine<RealT>::CntPtr
+InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 {
     std::queue<triple<int *,int,int> > traceback_queue;
     traceback_queue.push(make_triple(&F5t[0], 0, L));
 
     ClearCounts();
+    parameter_count.reset(new ParameterHash<uint>());
     
     while (!traceback_queue.empty())
     {
@@ -3248,37 +3209,34 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
         
         std::pair<int,int> traceback = DecodeTraceback (V == &F5t[0] ? V[j] : V[offset[i]+j]);
         
-        //std::cout << (V == FCt ? "FC " : V == FMt ? "FM " : V == FM1t ? "FM1 " : "F5 ");
-        //std::cout << i << " " << j << ": " << traceback.first << " " << traceback.second << std::endl;
-        
         switch (traceback.first)
         {
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
             case TB_FN_HAIRPIN: 
-                CountHairpin(i,j,RealT(1));
+                CountHairpin(i,j,1);
                 break;
             case TB_FN_SINGLE: 
             {
                 const int p = i + traceback.second / (C_MAX_SINGLE_LENGTH+1);
                 const int q = j - traceback.second % (C_MAX_SINGLE_LENGTH+1);
-                CountSingle(i,j,p,q,RealT(1));
+                CountSingle(i,j,p,q,1);
                 traceback_queue.push(make_triple(&FCt[0], p+1, q-1));
             }
             break;
             case TB_FN_BIFURCATION:
             {
                 const int k = traceback.second;
-                CountJunctionA(i,j,RealT(1));
-                CountMultiPaired(RealT(1));
-                CountMultiBase(RealT(1));
+                CountJunctionA(i,j,1);
+                CountMultiPaired(1);
+                CountMultiBase(1);
                 traceback_queue.push(make_triple(&FM1t[0], i, k));
                 traceback_queue.push(make_triple(&FMt[0], k, j));
             }
             break;
             case TB_FE_STACKING: 
             {
-                CountBasePair(i+1,j,RealT(1));
-                CountHelixStacking(i,j+1,RealT(1));
+                CountBasePair(i+1,j,1);
+                CountHelixStacking(i,j+1,1);
                 traceback_queue.push(make_triple(&FEt[0], i+1, j-1));
             }
             break;
@@ -3289,27 +3247,27 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
             break;
             case TB_FC_FN:
             {
-                CountIsolated(RealT(1));
+                CountIsolated(1);
                 traceback_queue.push(make_triple(&FNt[0], i, j));
             }
             break;
             case TB_FC_HELIX:
             {
                 const int m = traceback.second;
-                CountHelix(i-1,j+1,m,RealT(1));
+                CountHelix(i-1,j+1,m,1);
                 traceback_queue.push(make_triple(&FNt[0], i+m-1, j-m+1));
             }
             break;
             case TB_FC_FE:
             {
                 const int m = D_MAX_HELIX_LENGTH;
-                CountHelix(i-1,j+1,m,RealT(1));
+                CountHelix(i-1,j+1,m,1);
                 traceback_queue.push(make_triple(&FEt[0], i+m-1, j-m+1));
             }
             break;
 #else
             case TB_FC_HAIRPIN: 
-                CountHairpin(i,j,RealT(1));
+                CountHairpin(i,j,1);
                 break;
             case TB_FC_SINGLE: 
             {
@@ -3318,12 +3276,12 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 
                 if (p == i && q == j)
                 {
-                    CountBasePair(i+1,j,RealT(1));
-                    CountHelixStacking(i,j+1,RealT(1));
+                    CountBasePair(i+1,j,1);
+                    CountHelixStacking(i,j+1,1);
                 }
                 else
                 {
-                    CountSingle(i,j,p,q,RealT(1));
+                    CountSingle(i,j,p,q,1);
                 }
                 
                 traceback_queue.push(make_triple(&FCt[0], p+1, q-1));
@@ -3332,9 +3290,9 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
             case TB_FC_BIFURCATION:
             {
                 const int k = traceback.second;
-                CountJunctionA(i,j,RealT(1));
-                CountMultiPaired(RealT(1));
-                CountMultiBase(RealT(1));
+                CountJunctionA(i,j,1);
+                CountMultiPaired(1);
+                CountMultiBase(1);
                 traceback_queue.push(make_triple(&FM1t[0], i, k));
                 traceback_queue.push(make_triple(&FMt[0], k, j));
             }
@@ -3342,15 +3300,15 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 #endif
             case TB_FM1_PAIRED:
             {
-                CountJunctionA(j,i,RealT(1));
-                CountMultiPaired(RealT(1));
-                CountBasePair(i+1,j,RealT(1));
+                CountJunctionA(j,i,1);
+                CountMultiPaired(1);
+                CountBasePair(i+1,j,1);
                 traceback_queue.push(make_triple(&FCt[0], i+1, j-1));
             }
             break;
             case TB_FM1_UNPAIRED:
             {
-                CountMultiUnpaired(i+1,RealT(1));
+                CountMultiUnpaired(i+1,1);
                 traceback_queue.push(make_triple(&FM1t[0], i+1, j));
             }
             break;
@@ -3363,7 +3321,7 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
             break;
             case TB_FM_UNPAIRED:
             {
-                CountMultiUnpaired(j,RealT(1));
+                CountMultiUnpaired(j,1);
                 traceback_queue.push(make_triple(&FMt[0], i, j-1));
             }
             break;
@@ -3373,15 +3331,15 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
             case TB_F5_ZERO:
                 break;
             case TB_F5_UNPAIRED:
-                CountExternalUnpaired(j,RealT(1));
+                CountExternalUnpaired(j,1);
                 traceback_queue.push(make_triple(&F5t[0], 0, j-1));
                 break;
             case TB_F5_BIFURCATION:
             {
                 const int k = traceback.second;
-                CountExternalPaired(RealT(1));
-                CountBasePair(k+1,j,RealT(1));
-                CountJunctionA(j,k,RealT(1));
+                CountExternalPaired(1);
+                CountBasePair(k+1,j,1);
+                CountJunctionA(j,k,1);
                 traceback_queue.push(make_triple(&F5t[0], 0, k));
                 traceback_queue.push(make_triple(&FCt[0], k+1, j-1));
             }
@@ -3392,7 +3350,7 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
     }
 
     FinalizeCounts();
-    return GetCounts();
+    return std::move(parameter_count);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -4130,7 +4088,8 @@ inline RealT InferenceEngine<RealT>::ComputeLogPartitionCoefficient() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-std::vector<RealT> InferenceEngine<RealT>::ComputeFeatureCountExpectations()
+typename InferenceEngine<RealT>::CntPtr 
+InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 {
 #if SHOW_TIMINGS
     double starting_time = GetSystemTime();
@@ -4142,6 +4101,7 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     const RealT Z = ComputeLogPartitionCoefficient();
 
     ClearCounts();
+    parameter_count.reset(new ParameterHash<uint>());
     
     for (int i = L; i >= 0; i--)
     {
@@ -4505,7 +4465,7 @@ std::vector<RealT> InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     std::cerr << "Feature expectations (" << GetSystemTime() - starting_time << " seconds)" << std::endl;
 #endif
 
-    return GetCounts();
+    return std::move(parameter_count);
 }
 
 //////////////////////////////////////////////////////////////////////

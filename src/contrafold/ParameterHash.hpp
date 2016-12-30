@@ -15,7 +15,7 @@ public:
 
 public:
   ParameterHash();
-  ~ParameterHash();
+  ~ParameterHash() {}
 
   void initialize_char_mapping(const std::string& alphabet);
   size_t alphabet_size() const { return alphabet_.size(); }

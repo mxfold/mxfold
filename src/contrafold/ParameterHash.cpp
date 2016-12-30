@@ -1,4 +1,8 @@
+#include <iostream>
+#include <fstream>
 #include <algorithm>
+#include <stdexcept>
+#include <cerrno>
 #include <cstdio>
 #include <cctype>
 #include "ParameterHash.hpp"
@@ -17,6 +21,7 @@ template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
 {
+  initialize_char_mapping("ACGU");
 }
 
 template < class ValueT >
@@ -30,6 +35,36 @@ initialize_char_mapping(const std::string& alphabet)
   {
     char_mapping_[BYTE(tolower(alphabet[i]))] = 
       char_mapping_[BYTE(toupper(alphabet[i]))] = i;
+  }
+}
+
+template < class ValueT >
+void
+ParameterHash<ValueT>::
+ReadFromFile(const std::string& filename)
+{
+  param_.clear();
+  std::ifstream is(filename.c_str());
+  if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+  std::string k;
+  ValueT v;
+  while (is >> k >> v)
+  {
+    param_.insert(std::make_pair(k, v));
+  }
+}
+
+template < class ValueT >
+void
+ParameterHash<ValueT>::
+WriteToFile(const std::string& filename) const
+{
+  std::ofstream os(filename.c_str());
+  if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+  
+  for (const auto& e : param_)
+  {
+    os << e.first << " " << e.second << std::endl;
   }
 }
 
@@ -1290,3 +1325,6 @@ external_paired()
 
 template
 class ParameterHash<double>;
+
+template
+class ParameterHash<unsigned int>;
