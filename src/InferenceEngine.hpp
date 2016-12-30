@@ -297,8 +297,6 @@ public:
     RealT *GetPosterior(const RealT posterior_cutoff) const;
 };
 
-#include "InferenceEngine.ipp"
-
 #endif
 
 // Local Variables:

@@ -25,12 +25,12 @@
 //template<class RealT>
 class SStruct
 {
-  std::vector<std::string> names;
-  std::vector<std::string> sequences;
-  std::vector<int> mapping;
-  std::string filename_top;
-  std::vector<float> reactivity_unpair;
-  std::vector<float> reactivity_pair;
+    std::vector<std::string> names;
+    std::vector<std::string> sequences;
+    std::vector<int> mapping;
+    std::string filename_top;
+    std::vector<float> reactivity_unpair;
+    std::vector<float> reactivity_pair;
  
     // automatic file format detection
     int AnalyzeFormat(const std::string &filename) const;
@@ -52,14 +52,12 @@ class SStruct
     void ValidateMapping(const std::vector<int> &mapping) const;
     
 public:
-//  std::vector<float> reactivity_unpair;
-//  std::vector<float> reactivity_pair;
- 
-  // integer constants used to identify nucleotides which are either
-  // unpaired or whose pairing is not known
-  static const int UNPAIRED;
-  static const int UNKNOWN;
-  static const int PAIRED;
+
+    // integer constants used to identify nucleotides which are either
+    // unpaired or whose pairing is not known
+    static const int UNPAIRED;
+    static const int UNKNOWN;
+    static const int PAIRED;
   
 
     // constructor and destructor
@@ -102,9 +100,9 @@ public:
     const std::vector<int> &GetMapping() const { return mapping; }
     int GetLength() const { return int(mapping.size())-1; }
     int GetNumSequences() const { return int(sequences.size()); }
-  //getreactivity
-  const std::vector<float> &GetReactivityUnpair() const { return reactivity_unpair; }
-  const std::vector<float> &GetReactivityPair() const { return reactivity_pair; }
+    //get reactivity
+    const std::vector<float> &GetReactivityUnpair() const { return reactivity_unpair; }
+    const std::vector<float> &GetReactivityPair() const { return reactivity_pair; }
 };
 
 #endif

@@ -1,19 +1,11 @@
 #include <iostream>
 #include <stdexcept>
 #include "cmdline.h"
-#include "contrafold/Config.hpp"
-#include "contrafold/Utilities.hpp"
-#include "contrafold/InferenceEngine.hpp"
-#include "contrafold/ParameterManager.hpp"
-#include "contrafold/SStruct.hpp"
-#include "contrafold/Defaults.ipp"
-
-template 
-class InferenceEngine<double>;
-
-template
-class ParameterManager<double>;
-
+#include "Config.hpp"
+#include "Utilities.hpp"
+#include "InferenceEngine.hpp"
+#include "ParameterHash.hpp"
+#include "SStruct.hpp"
 
 class NGSfold
 {

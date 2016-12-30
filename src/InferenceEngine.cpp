@@ -1,6 +1,8 @@
 ///////////////////////////////////////////////////////////////////////
-// InferenceEngine.ipp
+// InferenceEngine.cpp
 //////////////////////////////////////////////////////////////////////
+
+#include "InferenceEngine.hpp"
 
 //////////////////////////////////////////////////////////////////////
 // UPDATE_MAX()
@@ -4941,6 +4943,9 @@ RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff) const
         ret[i] = (posterior[i] >= posterior_cutoff ? posterior[i] : RealT(0));
     return ret;
 }
+
+template 
+class InferenceEngine<double>;
 
 // Local Variables:
 // mode: C++
