@@ -28,8 +28,7 @@ public:
 
 private:
     const bool allow_noncomplementary;
-    unsigned char char_mapping[256];
-    int is_complementary[M+1][M+1];
+    std::array<std::array<char, 256>, 256> is_complementary;
     bool cache_initialized;
     ParamPtr parameter_manager;
     CntPtr parameter_count;
@@ -41,7 +40,8 @@ private:
 #endif
 
     // sequence data
-    std::vector<int> s, offset;
+    std::vector<char> s;
+    std::vector<int> offset;
 #if PROFILE
     std::vector<int> A;
     std::vector<RealT> weights;

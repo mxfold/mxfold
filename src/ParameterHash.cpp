@@ -19,27 +19,6 @@ string_format( const std::string& format, Args ... args )
 }
 
 template < class ValueT >
-ParameterHash<ValueT>::
-ParameterHash()
-{
-  initialize_char_mapping(alphabet);
-}
-
-template < class ValueT >
-void
-ParameterHash<ValueT>::
-initialize_char_mapping(const std::string& alphabet)
-{
-  alphabet_ = alphabet;
-  std::fill(char_mapping_.begin(), char_mapping_.end(), BYTE(alphabet_.size()));
-  for (size_t i = 0; i != alphabet.size(); ++i)
-  {
-    char_mapping_[BYTE(tolower(alphabet[i]))] = 
-      char_mapping_[BYTE(toupper(alphabet[i]))] = i;
-  }
-}
-
-template < class ValueT >
 void
 ParameterHash<ValueT>::
 LoadFromHash(std::unordered_map<std::string, ValueT> hash)
@@ -106,9 +85,9 @@ template < class ValueT >
 inline
 ValueT
 ParameterHash<ValueT>::
-base_pair(BYTE i, BYTE j) const
+base_pair(NUCL i, NUCL j) const
 {
-  auto v = std::minmax(alphabet_[i], alphabet_[j]);
+  auto v = std::minmax(i, j);
   return get_by_key(string_format(format_base_pair, v.first, v.second));
 }
 
@@ -116,9 +95,9 @@ template < class ValueT >
 inline
 ValueT&
 ParameterHash<ValueT>::
-base_pair(BYTE i, BYTE j)
+base_pair(NUCL i, NUCL j)
 {
-  auto v = std::minmax(alphabet_[i], alphabet_[j]);
+  auto v = std::minmax(i, j);
   return get_by_key(string_format(format_base_pair, v.first, v.second));
 }
 #endif
@@ -152,20 +131,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-terminal_mismatch(BYTE i1, BYTE j1, BYTE i2, BYTE j2) const
+terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
-  return get_by_key(string_format(format_terminal_mismatch,
-                                  alphabet_[i1], alphabet_[j1], alphabet_[i2], alphabet_[j2]));
+  return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-terminal_mismatch(BYTE i1, BYTE j1, BYTE i2, BYTE j2)
+terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
 {
-  return get_by_key(string_format(format_terminal_mismatch,
-                                  alphabet_[i1], alphabet_[j1], alphabet_[i2], alphabet_[j2]));
+  return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
 }
 #endif
 
@@ -198,20 +175,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_3_nucleotides(BYTE i1, BYTE i2, BYTE i3) const
+hairpin_3_nucleotides(NUCL i1, NUCL i2, NUCL i3) const
 {
-  return get_by_key(string_format(format_hairpin_3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_hairpin_3_nucleotides, i1, i2, i3));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_3_nucleotides(BYTE i1, BYTE i2, BYTE i3)
+hairpin_3_nucleotides(NUCL i1, NUCL i2, NUCL i3)
 {
-  return get_by_key(string_format(format_hairpin_3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_hairpin_3_nucleotides, i1, i2, i3));
 }
 #endif
 
@@ -222,20 +197,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4) const
+hairpin_4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
 {
-  return get_by_key(string_format(format_hairpin_4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_hairpin_4_nucleotides, i1, i2, i3, i4));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4)
+hairpin_4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
 {
-  return get_by_key(string_format(format_hairpin_4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_hairpin_4_nucleotides, i1, i2, i3, i4));
 }
 #endif
 
@@ -246,20 +219,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_5_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+hairpin_5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_hairpin_5_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_hairpin_5_nucleotides, i1, i2, i3, i4, i5));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_5_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+hairpin_5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_hairpin_5_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_hairpin_5_nucleotides, i1, i2, i3, i4, i5));
 }
 #endif
 
@@ -270,20 +241,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_6_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6) const
+hairpin_6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
 {
-  return get_by_key(string_format(format_hairpin_6_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_hairpin_6_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_6_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6)
+hairpin_6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
 {
-  return get_by_key(string_format(format_hairpin_6_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_hairpin_6_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 #endif
 
@@ -294,20 +263,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_7_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7) const
+hairpin_7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const
 {
-  return get_by_key(string_format(format_hairpin_7_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_hairpin_7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_7_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7)
+hairpin_7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7)
 {
-  return get_by_key(string_format(format_hairpin_7_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_hairpin_7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 #endif
 
@@ -474,36 +441,36 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x1_nucleotides(BYTE i1) const
+bulge_0x1_nucleotides(NUCL i1) const
 {
-  return get_by_key(string_format(format_bulge_0x1_nucleotides, alphabet_[i1]));
+  return get_by_key(string_format(format_bulge_0x1_nucleotides, i1));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x1_nucleotides(BYTE i1)
+bulge_0x1_nucleotides(NUCL i1)
 {
-  return get_by_key(string_format(format_bulge_0x1_nucleotides, alphabet_[i1]));
+  return get_by_key(string_format(format_bulge_0x1_nucleotides, i1));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_1x0_nucleotides(BYTE i1) const
+bulge_1x0_nucleotides(NUCL i1) const
 {
-  return get_by_key(string_format(format_bulge_0x1_nucleotides, alphabet_[i1]));
+  return get_by_key(string_format(format_bulge_0x1_nucleotides, i1));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_1x0_nucleotides(BYTE i1)
+bulge_1x0_nucleotides(NUCL i1)
 {
-  return get_by_key(string_format(format_bulge_0x1_nucleotides, alphabet_[i1]));
+  return get_by_key(string_format(format_bulge_0x1_nucleotides, i1));
 }
 #endif
 
@@ -514,36 +481,36 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x2_nucleotides(BYTE i1, BYTE i2) const
+bulge_0x2_nucleotides(NUCL i1, NUCL i2) const
 {
-  return get_by_key(string_format(format_bulge_0x2_nucleotides, alphabet_[i1], alphabet_[i2]));
+  return get_by_key(string_format(format_bulge_0x2_nucleotides, i1, i2));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x2_nucleotides(BYTE i1, BYTE i2)
+bulge_0x2_nucleotides(NUCL i1, NUCL i2)
 {
-  return get_by_key(string_format(format_bulge_0x2_nucleotides, alphabet_[i1], alphabet_[i2]));
+  return get_by_key(string_format(format_bulge_0x2_nucleotides, i1, i2));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_2x0_nucleotides(BYTE i1, BYTE i2) const
+bulge_2x0_nucleotides(NUCL i1, NUCL i2) const
 {
-  return get_by_key(string_format(format_bulge_0x2_nucleotides, alphabet_[i1], alphabet_[i2]));
+  return get_by_key(string_format(format_bulge_0x2_nucleotides, i1, i2));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_2x0_nucleotides(BYTE i1, BYTE i2)
+bulge_2x0_nucleotides(NUCL i1, NUCL i2)
 {
-  return get_by_key(string_format(format_bulge_0x2_nucleotides, alphabet_[i1], alphabet_[i2]));
+  return get_by_key(string_format(format_bulge_0x2_nucleotides, i1, i2));
 }
 #endif
 
@@ -554,36 +521,36 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x3_nucleotides(BYTE i1, BYTE i2, BYTE i3) const
+bulge_0x3_nucleotides(NUCL i1, NUCL i2, NUCL i3) const
 {
-  return get_by_key(string_format(format_bulge_0x3_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_bulge_0x3_nucleotides, i1, i2, i3));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x3_nucleotides(BYTE i1, BYTE i2, BYTE i3)
+bulge_0x3_nucleotides(NUCL i1, NUCL i2, NUCL i3)
 {
-  return get_by_key(string_format(format_bulge_0x3_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_bulge_0x3_nucleotides, i1, i2, i3));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_3x0_nucleotides(BYTE i1, BYTE i2, BYTE i3) const
+bulge_3x0_nucleotides(NUCL i1, NUCL i2, NUCL i3) const
 {
-  return get_by_key(string_format(format_bulge_0x3_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_bulge_0x3_nucleotides, i1, i2, i3));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_3x0_nucleotides(BYTE i1, BYTE i2, BYTE i3)
+bulge_3x0_nucleotides(NUCL i1, NUCL i2, NUCL i3)
 {
-  return get_by_key(string_format(format_bulge_0x3_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_bulge_0x3_nucleotides, i1, i2, i3));
 }
 #endif
 
@@ -594,40 +561,36 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4) const
+bulge_0x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
 {
-  return get_by_key(string_format(format_bulge_0x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_bulge_0x4_nucleotides, i1, i2, i3, i4));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4)
+bulge_0x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
 {
-  return get_by_key(string_format(format_bulge_0x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_bulge_0x4_nucleotides, i1, i2, i3, i4));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_4x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4) const
+bulge_4x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
 {
-  return get_by_key(string_format(format_bulge_0x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_bulge_0x4_nucleotides, i1, i2, i3, i4));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_4x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4)
+bulge_4x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
 {
-  return get_by_key(string_format(format_bulge_0x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_bulge_0x4_nucleotides, i1, i2, i3, i4));
 }
 #endif
 
@@ -638,40 +601,36 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x5_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+bulge_0x5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_bulge_0x5_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_bulge_0x5_nucleotides, i1, i2, i3, i4, i5));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x5_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+bulge_0x5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_bulge_0x5_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_bulge_0x5_nucleotides, i1, i2, i3, i4, i5));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_5x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+bulge_5x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_bulge_0x5_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_bulge_0x5_nucleotides, i1, i2, i3, i4, i5));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_5x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+bulge_5x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_bulge_0x5_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_bulge_0x5_nucleotides, i1, i2, i3, i4, i5));
 }
 #endif
 
@@ -682,10 +641,9 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x6_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6) const
+bulge_0x6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
 {
-  return get_by_key(string_format(format_bulge_0x6_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_bulge_0x6_nucleotides, i1, i2, i3, i4, i5, i6));
 }
   
 
@@ -693,30 +651,27 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x6_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6)
+bulge_0x6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
 {
-  return get_by_key(string_format(format_bulge_0x6_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_bulge_0x6_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_6x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6) const
+bulge_6x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
 {
-  return get_by_key(string_format(format_bulge_0x6_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_bulge_0x6_nucleotides, i1, i2, i3, i4, i5, i6));
 }
  
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_6x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6)
+bulge_6x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
 {
-  return get_by_key(string_format(format_bulge_0x6_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_bulge_0x6_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 #endif
 
@@ -727,40 +682,36 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_0x7_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7) const
+bulge_0x7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const
 {
-  return get_by_key(string_format(format_bulge_0x7_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_bulge_0x7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_0x7_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7)
+bulge_0x7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7)
 {
-  return get_by_key(string_format(format_bulge_0x7_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_bulge_0x7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-bulge_7x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7) const
+bulge_7x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const
 {
-  return get_by_key(string_format(format_bulge_0x7_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_bulge_0x7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-bulge_7x0_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7)
+bulge_7x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7)
 {
-  return get_by_key(string_format(format_bulge_0x7_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_bulge_0x7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 #endif
 
@@ -771,10 +722,10 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_1x1_nucleotides(BYTE i1, BYTE i2) const
+internal_1x1_nucleotides(NUCL i1, NUCL i2) const
 {
-  auto s1 = string_format(format_internal_1x1_nucleotides, alphabet_[i1], alphabet_[i2]);
-  auto s2 = string_format(format_internal_1x1_nucleotides, alphabet_[i2], alphabet_[i1]);
+  auto s1 = string_format(format_internal_1x1_nucleotides, i1, i2);
+  auto s2 = string_format(format_internal_1x1_nucleotides, i2, i1);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 
@@ -782,10 +733,10 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_1x1_nucleotides(BYTE i1, BYTE i2)
+internal_1x1_nucleotides(NUCL i1, NUCL i2)
 {
-  auto s1 = string_format(format_internal_1x1_nucleotides, alphabet_[i1], alphabet_[i2]);
-  auto s2 = string_format(format_internal_1x1_nucleotides, alphabet_[i2], alphabet_[i1]);
+  auto s1 = string_format(format_internal_1x1_nucleotides, i1, i2);
+  auto s2 = string_format(format_internal_1x1_nucleotides, i2, i1);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 #endif
@@ -797,18 +748,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_1x2_nucleotides(BYTE i1, BYTE i2, BYTE i3) const
+internal_1x2_nucleotides(NUCL i1, NUCL i2, NUCL i3) const
 {
-  return get_by_key(string_format(format_internal_1x2_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_internal_1x2_nucleotides, i1, i2, i3));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_1x2_nucleotides(BYTE i1, BYTE i2, BYTE i3)
+internal_1x2_nucleotides(NUCL i1, NUCL i2, NUCL i3)
 {
-  return get_by_key(string_format(format_internal_1x2_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_internal_1x2_nucleotides, i1, i2, i3));
 }
 
 static const char* format_internal_2x1_nucleotides = "internal_2x1_nucleotides_%c%c%c";
@@ -817,18 +768,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_2x1_nucleotides(BYTE i1, BYTE i2, BYTE i3) const
+internal_2x1_nucleotides(NUCL i1, NUCL i2, NUCL i3) const
 {
-  return get_by_key(string_format(format_internal_2x1_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_internal_2x1_nucleotides, i1, i2, i3));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_2x1_nucleotides(BYTE i1, BYTE i2, BYTE i3)
+internal_2x1_nucleotides(NUCL i1, NUCL i2, NUCL i3)
 {
-  return get_by_key(string_format(format_internal_2x1_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3]));
+  return get_by_key(string_format(format_internal_2x1_nucleotides, i1, i2, i3));
 }
 #endif
 
@@ -839,10 +790,10 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_2x2_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4) const
+internal_2x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
 {
-  auto s1 = string_format(format_internal_2x2_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]);
-  auto s2 = string_format(format_internal_2x2_nucleotides, alphabet_[i3], alphabet_[i4], alphabet_[i1], alphabet_[i2]);
+  auto s1 = string_format(format_internal_2x2_nucleotides, i1, i2, i3, i4);
+  auto s2 = string_format(format_internal_2x2_nucleotides, i3, i4, i1, i2);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 
@@ -850,10 +801,10 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_2x2_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4)
+internal_2x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
 {
-  auto s1 = string_format(format_internal_2x2_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]);
-  auto s2 = string_format(format_internal_2x2_nucleotides, alphabet_[i3], alphabet_[i4], alphabet_[i1], alphabet_[i2]);
+  auto s1 = string_format(format_internal_2x2_nucleotides, i1, i2, i3, i4);
+  auto s2 = string_format(format_internal_2x2_nucleotides, i3, i4, i1, i2);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 #endif
@@ -865,20 +816,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_1x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4) const
+internal_1x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
 {
-  return get_by_key(string_format(format_internal_1x3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_internal_1x3_nucleotides, i1, i2, i3, i4));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_1x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4)
+internal_1x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
 {
-  return get_by_key(string_format(format_internal_1x3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_internal_1x3_nucleotides, i1, i2, i3, i4));
 }
 
 static const char* format_internal_3x1_nucleotides = "internal_3x1_nucleotides_%c%c%c%c";
@@ -887,20 +836,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_3x1_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4) const
+internal_3x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
 {
-  return get_by_key(string_format(format_internal_3x1_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_internal_3x1_nucleotides, i1, i2, i3, i4));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_3x1_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4)
+internal_3x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
 {
-  return get_by_key(string_format(format_internal_3x1_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]));
+  return get_by_key(string_format(format_internal_3x1_nucleotides, i1, i2, i3, i4));
 }
 #endif
 
@@ -911,20 +858,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_2x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+internal_2x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_internal_2x3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_2x3_nucleotides, i1, i2, i3, i4, i5));
 }  
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_2x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+internal_2x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_internal_2x3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_2x3_nucleotides, i1, i2, i3, i4, i5));
 }  
 
 static const char* format_internal_3x2_nucleotides = "internal_3x2_nucleotides_%c%c%c%c%c";
@@ -933,20 +878,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_3x2_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+internal_3x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_internal_3x2_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_3x2_nucleotides, i1, i2, i3, i4, i5));
 }  
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_3x2_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+internal_3x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_internal_3x2_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_3x2_nucleotides, i1, i2, i3, i4, i5));
 }  
 #endif
 
@@ -957,10 +900,10 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_3x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6) const
+internal_3x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
 {
-  auto s1 = string_format(format_internal_3x3_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]);
-  auto s2 = string_format(format_internal_3x3_nucleotides, alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i1], alphabet_[i2], alphabet_[i3]);
+  auto s1 = string_format(format_internal_3x3_nucleotides, i1, i2, i3, i4, i5, i6);
+  auto s2 = string_format(format_internal_3x3_nucleotides, i4, i5, i6, i1, i2, i3);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 
@@ -968,10 +911,10 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_3x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6)
+internal_3x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
 {
-  auto s1 = string_format(format_internal_3x3_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]);
-  auto s2 = string_format(format_internal_3x3_nucleotides, alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i1], alphabet_[i2], alphabet_[i3]);
+  auto s1 = string_format(format_internal_3x3_nucleotides, i1, i2, i3, i4, i5, i6);
+  auto s2 = string_format(format_internal_3x3_nucleotides, i4, i5, i6, i1, i2, i3);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 #endif
@@ -983,20 +926,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_1x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+internal_1x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_internal_1x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_1x4_nucleotides, i1, i2, i3, i4, i5));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_1x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+internal_1x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_internal_1x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_1x4_nucleotides, i1, i2, i3, i4, i5));
 }
 
 static const char* format_internal_4x1_nucleotides = "internal_4x1_nucleotides_%c%c%c%c%c";
@@ -1005,20 +946,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_4x1_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5) const
+internal_4x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
 {
-  return get_by_key(string_format(format_internal_4x1_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_4x1_nucleotides, i1, i2, i3, i4, i5));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_4x1_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5)
+internal_4x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
 {
-  return get_by_key(string_format(format_internal_4x1_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5]));
+  return get_by_key(string_format(format_internal_4x1_nucleotides, i1, i2, i3, i4, i5));
 }
 #endif
 
@@ -1029,20 +968,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_2x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6) const
+internal_2x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
 {
-  return get_by_key(string_format(format_internal_2x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_internal_2x4_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_2x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6)
+internal_2x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
 {
-  return get_by_key(string_format(format_internal_2x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_internal_2x4_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 
 static const char* format_internal_4x2_nucleotides = "internal_4x2_nucleotides_%c%c%c%c%c%c";
@@ -1051,20 +988,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_4x2_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6) const
+internal_4x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
 {
-  return get_by_key(string_format(format_internal_4x2_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_internal_4x2_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_4x2_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6)
+internal_4x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
 {
-  return get_by_key(string_format(format_internal_4x2_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6]));
+  return get_by_key(string_format(format_internal_4x2_nucleotides, i1, i2, i3, i4, i5, i6));
 }
 #endif
 
@@ -1075,20 +1010,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_3x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7) const
+internal_3x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const
 {
-  return get_by_key(string_format(format_internal_3x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_internal_3x4_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_3x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7)
+internal_3x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7)
 {
-  return get_by_key(string_format(format_internal_3x4_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_internal_3x4_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 static const char* format_internal_4x3_nucleotides = "internal_4x3_nucleotides_%c%c%c%c%c%c%c";
@@ -1097,20 +1030,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_4x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7) const
+internal_4x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const
 {
-  return get_by_key(string_format(format_internal_4x3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_internal_4x3_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_4x3_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7)
+internal_4x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7)
 {
-  return get_by_key(string_format(format_internal_4x3_nucleotides, 
-                                  alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7]));
+  return get_by_key(string_format(format_internal_4x3_nucleotides, i1, i2, i3, i4, i5, i6, i7));
 }
 #endif
 
@@ -1121,10 +1052,10 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_4x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7, BYTE i8) const
+internal_4x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7, NUCL i8) const
 {
-  auto s1 = string_format(format_internal_4x4_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7], alphabet_[i8]);
-  auto s2 = string_format(format_internal_4x4_nucleotides, alphabet_[i5], alphabet_[i6], alphabet_[i7], alphabet_[i8], alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]);
+  auto s1 = string_format(format_internal_4x4_nucleotides, i1, i2, i3, i4, i5, i6, i7, i8);
+  auto s2 = string_format(format_internal_4x4_nucleotides, i5, i6, i7, i8, i1, i2, i3, i4);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 
@@ -1132,10 +1063,10 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_4x4_nucleotides(BYTE i1, BYTE i2, BYTE i3, BYTE i4, BYTE i5, BYTE i6, BYTE i7, BYTE i8)
+internal_4x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7, NUCL i8)
 {
-  auto s1 = string_format(format_internal_4x4_nucleotides, alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4], alphabet_[i5], alphabet_[i6], alphabet_[i7], alphabet_[i8]);
-  auto s2 = string_format(format_internal_4x4_nucleotides, alphabet_[i5], alphabet_[i6], alphabet_[i7], alphabet_[i8], alphabet_[i1], alphabet_[i2], alphabet_[i3], alphabet_[i4]);
+  auto s1 = string_format(format_internal_4x4_nucleotides, i1, i2, i3, i4, i5, i6, i7, i8);
+  auto s2 = string_format(format_internal_4x4_nucleotides, i5, i6, i7, i8, i1, i2, i3, i4);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 #endif
@@ -1147,10 +1078,10 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-helix_stacking(BYTE i1, BYTE j1, BYTE i2, BYTE j2) const
+helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
-  auto s1 = string_format(format_helix_stacking, alphabet_[i1], alphabet_[j1], alphabet_[i2], alphabet_[j2]);
-  auto s2 = string_format(format_helix_stacking, alphabet_[j2], alphabet_[i2], alphabet_[j1], alphabet_[i1]);
+  auto s1 = string_format(format_helix_stacking, i1, j1, i2, j2);
+  auto s2 = string_format(format_helix_stacking, j2, i2, j1, i1);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 
@@ -1158,10 +1089,10 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-helix_stacking(BYTE i1, BYTE j1, BYTE i2, BYTE j2)
+helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
 {
-  auto s1 = string_format(format_helix_stacking, alphabet_[i1], alphabet_[j1], alphabet_[i2], alphabet_[j2]);
-  auto s2 = string_format(format_helix_stacking, alphabet_[j2], alphabet_[i2], alphabet_[j1], alphabet_[i1]);
+  auto s1 = string_format(format_helix_stacking, i1, j1, i2, j2);
+  auto s2 = string_format(format_helix_stacking, j2, i2, j1, i1);
   return get_by_key(s1<s2 ? s1 : s2);
 }
 #endif
@@ -1173,18 +1104,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-helix_closing(BYTE i, BYTE j) const
+helix_closing(NUCL i, NUCL j) const
 {
-  return get_by_key(string_format(format_helix_closing, alphabet_[i], alphabet_[j]));
+  return get_by_key(string_format(format_helix_closing, i, j));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-helix_closing(BYTE i, BYTE j)
+helix_closing(NUCL i, NUCL j)
 {
-  return get_by_key(string_format(format_helix_closing, alphabet_[i], alphabet_[j]));
+  return get_by_key(string_format(format_helix_closing, i, j));
 }
 #endif
 
@@ -1257,18 +1188,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-dangle_left(BYTE i1, BYTE j1, BYTE i2) const
+dangle_left(NUCL i1, NUCL j1, NUCL i2) const
 {
-  return get_by_key(string_format(format_dangle_left, alphabet_[i1], alphabet_[j1], alphabet_[i2]));
+  return get_by_key(string_format(format_dangle_left, i1, j1, i2));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-dangle_left(BYTE i1, BYTE j1, BYTE i2)
+dangle_left(NUCL i1, NUCL j1, NUCL i2)
 {
-  return get_by_key(string_format(format_dangle_left, alphabet_[i1], alphabet_[j1], alphabet_[i2]));
+  return get_by_key(string_format(format_dangle_left, i1, j1, i2));
 }
 
 static const char* format_dangle_right = "dangle_right_%c%c%c";
@@ -1277,18 +1208,18 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-dangle_right(BYTE i1, BYTE j1, BYTE j2) const
+dangle_right(NUCL i1, NUCL j1, NUCL j2) const
 {
-  return get_by_key(string_format(format_dangle_right, alphabet_[i1], alphabet_[j1], alphabet_[j2]));
+  return get_by_key(string_format(format_dangle_right, i1, j1, j2));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-dangle_right(BYTE i1, BYTE j1, BYTE j2)
+dangle_right(NUCL i1, NUCL j1, NUCL j2)
 {
-  return get_by_key(string_format(format_dangle_right, alphabet_[i1], alphabet_[j1], alphabet_[j2]));
+  return get_by_key(string_format(format_dangle_right, i1, j1, j2));
 }
 #endif
 
@@ -1338,4 +1269,4 @@ template
 class ParameterHash<double>;
 
 template
-class ParameterHash<unsigned int>;
+class ParameterHash<uint>;

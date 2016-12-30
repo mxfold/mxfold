@@ -26,6 +26,7 @@
 #include <vector>
 
 typedef unsigned char BYTE;
+typedef char NUCL;
 const char DIR_SEPARATOR_CHAR = '/';
 
 // necessary macros

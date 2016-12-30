@@ -120,25 +120,13 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary) :
 #endif
 
 {
-    // precompute mapping from characters to index representation
-    std::memset(char_mapping, BYTE(alphabet.size()), 256);
-    for (size_t i = 0; i < alphabet.size(); i++)
-    {
-        char_mapping[BYTE(tolower(alphabet[i]))] = 
-            char_mapping[BYTE(toupper(alphabet[i]))] = i;
-    }
-    
     // precompute complementary pairings
-    for (int i = 0; i <= M; i++)
-        for (int j = 0; j <= M; j++)
-            is_complementary[i][j] = 0;
+    for (auto e : is_complementary)
+        std::fill(std::begin(e), std::end(e), 0);
     
-    is_complementary[char_mapping[BYTE('A')]][char_mapping[BYTE('U')]] = 
-        is_complementary[char_mapping[BYTE('U')]][char_mapping[BYTE('A')]] = 
-        is_complementary[char_mapping[BYTE('G')]][char_mapping[BYTE('U')]] = 
-        is_complementary[char_mapping[BYTE('U')]][char_mapping[BYTE('G')]] = 
-        is_complementary[char_mapping[BYTE('C')]][char_mapping[BYTE('G')]] = 
-        is_complementary[char_mapping[BYTE('G')]][char_mapping[BYTE('C')]] = 1;
+    is_complementary['A']['U'] = is_complementary['U']['A'] = 1;
+    is_complementary['G']['U'] = is_complementary['U']['G'] = 1;
+    is_complementary['C']['G'] = is_complementary['G']['C'] = 1;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -296,19 +284,19 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reacti
 
     // convert sequences to index representation
     const std::string &sequence = sstruct.GetSequences()[0];
-    s[0] = BYTE(alphabet.size());
+    s[0] = -1; //BYTE(alphabet.size());
     for (int i = 1; i <= L; i++)
     {
-        s[i] = char_mapping[BYTE(sequence[i])];
+        s[i] = toupper(sequence[i]);
     }
 #if PROFILE
     const std::vector<std::string> &alignment = sstruct.GetSequences();
     for (int k = 0; k < N; k++)
     {
-        A[k*(L+1)+0] = BYTE(alphabet.size());
+        A[k*(L+1)+0] = -1;
         for (int i = 1; i <= L; i++)
         {
-            A[k*(L+1)+i] = char_mapping[BYTE(alignment[k][i])];
+            A[k*(L+1)+i] = alignment[k][i];
         }
     }
 
