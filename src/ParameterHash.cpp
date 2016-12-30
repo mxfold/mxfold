@@ -42,6 +42,14 @@ initialize_char_mapping(const std::string& alphabet)
 template < class ValueT >
 void
 ParameterHash<ValueT>::
+LoadFromHash(std::unordered_map<std::string, ValueT> hash)
+{
+  param_ = std::move(hash);
+}
+
+template < class ValueT >
+void
+ParameterHash<ValueT>::
 ReadFromFile(const std::string& filename)
 {
   param_.clear();

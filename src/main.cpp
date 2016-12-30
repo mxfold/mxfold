@@ -7,6 +7,9 @@
 #include "ParameterHash.hpp"
 #include "SStruct.hpp"
 
+extern std::unordered_map<std::string, double> default_params_complementary;
+extern std::unordered_map<std::string, double> default_params_noncomplementary;
+
 class NGSfold
 {
 public:
@@ -93,13 +96,10 @@ NGSfold::predict()
 
   if (!param_file_.empty())
     pm->ReadFromFile(param_file_);
-#if 0
   else if (noncomplementary_)
-    w = GetDefaultNoncomplementaryValues<double>();
+    pm->LoadFromHash(default_params_noncomplementary);
   else
-    w = GetDefaultComplementaryValues<double>();
-  delete parameter_manager;
-#endif
+    pm->LoadFromHash(default_params_complementary);
   
   // predict ss
   InferenceEngine<double>* inference_engine = new InferenceEngine<double>(noncomplementary_);

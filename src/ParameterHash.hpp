@@ -21,6 +21,9 @@ public:
   size_t alphabet_size() const { return alphabet_.size(); }
   unsigned char char_mapping(BYTE c) const { return char_mapping_[c]; }
 
+  void LoadFromHash(std::unordered_map<std::string, ValueT> hash);
+  void LoadDefaultComplementary();
+  void LoadDefaultNonComplementary();
   void ReadFromFile(const std::string& filename);
   void WriteToFile(const std::string& filename) const;
 
