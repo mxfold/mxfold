@@ -135,7 +135,7 @@ main(int argc, char* argv[])
     return NGSfold().parse_options(argc, argv).run();
   } catch (const char* str) {
     std::cerr << str << std::endl;
-  } catch (std::exception e) {
+  } catch (std::runtime_error e) {
     std::cerr << e.what() << std::endl;
   }
   return -1;

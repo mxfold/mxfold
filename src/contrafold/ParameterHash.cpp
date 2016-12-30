@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <cctype>
 #include "ParameterHash.hpp"
+#include "Utilities.hpp"
 
 template<typename ... Args>
 std::string
@@ -21,7 +22,7 @@ template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
 {
-  initialize_char_mapping("ACGU");
+  initialize_char_mapping(alphabet);
 }
 
 template < class ValueT >
@@ -50,7 +51,8 @@ ReadFromFile(const std::string& filename)
   ValueT v;
   while (is >> k >> v)
   {
-    param_.insert(std::make_pair(k, v));
+    if (v!=0.0)
+      param_.insert(std::make_pair(k, v));
   }
 }
 
@@ -64,7 +66,8 @@ WriteToFile(const std::string& filename) const
   
   for (const auto& e : param_)
   {
-    os << e.first << " " << e.second << std::endl;
+    if (e.second!=0.0)
+      os << e.first << " " << e.second << std::endl;
   }
 }
 

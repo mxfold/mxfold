@@ -19,7 +19,7 @@ public:
 
   void initialize_char_mapping(const std::string& alphabet);
   size_t alphabet_size() const { return alphabet_.size(); }
-  BYTE char_mapping(BYTE c) const { return char_mapping_[c]; }
+  unsigned char char_mapping(BYTE c) const { return char_mapping_[c]; }
 
   void ReadFromFile(const std::string& filename);
   void WriteToFile(const std::string& filename) const;
@@ -220,7 +220,7 @@ private:
 private:
   std::unordered_map<std::string, ValueT> param_;
   std::string alphabet_;
-  std::array<BYTE, 256> char_mapping_;
+  std::array<unsigned char, 256> char_mapping_;
 };
 
 #endif  // PARAMETERHASH_HPP

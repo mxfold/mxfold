@@ -95,7 +95,7 @@ private:
     
     std::vector<RealT> posterior;
 
-    // parameters
+    // cache
 #if PARAMS_BASE_PAIR_DIST
     std::pair<RealT,uint> cache_score_base_pair_dist[BP_DIST_LAST_THRESHOLD+1];
 #endif
@@ -254,7 +254,6 @@ private:
     int EncodeTraceback(int i, int j) const;
     std::pair<int,int> DecodeTraceback(int s) const;
 
-    std::vector<RealT> GetCounts();
     void ClearCounts();
     void InitializeCache();
     void FinalizeCounts();

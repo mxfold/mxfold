@@ -110,7 +110,6 @@ template<class RealT>
 InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary) :
     allow_noncomplementary(allow_noncomplementary),
     cache_initialized(false),
-    //parameter_manager(NULL),
     L(0),
     SIZE(0)
 #if PROFILE
@@ -159,7 +158,7 @@ InferenceEngine<RealT>::~InferenceEngine()
 template<class RealT>
 void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reactivity)
 {
-    std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
+    //std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
     const std::vector<float> &reactivity_unpair= sstruct.GetReactivityUnpair();
     cache_initialized = false;
     
@@ -392,7 +391,7 @@ void InferenceEngine<RealT>::InitializeCache()
 {
     if (cache_initialized) return;
     cache_initialized = true;
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
 
     // initialize length and distance scoring
 #if PARAMS_BASE_PAIR_DIST
@@ -1501,7 +1500,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreIsolated() const
 {
 #if PARAMS_ISOLATED_BASE_PAIR
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.isolated_base_pair();
 #else
     return RealT(0);
@@ -1523,7 +1522,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiBase() const
 {
 #if PARAMS_MULTI_LENGTH
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.multi_base();
 #else
     return RealT(0);
@@ -1545,7 +1544,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
 {
 #if PARAMS_MULTI_LENGTH
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.multi_paired();
 #else
     return RealT(0);
@@ -1567,7 +1566,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
 {
 #if PARAMS_MULTI_LENGTH
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.multi_unpaired() + ScoreUnpairedPosition(i);
 #else
     return ScoreUnpairedPosition(i);
@@ -1592,7 +1591,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreExternalPaired() const
 {
 #if PARAMS_EXTERNAL_LENGTH
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.external_paired();
 #else
     return RealT(0);
@@ -1614,7 +1613,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreExternalUnpaired(int i) const
 {
 #if PARAMS_EXTERNAL_LENGTH
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.external_unpaired() + ScoreUnpairedPosition(i);
 #else
     return ScoreUnpairedPosition(i);
@@ -1648,7 +1647,7 @@ inline RealT InferenceEngine<RealT>::ScoreHelixStacking(int i, int j) const
 #if PROFILE
     return profile_score_helix_stacking[i*(L+1)+j].first;
 #else
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     return pm.helix_stacking(s[i], s[j], s[i+1], s[j-1]);
 #endif
 #else
@@ -1702,7 +1701,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
     // we allow i to be as large as L and j to be as small as 0.
     
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
 
     return
         RealT(0)
@@ -1780,7 +1779,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionB(int i, int j) const
     // from the edges of the sequence (i.e., i < L && j > 0).
     //外部ループアリ
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     
     return RealT(0)
 #if PARAMS_HELIX_CLOSING
@@ -1836,7 +1835,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
     // and no letter may base-pair to itself.
     
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     
     return RealT(0)
 #if defined(HAMMING_LOSS)
@@ -1906,7 +1905,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
     // that only valid hairpins are considered.
     
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
     
     return 
         ScoreUnpaired(i,j)
@@ -2122,7 +2121,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
     // loop should only be used for dealing with single-branch loops, not stacking pairs.
     
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    auto& pm = *parameter_manager;
+    const auto& pm = *parameter_manager;
 
 #if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES ||  PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES ||PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES )
     const int l1 = p - i;
