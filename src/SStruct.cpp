@@ -11,10 +11,6 @@ enum FileFormat
     FileFormat_RAW
 };                  
 
-const int SStruct::UNPAIRED = 0;
-const int SStruct::UNKNOWN = -1;
-const int SStruct::PAIRED = -2;
-
 //////////////////////////////////////////////////////////////////////
 // SStruct::SStruct()
 //
@@ -249,7 +245,7 @@ void SStruct::LoadRAW(const std::string &filename)
 // should be annotated with '-2'.
 //////////////////////////////////////////////////////////////////////
 
-void SStruct::LoadBPSEQ(const std::string &filename)
+void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY */)
 {
     // clear any previous data
     std::vector<std::string>().swap(names);
@@ -257,10 +253,6 @@ void SStruct::LoadBPSEQ(const std::string &filename)
     std::vector<int>().swap(mapping);
     std::vector<float>().swap(reactivity_unpair);
     std::vector<float>().swap(reactivity_pair);
-    //NGSファイルの判定に使用
-    //filenameの0から10文字をfilename_topにinsert
-    filename_top="";
-    filename_top.insert(0,filename,8,10);
 
     // initialize
     names.push_back(filename);
@@ -288,41 +280,46 @@ void SStruct::LoadBPSEQ(const std::string &filename)
         if (!(data >> token)) Error("Expected sequence letter after row number: %s", filename.c_str());
         if (token.length() != 1) Error("Expected sequence letter after row number: %s", filename.c_str());      
         char ch = token[0];
-
-        //if(filename_top=="NGS_DDDDDD")
-        if(filename_top=="NGS_SINGLE")
+        
+        switch (type) 
         {
-	 
-            float reactivity_to=0;
-            data >> token;
-            ConvertToNumber(token, reactivity_to);
-            sequences.back().push_back(ch);
-            reactivity_unpair.push_back(reactivity_to);
-            reactivity_pair.push_back(0);
-            mapping.push_back(0);
-        }
-        else if(filename_top=="NGS_DOUBLE")
-        {
-            float reactivity_to=0;
-            data >> token;
-            ConvertToNumber(token, reactivity_to);
-            sequences.back().push_back(ch);
-            reactivity_unpair.push_back(0);
-            reactivity_pair.push_back(reactivity_to);
-            mapping.push_back(0);
-        }
-        else
-        {
-            // read mapping        
-            int maps_to = 0;
-            if (!(data >> token)) Error("Expected mapping after sequence letter: %s", filename.c_str());
-            if (!ConvertToNumber(token, maps_to)) Error("Could not read matching row number: %s", filename.c_str());
-            if (maps_to < PAIRED) Error("Matching row numbers must be greater than or equal to -2: %s", filename.c_str());  
-            sequences.back().push_back(ch);
-            mapping.push_back(maps_to);
-            reactivity_unpair.push_back(0);
-            reactivity_pair.push_back(0);
-        }
+          case REACTIVITY_UNPAIRED: 
+          {
+              float reactivity_to=0;
+              data >> token;
+              ConvertToNumber(token, reactivity_to);
+              sequences.back().push_back(ch);
+              reactivity_unpair.push_back(reactivity_to);
+              reactivity_pair.push_back(0);
+              mapping.push_back(0);
+              break;
+          }
+          case REACTIVITY_PAIRED:
+          {
+              float reactivity_to=0;
+              data >> token;
+              ConvertToNumber(token, reactivity_to);
+              sequences.back().push_back(ch);
+              reactivity_unpair.push_back(0);
+              reactivity_pair.push_back(reactivity_to);
+              mapping.push_back(0);
+              break;
+          }
+          case NO_REACTIVITY:
+          default:
+          {
+              // read mapping        
+              int maps_to = 0;
+              if (!(data >> token)) Error("Expected mapping after sequence letter: %s", filename.c_str());
+              if (!ConvertToNumber(token, maps_to)) Error("Could not read matching row number: %s", filename.c_str());
+              if (maps_to < PAIRED) Error("Matching row numbers must be greater than or equal to -2: %s", filename.c_str());  
+              sequences.back().push_back(ch);
+              mapping.push_back(maps_to);
+              reactivity_unpair.push_back(0);
+              reactivity_pair.push_back(0);
+              break;
+          }
+        }          
     }
 }
 

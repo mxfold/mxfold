@@ -944,7 +944,7 @@ void InferenceEngine<RealT>::FinalizeCounts()
 #if FAST_HELIX_LENGTHS
 
     // reverse helix partial sums    
-    std::vector<std::pair<RealT,uint> > reverse_sums(cache_score_helix_sums);
+    std::vector<std::pair<RealT,RealT> > reverse_sums(cache_score_helix_sums);
     
     for (int i = 1; i <= L; i++)
     {
@@ -1463,7 +1463,7 @@ inline RealT InferenceEngine<RealT>::ScoreUnpairedPosition(int i) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountUnpairedPosition(int i, uint v)
+inline void InferenceEngine<RealT>::CountUnpairedPosition(int i, RealT v)
 {
 }
 
@@ -1480,7 +1480,7 @@ inline RealT InferenceEngine<RealT>::ScoreUnpaired(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountUnpaired(int i,int j, uint v)
+inline void InferenceEngine<RealT>::CountUnpaired(int i,int j, RealT v)
 {
 }
 
@@ -1498,7 +1498,7 @@ inline RealT InferenceEngine<RealT>::ScoreIsolated() const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountIsolated(uint v)
+inline void InferenceEngine<RealT>::CountIsolated(RealT v)
 {
 #if PARAMS_ISOLATED_BASE_PAIR
     auto& pc = *parameter_count;
@@ -1520,7 +1520,7 @@ inline RealT InferenceEngine<RealT>::ScoreMultiBase() const
 }
     
 template<class RealT>
-inline void InferenceEngine<RealT>::CountMultiBase(uint v)
+inline void InferenceEngine<RealT>::CountMultiBase(RealT v)
 {
 #if PARAMS_MULTI_LENGTH
     auto& pc = *parameter_count;
@@ -1542,7 +1542,7 @@ inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountMultiPaired(uint v)
+inline void InferenceEngine<RealT>::CountMultiPaired(RealT v)
 {
 #if PARAMS_MULTI_LENGTH
     auto& pc = *parameter_count;
@@ -1564,7 +1564,7 @@ inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, uint v)
+inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, RealT v)
 {
 #if PARAMS_MULTI_LENGTH
     auto& pc = *parameter_count;
@@ -1589,7 +1589,7 @@ inline RealT InferenceEngine<RealT>::ScoreExternalPaired() const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountExternalPaired(uint v)
+inline void InferenceEngine<RealT>::CountExternalPaired(RealT v)
 {
 #if PARAMS_EXTERNAL_LENGTH
     auto& pc = *parameter_count;
@@ -1611,7 +1611,7 @@ inline RealT InferenceEngine<RealT>::ScoreExternalUnpaired(int i) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, uint v)
+inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, RealT v)
 {
 #if PARAMS_EXTERNAL_LENGTH
     auto& pc = *parameter_count;
@@ -1646,7 +1646,7 @@ inline RealT InferenceEngine<RealT>::ScoreHelixStacking(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountHelixStacking(int i,int j, uint v)
+inline void InferenceEngine<RealT>::CountHelixStacking(int i,int j, RealT v)
 {
 #if PARAMS_HELIX_STACKING
 #if PROFILE
@@ -1715,7 +1715,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, uint value)
+inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
 {
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
     auto& pc = *parameter_count;
@@ -1790,7 +1790,7 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionB(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, uint value)
+inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
 {
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
     auto& pc = *parameter_count;
@@ -1850,7 +1850,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountBasePair(int i, int j, uint value)
+inline void InferenceEngine<RealT>::CountBasePair(int i, int j, RealT value)
 {
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     auto& pc = *parameter_count;
@@ -1944,7 +1944,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountHairpin(int i, int j, uint value)
+inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 {
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
     auto& pc = *parameter_count;
@@ -2051,7 +2051,7 @@ inline RealT InferenceEngine<RealT>::ScoreHelix(int i, int j, int m) const
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountHelix(int i, int j, int m, uint value)
+inline void InferenceEngine<RealT>::CountHelix(int i, int j, int m, RealT value)
 {
     Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
     Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
@@ -2277,7 +2277,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, uint value)
+inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, RealT value)
 {
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     auto& pc = *parameter_count;
@@ -2480,7 +2480,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, uint value)
+inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, RealT value)
 {
     const int l1 = p - i;
     const int l2 = j - q;
@@ -3186,7 +3186,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
     traceback_queue.push(make_triple(&F5t[0], 0, L));
 
     ClearCounts();
-    parameter_count.reset(new ParameterHash<uint>());
+    parameter_count.reset(new ParameterHash<RealT>());
     
     while (!traceback_queue.empty())
     {
@@ -4090,7 +4090,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     const RealT Z = ComputeLogPartitionCoefficient();
 
     ClearCounts();
-    parameter_count.reset(new ParameterHash<uint>());
+    parameter_count.reset(new ParameterHash<RealT>());
     
     for (int i = L; i >= 0; i--)
     {
@@ -4467,6 +4467,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 template<class RealT>
 void InferenceEngine<RealT>::ComputePosterior()
 { 
+    parameter_count.reset(new ParameterHash<RealT>());
     posterior.clear();
     posterior.resize(SIZE, RealT(0));
     
@@ -4794,6 +4795,7 @@ void InferenceEngine<RealT>::ComputePosterior()
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
+template<int GCE>
 std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const RealT gamma) const
 {
     Assert(gamma > 0, "Non-negative gamma expected.");
@@ -4806,15 +4808,17 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const RealT ga
     int* traceback             = new int[SIZE];
     
     // compute the scores for unpaired nucleotides
-    
-    for (int i = 1; i <= L; i++)
+    if (!GCE) 
     {
-        unpaired_posterior[i] = RealT(1);
-        for (int j = 1; j < i; j++) unpaired_posterior[i] -= posterior[offset[j]+i];
-        for (int j = i+1; j <= L; j++) unpaired_posterior[i] -= posterior[offset[i]+j];
-    }
+        for (int i = 1; i <= L; i++)
+        {
+            unpaired_posterior[i] = RealT(1);
+            for (int j = 1; j < i; j++) unpaired_posterior[i] -= posterior[offset[j]+i];
+            for (int j = i+1; j <= L; j++) unpaired_posterior[i] -= posterior[offset[i]+j];
+        }
     
-    for (int i = 1; i <= L; i++) unpaired_posterior[i] /= 2 * gamma;
+        for (int i = 1; i <= L; i++) unpaired_posterior[i] /= 2 * gamma;
+    }
     
     // initialize matrices
     
@@ -4836,14 +4840,32 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const RealT ga
             }
             else
             {
-                if (allow_unpaired_position[i+1])
-                    UPDATE_MAX(this_score, this_traceback, unpaired_posterior[i+1] + score[offset[i+1]+j], 1);
-                if (allow_unpaired_position[j])
-                    UPDATE_MAX(this_score, this_traceback, unpaired_posterior[j] + score[offset[i]+j-1], 2);
+                if (!GCE)
+                {
+                    if (allow_unpaired_position[i+1])
+                        UPDATE_MAX(this_score, this_traceback, unpaired_posterior[i+1] + score[offset[i+1]+j], 1);
+                    if (allow_unpaired_position[j])
+                        UPDATE_MAX(this_score, this_traceback, unpaired_posterior[j] + score[offset[i]+j-1], 2);
+                }
+                else
+                {
+                    if (allow_unpaired_position[i+1])
+                        UPDATE_MAX(this_score, this_traceback, score[offset[i+1]+j], 1);
+                    if (allow_unpaired_position[j])
+                        UPDATE_MAX(this_score, this_traceback, score[offset[i]+j-1], 2);
+                }
                 if (i+2 <= j)
-                { 
-                    if (allow_paired[offset[i+1]+j])
-                        UPDATE_MAX(this_score, this_traceback, posterior[offset[i+1]+j] + score[offset[i+1]+j-1], 3);
+                {
+                    if (!GCE)
+                    {
+                        if (allow_paired[offset[i+1]+j])
+                            UPDATE_MAX(this_score, this_traceback, posterior[offset[i+1]+j] + score[offset[i+1]+j-1], 3);
+                    }
+                    else
+                    {
+                        if (allow_paired[offset[i+1]+j])
+                            UPDATE_MAX(this_score, this_traceback, (gamma+1.0)*posterior[offset[i+1]+j] -1.0 + score[offset[i+1]+j-1], 3);
+                    }
                     
 #if SIMPLE_FM2
                     
@@ -4934,6 +4956,12 @@ RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff) const
 
 template 
 class InferenceEngine<double>;
+
+template
+std::vector<int> InferenceEngine<double>::PredictPairingsPosterior<0>(const double gamma) const;
+
+template
+std::vector<int> InferenceEngine<double>::PredictPairingsPosterior<1>(const double gamma) const;
 
 // Local Variables:
 // mode: C++

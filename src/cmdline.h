@@ -39,25 +39,52 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
-  int noncomplementary_flag;	/**< @brief allow non-canonical base pairs (default=off).  */
-  const char *noncomplementary_help; /**< @brief allow non-canonical base pairs help description.  */
-  char * predict_arg;	/**< @brief Predict interactions.  */
-  char * predict_orig;	/**< @brief Predict interactions original value given at command line.  */
-  const char *predict_help; /**< @brief Predict interactions help description.  */
-  char * train_arg;	/**< @brief Train the parameters from given data.  */
-  char * train_orig;	/**< @brief Train the parameters from given data original value given at command line.  */
-  const char *train_help; /**< @brief Train the parameters from given data help description.  */
+  int noncomplementary_flag;	/**< @brief Allow non-canonical base pairs (default=off).  */
+  const char *noncomplementary_help; /**< @brief Allow non-canonical base pairs help description.  */
+  char * param_arg;	/**< @brief Load parameters from parameter-file.  */
+  char * param_orig;	/**< @brief Load parameters from parameter-file original value given at command line.  */
+  const char *param_help; /**< @brief Load parameters from parameter-file help description.  */
+  int predict_flag;	/**< @brief Prediction mode (default=on).  */
+  const char *predict_help; /**< @brief Prediction mode help description.  */
+  float* mea_arg;	/**< @brief MEA decoding with gamma (default='6.0').  */
+  char ** mea_orig;	/**< @brief MEA decoding with gamma original value given at command line.  */
+  unsigned int mea_min; /**< @brief MEA decoding with gamma's minimum occurreces */
+  unsigned int mea_max; /**< @brief MEA decoding with gamma's maximum occurreces */
+  const char *mea_help; /**< @brief MEA decoding with gamma help description.  */
+  float* gce_arg;	/**< @brief Generalized centroid decoding with gamma (default='4.0').  */
+  char ** gce_orig;	/**< @brief Generalized centroid decoding with gamma original value given at command line.  */
+  unsigned int gce_min; /**< @brief Generalized centroid decoding with gamma's minimum occurreces */
+  unsigned int gce_max; /**< @brief Generalized centroid decoding with gamma's maximum occurreces */
+  const char *gce_help; /**< @brief Generalized centroid decoding with gamma help description.  */
   int bpseq_flag;	/**< @brief Output predicted results as the BPSEQ format (default=off).  */
   const char *bpseq_help; /**< @brief Output predicted results as the BPSEQ format help description.  */
+  char * train_arg;	/**< @brief Trainining mode (write the trained parameters into output-file).  */
+  char * train_orig;	/**< @brief Trainining mode (write the trained parameters into output-file) original value given at command line.  */
+  const char *train_help; /**< @brief Trainining mode (write the trained parameters into output-file) help description.  */
+  char ** structure_arg;	/**< @brief The lists of training data with full structures.  */
+  char ** structure_orig;	/**< @brief The lists of training data with full structures original value given at command line.  */
+  unsigned int structure_min; /**< @brief The lists of training data with full structures's minimum occurreces */
+  unsigned int structure_max; /**< @brief The lists of training data with full structures's maximum occurreces */
+  const char *structure_help; /**< @brief The lists of training data with full structures help description.  */
+  char ** reactivity_unpaired_arg;	/**< @brief The lists of training data with unpaired reactivity.  */
+  char ** reactivity_unpaired_orig;	/**< @brief The lists of training data with unpaired reactivity original value given at command line.  */
+  unsigned int reactivity_unpaired_min; /**< @brief The lists of training data with unpaired reactivity's minimum occurreces */
+  unsigned int reactivity_unpaired_max; /**< @brief The lists of training data with unpaired reactivity's maximum occurreces */
+  const char *reactivity_unpaired_help; /**< @brief The lists of training data with unpaired reactivity help description.  */
+  char ** reactivity_paired_arg;	/**< @brief The lists of training data with paired reactivity.  */
+  char ** reactivity_paired_orig;	/**< @brief The lists of training data with paired reactivity original value given at command line.  */
+  unsigned int reactivity_paired_min; /**< @brief The lists of training data with paired reactivity's minimum occurreces */
+  unsigned int reactivity_paired_max; /**< @brief The lists of training data with paired reactivity's maximum occurreces */
+  const char *reactivity_paired_help; /**< @brief The lists of training data with paired reactivity help description.  */
   float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='0.5').  */
   char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
-  float pos_w_arg;	/**< @brief The weight for positive interactions (default='4').  */
-  char * pos_w_orig;	/**< @brief The weight for positive interactions original value given at command line.  */
-  const char *pos_w_help; /**< @brief The weight for positive interactions help description.  */
-  float neg_w_arg;	/**< @brief The weight for negative interactions (default='1').  */
-  char * neg_w_orig;	/**< @brief The weight for negative interactions original value given at command line.  */
-  const char *neg_w_help; /**< @brief The weight for negative interactions help description.  */
+  float pos_w_arg;	/**< @brief The weight for positive base-pairs (default='4').  */
+  char * pos_w_orig;	/**< @brief The weight for positive base-pairs original value given at command line.  */
+  const char *pos_w_help; /**< @brief The weight for positive base-pairs help description.  */
+  float neg_w_arg;	/**< @brief The weight for negative base-pairs (default='1').  */
+  char * neg_w_orig;	/**< @brief The weight for negative base-pairs original value given at command line.  */
+  const char *neg_w_help; /**< @brief The weight for negative base-pairs help description.  */
   float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.125').  */
   char * lambda_orig;	/**< @brief The weight for the L1 regularization term original value given at command line.  */
   const char *lambda_help; /**< @brief The weight for the L1 regularization term help description.  */
@@ -65,9 +92,15 @@ struct gengetopt_args_info
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int noncomplementary_given ;	/**< @brief Whether noncomplementary was given.  */
+  unsigned int param_given ;	/**< @brief Whether param was given.  */
   unsigned int predict_given ;	/**< @brief Whether predict was given.  */
-  unsigned int train_given ;	/**< @brief Whether train was given.  */
+  unsigned int mea_given ;	/**< @brief Whether mea was given.  */
+  unsigned int gce_given ;	/**< @brief Whether gce was given.  */
   unsigned int bpseq_given ;	/**< @brief Whether bpseq was given.  */
+  unsigned int train_given ;	/**< @brief Whether train was given.  */
+  unsigned int structure_given ;	/**< @brief Whether structure was given.  */
+  unsigned int reactivity_unpaired_given ;	/**< @brief Whether reactivity-unpaired was given.  */
+  unsigned int reactivity_paired_given ;	/**< @brief Whether reactivity-paired was given.  */
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */

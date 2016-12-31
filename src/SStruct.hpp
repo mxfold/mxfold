@@ -28,17 +28,11 @@ class SStruct
     std::vector<std::string> names;
     std::vector<std::string> sequences;
     std::vector<int> mapping;
-    std::string filename_top;
     std::vector<float> reactivity_unpair;
     std::vector<float> reactivity_pair;
  
     // automatic file format detection
     int AnalyzeFormat(const std::string &filename) const;
-
-    // load file of a particular file format
-    void LoadFASTA(const std::string &filename);
-    void LoadRAW(const std::string &filename);
-    void LoadBPSEQ(const std::string &filename);
 
     // perform standard character conversions for RNA sequence and structures
     std::string FilterSequence(std::string sequence) const;
@@ -55,10 +49,10 @@ public:
 
     // integer constants used to identify nucleotides which are either
     // unpaired or whose pairing is not known
-    static const int UNPAIRED;
-    static const int UNKNOWN;
-    static const int PAIRED;
-  
+    enum { UNPAIRED = 0, UNKNOWN = -1, PAIRED = -2 };
+
+    // specify the type of the BPSEQ format that contains one of the following information
+    enum { NO_REACTIVITY, REACTIVITY_UNPAIRED, REACTIVITY_PAIRED };
 
     // constructor and destructor
     SStruct();
@@ -68,6 +62,11 @@ public:
 
     // load sequence and struture from file
     void Load(const std::string &filename);
+
+    // load file of a particular file format
+    void LoadFASTA(const std::string &filename);
+    void LoadRAW(const std::string &filename);
+    void LoadBPSEQ(const std::string &filename, int type = NO_REACTIVITY);
 
     // assignment operator
     const SStruct& operator=(const SStruct &rhs);

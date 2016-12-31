@@ -36,15 +36,21 @@ const char *gengetopt_args_info_description = "";
 const char *gengetopt_args_info_help[] = {
   "  -h, --help                    Print help and exit",
   "  -V, --version                 Print version and exit",
-  "      --noncomplementary        allow non-canonical base pairs  (default=off)",
-  "      --predict=parameter-file  Predict interactions",
-  "      --train=output-file       Train the parameters from given data",
-  "\nprediction mode:",
+  "      --noncomplementary        Allow non-canonical base pairs  (default=off)",
+  "      --param=parameter-file    Load parameters from parameter-file",
+  "\nPrediction mode:",
+  "      --predict                 Prediction mode  (default=on)",
+  "      --mea=gamma               MEA decoding with gamma  (default=`6.0')",
+  "      --gce=gamma               Generalized centroid decoding with gamma\n                                  (default=`4.0')",
   "      --bpseq                   Output predicted results as the BPSEQ format\n                                  (default=off)",
-  "\ntraining mode:",
+  "\nTraining mode:",
+  "      --train=output-file       Trainining mode (write the trained parameters\n                                  into output-file)",
+  "      --structure=filename-list The lists of training data with full structures",
+  "      --reactivity-unpaired=filename-list\n                                The lists of training data with unpaired\n                                  reactivity",
+  "      --reactivity-paired=filename-list\n                                The lists of training data with paired\n                                  reactivity",
   "  -e, --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`0.5')",
-  "  -w, --pos-w=FLOAT             The weight for positive interactions\n                                  (default=`4')",
-  "      --neg-w=FLOAT             The weight for negative interactions\n                                  (default=`1')",
+  "  -w, --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`4')",
+  "      --neg-w=FLOAT             The weight for negative base-pairs\n                                  (default=`1')",
   "  -D, --lambda=FLOAT            The weight for the L1 regularization term\n                                  (default=`0.125')",
     0
 };
@@ -64,6 +70,8 @@ static int
 cmdline_parser_internal (int argc, char **argv, struct gengetopt_args_info *args_info,
                         struct cmdline_parser_params *params, const char *additional_error);
 
+static int
+cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *prog_name, const char *additional_error);
 
 static char *
 gengetopt_strdup (const char *s);
@@ -74,9 +82,15 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
   args_info->noncomplementary_given = 0 ;
+  args_info->param_given = 0 ;
   args_info->predict_given = 0 ;
-  args_info->train_given = 0 ;
+  args_info->mea_given = 0 ;
+  args_info->gce_given = 0 ;
   args_info->bpseq_given = 0 ;
+  args_info->train_given = 0 ;
+  args_info->structure_given = 0 ;
+  args_info->reactivity_unpaired_given = 0 ;
+  args_info->reactivity_paired_given = 0 ;
   args_info->eta_given = 0 ;
   args_info->pos_w_given = 0 ;
   args_info->neg_w_given = 0 ;
@@ -88,11 +102,22 @@ void clear_args (struct gengetopt_args_info *args_info)
 {
   FIX_UNUSED (args_info);
   args_info->noncomplementary_flag = 0;
-  args_info->predict_arg = NULL;
-  args_info->predict_orig = NULL;
+  args_info->param_arg = NULL;
+  args_info->param_orig = NULL;
+  args_info->predict_flag = 1;
+  args_info->mea_arg = NULL;
+  args_info->mea_orig = NULL;
+  args_info->gce_arg = NULL;
+  args_info->gce_orig = NULL;
+  args_info->bpseq_flag = 0;
   args_info->train_arg = NULL;
   args_info->train_orig = NULL;
-  args_info->bpseq_flag = 0;
+  args_info->structure_arg = NULL;
+  args_info->structure_orig = NULL;
+  args_info->reactivity_unpaired_arg = NULL;
+  args_info->reactivity_unpaired_orig = NULL;
+  args_info->reactivity_paired_arg = NULL;
+  args_info->reactivity_paired_orig = NULL;
   args_info->eta_arg = 0.5;
   args_info->eta_orig = NULL;
   args_info->pos_w_arg = 4;
@@ -112,13 +137,29 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
   args_info->noncomplementary_help = gengetopt_args_info_help[2] ;
-  args_info->predict_help = gengetopt_args_info_help[3] ;
-  args_info->train_help = gengetopt_args_info_help[4] ;
-  args_info->bpseq_help = gengetopt_args_info_help[6] ;
-  args_info->eta_help = gengetopt_args_info_help[8] ;
-  args_info->pos_w_help = gengetopt_args_info_help[9] ;
-  args_info->neg_w_help = gengetopt_args_info_help[10] ;
-  args_info->lambda_help = gengetopt_args_info_help[11] ;
+  args_info->param_help = gengetopt_args_info_help[3] ;
+  args_info->predict_help = gengetopt_args_info_help[5] ;
+  args_info->mea_help = gengetopt_args_info_help[6] ;
+  args_info->mea_min = 0;
+  args_info->mea_max = 0;
+  args_info->gce_help = gengetopt_args_info_help[7] ;
+  args_info->gce_min = 0;
+  args_info->gce_max = 0;
+  args_info->bpseq_help = gengetopt_args_info_help[8] ;
+  args_info->train_help = gengetopt_args_info_help[10] ;
+  args_info->structure_help = gengetopt_args_info_help[11] ;
+  args_info->structure_min = 0;
+  args_info->structure_max = 0;
+  args_info->reactivity_unpaired_help = gengetopt_args_info_help[12] ;
+  args_info->reactivity_unpaired_min = 0;
+  args_info->reactivity_unpaired_max = 0;
+  args_info->reactivity_paired_help = gengetopt_args_info_help[13] ;
+  args_info->reactivity_paired_min = 0;
+  args_info->reactivity_paired_max = 0;
+  args_info->eta_help = gengetopt_args_info_help[14] ;
+  args_info->pos_w_help = gengetopt_args_info_help[15] ;
+  args_info->neg_w_help = gengetopt_args_info_help[16] ;
+  args_info->lambda_help = gengetopt_args_info_help[17] ;
   
 }
 
@@ -200,15 +241,85 @@ free_string_field (char **s)
     }
 }
 
+/** @brief generic value variable */
+union generic_value {
+    float float_arg;
+    char *string_arg;
+    const char *default_string_arg;
+};
+
+/** @brief holds temporary values for multiple options */
+struct generic_list
+{
+  union generic_value arg;
+  char *orig;
+  struct generic_list *next;
+};
+
+/**
+ * @brief add a node at the head of the list 
+ */
+static void add_node(struct generic_list **list) {
+  struct generic_list *new_node = (struct generic_list *) malloc (sizeof (struct generic_list));
+  new_node->next = *list;
+  *list = new_node;
+  new_node->arg.string_arg = 0;
+  new_node->orig = 0;
+}
+
+/**
+ * The passed arg parameter is NOT set to 0 from this function
+ */
+static void
+free_multiple_field(unsigned int len, void *arg, char ***orig)
+{
+  unsigned int i;
+  if (arg) {
+    for (i = 0; i < len; ++i)
+      {
+        free_string_field(&((*orig)[i]));
+      }
+
+    free (arg);
+    free (*orig);
+    *orig = 0;
+  }
+}
+
+static void
+free_multiple_string_field(unsigned int len, char ***arg, char ***orig)
+{
+  unsigned int i;
+  if (*arg) {
+    for (i = 0; i < len; ++i)
+      {
+        free_string_field(&((*arg)[i]));
+        free_string_field(&((*orig)[i]));
+      }
+    free_string_field(&((*arg)[0])); /* free default string */
+
+    free (*arg);
+    *arg = 0;
+    free (*orig);
+    *orig = 0;
+  }
+}
 
 static void
 cmdline_parser_release (struct gengetopt_args_info *args_info)
 {
   unsigned int i;
-  free_string_field (&(args_info->predict_arg));
-  free_string_field (&(args_info->predict_orig));
+  free_string_field (&(args_info->param_arg));
+  free_string_field (&(args_info->param_orig));
+  free_multiple_field (args_info->mea_given, (void *)(args_info->mea_arg), &(args_info->mea_orig));
+  args_info->mea_arg = 0;
+  free_multiple_field (args_info->gce_given, (void *)(args_info->gce_arg), &(args_info->gce_orig));
+  args_info->gce_arg = 0;
   free_string_field (&(args_info->train_arg));
   free_string_field (&(args_info->train_orig));
+  free_multiple_string_field (args_info->structure_given, &(args_info->structure_arg), &(args_info->structure_orig));
+  free_multiple_string_field (args_info->reactivity_unpaired_given, &(args_info->reactivity_unpaired_arg), &(args_info->reactivity_unpaired_orig));
+  free_multiple_string_field (args_info->reactivity_paired_given, &(args_info->reactivity_paired_arg), &(args_info->reactivity_paired_orig));
   free_string_field (&(args_info->eta_orig));
   free_string_field (&(args_info->pos_w_orig));
   free_string_field (&(args_info->neg_w_orig));
@@ -236,6 +347,14 @@ write_into_file(FILE *outfile, const char *opt, const char *arg, const char *val
   }
 }
 
+static void
+write_multiple_into_file(FILE *outfile, int len, const char *opt, char **arg, const char *values[])
+{
+  int i;
+  
+  for (i = 0; i < len; ++i)
+    write_into_file(outfile, opt, (arg ? arg[i] : 0), values);
+}
 
 int
 cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
@@ -254,12 +373,19 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "version", 0, 0 );
   if (args_info->noncomplementary_given)
     write_into_file(outfile, "noncomplementary", 0, 0 );
+  if (args_info->param_given)
+    write_into_file(outfile, "param", args_info->param_orig, 0);
   if (args_info->predict_given)
-    write_into_file(outfile, "predict", args_info->predict_orig, 0);
-  if (args_info->train_given)
-    write_into_file(outfile, "train", args_info->train_orig, 0);
+    write_into_file(outfile, "predict", 0, 0 );
+  write_multiple_into_file(outfile, args_info->mea_given, "mea", args_info->mea_orig, 0);
+  write_multiple_into_file(outfile, args_info->gce_given, "gce", args_info->gce_orig, 0);
   if (args_info->bpseq_given)
     write_into_file(outfile, "bpseq", 0, 0 );
+  if (args_info->train_given)
+    write_into_file(outfile, "train", args_info->train_orig, 0);
+  write_multiple_into_file(outfile, args_info->structure_given, "structure", args_info->structure_orig, 0);
+  write_multiple_into_file(outfile, args_info->reactivity_unpaired_given, "reactivity-unpaired", args_info->reactivity_unpaired_orig, 0);
+  write_multiple_into_file(outfile, args_info->reactivity_paired_given, "reactivity-paired", args_info->reactivity_paired_orig, 0);
   if (args_info->eta_given)
     write_into_file(outfile, "eta", args_info->eta_orig, 0);
   if (args_info->pos_w_given)
@@ -315,6 +441,141 @@ gengetopt_strdup (const char *s)
   return result;
 }
 
+static char *
+get_multiple_arg_token(const char *arg)
+{
+  const char *tok;
+  char *ret;
+  size_t len, num_of_escape, i, j;
+
+  if (!arg)
+    return 0;
+
+  tok = strchr (arg, ',');
+  num_of_escape = 0;
+
+  /* make sure it is not escaped */
+  while (tok)
+    {
+      if (*(tok-1) == '\\')
+        {
+          /* find the next one */
+          tok = strchr (tok+1, ',');
+          ++num_of_escape;
+        }
+      else
+        break;
+    }
+
+  if (tok)
+    len = (size_t)(tok - arg + 1);
+  else
+    len = strlen (arg) + 1;
+
+  len -= num_of_escape;
+
+  ret = (char *) malloc (len);
+
+  i = 0;
+  j = 0;
+  while (arg[i] && (j < len-1))
+    {
+      if (arg[i] == '\\' && 
+	  arg[ i + 1 ] && 
+	  arg[ i + 1 ] == ',')
+        ++i;
+
+      ret[j++] = arg[i++];
+    }
+
+  ret[len-1] = '\0';
+
+  return ret;
+}
+
+static const char *
+get_multiple_arg_token_next(const char *arg)
+{
+  const char *tok;
+
+  if (!arg)
+    return 0;
+
+  tok = strchr (arg, ',');
+
+  /* make sure it is not escaped */
+  while (tok)
+    {
+      if (*(tok-1) == '\\')
+        {
+          /* find the next one */
+          tok = strchr (tok+1, ',');
+        }
+      else
+        break;
+    }
+
+  if (! tok || strlen(tok) == 1)
+    return 0;
+
+  return tok+1;
+}
+
+static int
+check_multiple_option_occurrences(const char *prog_name, unsigned int option_given, unsigned int min, unsigned int max, const char *option_desc);
+
+int
+check_multiple_option_occurrences(const char *prog_name, unsigned int option_given, unsigned int min, unsigned int max, const char *option_desc)
+{
+  int error_occurred = 0;
+
+  if (option_given && (min > 0 || max > 0))
+    {
+      if (min > 0 && max > 0)
+        {
+          if (min == max)
+            {
+              /* specific occurrences */
+              if (option_given != (unsigned int) min)
+                {
+                  fprintf (stderr, "%s: %s option occurrences must be %d\n",
+                    prog_name, option_desc, min);
+                  error_occurred = 1;
+                }
+            }
+          else if (option_given < (unsigned int) min
+                || option_given > (unsigned int) max)
+            {
+              /* range occurrences */
+              fprintf (stderr, "%s: %s option occurrences must be between %d and %d\n",
+                prog_name, option_desc, min, max);
+              error_occurred = 1;
+            }
+        }
+      else if (min > 0)
+        {
+          /* at least check */
+          if (option_given < min)
+            {
+              fprintf (stderr, "%s: %s option occurrences must be at least %d\n",
+                prog_name, option_desc, min);
+              error_occurred = 1;
+            }
+        }
+      else if (max > 0)
+        {
+          /* at most check */
+          if (option_given > max)
+            {
+              fprintf (stderr, "%s: %s option occurrences must be at most %d\n",
+                prog_name, option_desc, max);
+              error_occurred = 1;
+            }
+        }
+    }
+    
+  return error_occurred;
+}
 int
 cmdline_parser (int argc, char **argv, struct gengetopt_args_info *args_info)
 {
@@ -363,9 +624,46 @@ cmdline_parser2 (int argc, char **argv, struct gengetopt_args_info *args_info, i
 int
 cmdline_parser_required (struct gengetopt_args_info *args_info, const char *prog_name)
 {
-  FIX_UNUSED (args_info);
-  FIX_UNUSED (prog_name);
-  return EXIT_SUCCESS;
+  int result = EXIT_SUCCESS;
+
+  if (cmdline_parser_required2(args_info, prog_name, 0) > 0)
+    result = EXIT_FAILURE;
+
+  if (result == EXIT_FAILURE)
+    {
+      cmdline_parser_free (args_info);
+      exit (EXIT_FAILURE);
+    }
+  
+  return result;
+}
+
+int
+cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *prog_name, const char *additional_error)
+{
+  int error_occurred = 0;
+  FIX_UNUSED (additional_error);
+
+  /* checks for required options */
+  if (check_multiple_option_occurrences(prog_name, args_info->mea_given, args_info->mea_min, args_info->mea_max, "'--mea'"))
+     error_occurred = 1;
+  
+  if (check_multiple_option_occurrences(prog_name, args_info->gce_given, args_info->gce_min, args_info->gce_max, "'--gce'"))
+     error_occurred = 1;
+  
+  if (check_multiple_option_occurrences(prog_name, args_info->structure_given, args_info->structure_min, args_info->structure_max, "'--structure'"))
+     error_occurred = 1;
+  
+  if (check_multiple_option_occurrences(prog_name, args_info->reactivity_unpaired_given, args_info->reactivity_unpaired_min, args_info->reactivity_unpaired_max, "'--reactivity-unpaired'"))
+     error_occurred = 1;
+  
+  if (check_multiple_option_occurrences(prog_name, args_info->reactivity_paired_given, args_info->reactivity_paired_min, args_info->reactivity_paired_max, "'--reactivity-paired'"))
+     error_occurred = 1;
+  
+  
+  /* checks for dependences among options */
+
+  return error_occurred;
 }
 
 
@@ -484,6 +782,137 @@ int update_arg(void *field, char **orig_field,
   return 0; /* OK */
 }
 
+/**
+ * @brief store information about a multiple option in a temporary list
+ * @param list where to (temporarily) store multiple options
+ */
+static
+int update_multiple_arg_temp(struct generic_list **list,
+               unsigned int *prev_given, const char *val,
+               const char *possible_values[], const char *default_value,
+               cmdline_parser_arg_type arg_type,
+               const char *long_opt, char short_opt,
+               const char *additional_error)
+{
+  /* store single arguments */
+  char *multi_token;
+  const char *multi_next;
+
+  if (arg_type == ARG_NO) {
+    (*prev_given)++;
+    return 0; /* OK */
+  }
+
+  multi_token = get_multiple_arg_token(val);
+  multi_next = get_multiple_arg_token_next (val);
+
+  while (1)
+    {
+      add_node (list);
+      if (update_arg((void *)&((*list)->arg), &((*list)->orig), 0,
+          prev_given, multi_token, possible_values, default_value, 
+          arg_type, 0, 1, 1, 1, long_opt, short_opt, additional_error)) {
+        if (multi_token) free(multi_token);
+        return 1; /* failure */
+      }
+
+      if (multi_next)
+        {
+          multi_token = get_multiple_arg_token(multi_next);
+          multi_next = get_multiple_arg_token_next (multi_next);
+        }
+      else
+        break;
+    }
+
+  return 0; /* OK */
+}
+
+/**
+ * @brief free the passed list (including possible string argument)
+ */
+static
+void free_list(struct generic_list *list, short string_arg)
+{
+  if (list) {
+    struct generic_list *tmp;
+    while (list)
+      {
+        tmp = list;
+        if (string_arg && list->arg.string_arg)
+          free (list->arg.string_arg);
+        if (list->orig)
+          free (list->orig);
+        list = list->next;
+        free (tmp);
+      }
+  }
+}
+
+/**
+ * @brief updates a multiple option starting from the passed list
+ */
+static
+void update_multiple_arg(void *field, char ***orig_field,
+               unsigned int field_given, unsigned int prev_given, union generic_value *default_value,
+               cmdline_parser_arg_type arg_type,
+               struct generic_list *list)
+{
+  int i;
+  struct generic_list *tmp;
+
+  if (prev_given && list) {
+    *orig_field = (char **) realloc (*orig_field, (field_given + prev_given) * sizeof (char *));
+
+    switch(arg_type) {
+    case ARG_FLOAT:
+      *((float **)field) = (float *)realloc (*((float **)field), (field_given + prev_given) * sizeof (float)); break;
+    case ARG_STRING:
+      *((char ***)field) = (char **)realloc (*((char ***)field), (field_given + prev_given) * sizeof (char *)); break;
+    default:
+      break;
+    };
+    
+    for (i = (prev_given - 1); i >= 0; --i)
+      {
+        tmp = list;
+        
+        switch(arg_type) {
+        case ARG_FLOAT:
+          (*((float **)field))[i + field_given] = tmp->arg.float_arg; break;
+        case ARG_STRING:
+          (*((char ***)field))[i + field_given] = tmp->arg.string_arg; break;
+        default:
+          break;
+        }        
+        (*orig_field) [i + field_given] = list->orig;
+        list = list->next;
+        free (tmp);
+      }
+  } else { /* set the default value */
+    if (default_value && ! field_given) {
+      switch(arg_type) {
+      case ARG_FLOAT:
+        if (! *((float **)field)) {
+          *((float **)field) = (float *)malloc (sizeof (float));
+          (*((float **)field))[0] = default_value->float_arg;
+        }
+        break;
+      case ARG_STRING:
+        if (! *((char ***)field)) {
+          *((char ***)field) = (char **)malloc (sizeof (char *));
+          (*((char ***)field))[0] = gengetopt_strdup(default_value->string_arg);
+        }
+        break;
+      default: break;
+      }
+      if (!(*orig_field)) {
+        *orig_field = (char **) malloc (sizeof (char *));
+        (*orig_field)[0] = 0;
+      }
+    }
+  }
+}
 
 int
 cmdline_parser_internal (
@@ -491,7 +920,13 @@ cmdline_parser_internal (
                         struct cmdline_parser_params *params, const char *additional_error)
 {
   int c;	/* Character of the parsed option.  */
+  union generic_value multiple_default_value;
 
+  struct generic_list * mea_list = NULL;
+  struct generic_list * gce_list = NULL;
+  struct generic_list * structure_list = NULL;
+  struct generic_list * reactivity_unpaired_list = NULL;
+  struct generic_list * reactivity_paired_list = NULL;
   int error_occurred = 0;
   struct gengetopt_args_info local_args_info;
   
@@ -525,9 +960,15 @@ cmdline_parser_internal (
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
         { "noncomplementary",	0, NULL, 0 },
-        { "predict",	1, NULL, 0 },
-        { "train",	1, NULL, 0 },
+        { "param",	1, NULL, 0 },
+        { "predict",	0, NULL, 0 },
+        { "mea",	1, NULL, 0 },
+        { "gce",	1, NULL, 0 },
         { "bpseq",	0, NULL, 0 },
+        { "train",	1, NULL, 0 },
+        { "structure",	1, NULL, 0 },
+        { "reactivity-unpaired",	1, NULL, 0 },
+        { "reactivity-paired",	1, NULL, 0 },
         { "eta",	1, NULL, 'e' },
         { "pos-w",	1, NULL, 'w' },
         { "neg-w",	1, NULL, 0 },
@@ -563,7 +1004,7 @@ cmdline_parser_internal (
             goto failure;
         
           break;
-        case 'w':	/* The weight for positive interactions.  */
+        case 'w':	/* The weight for positive base-pairs.  */
         
         
           if (update_arg( (void *)&(args_info->pos_w_arg), 
@@ -589,7 +1030,7 @@ cmdline_parser_internal (
           break;
 
         case 0:	/* Long option with no short option */
-          /* allow non-canonical base pairs.  */
+          /* Allow non-canonical base pairs.  */
           if (strcmp (long_options[option_index].name, "noncomplementary") == 0)
           {
           
@@ -601,30 +1042,50 @@ cmdline_parser_internal (
               goto failure;
           
           }
-          /* Predict interactions.  */
-          else if (strcmp (long_options[option_index].name, "predict") == 0)
+          /* Load parameters from parameter-file.  */
+          else if (strcmp (long_options[option_index].name, "param") == 0)
           {
           
           
-            if (update_arg( (void *)&(args_info->predict_arg), 
-                 &(args_info->predict_orig), &(args_info->predict_given),
-                &(local_args_info.predict_given), optarg, 0, 0, ARG_STRING,
+            if (update_arg( (void *)&(args_info->param_arg), 
+                 &(args_info->param_orig), &(args_info->param_given),
+                &(local_args_info.param_given), optarg, 0, 0, ARG_STRING,
                 check_ambiguity, override, 0, 0,
-                "predict", '-',
+                "param", '-',
                 additional_error))
               goto failure;
           
           }
-          /* Train the parameters from given data.  */
-          else if (strcmp (long_options[option_index].name, "train") == 0)
+          /* Prediction mode.  */
+          else if (strcmp (long_options[option_index].name, "predict") == 0)
           {
           
           
-            if (update_arg( (void *)&(args_info->train_arg), 
-                 &(args_info->train_orig), &(args_info->train_given),
-                &(local_args_info.train_given), optarg, 0, 0, ARG_STRING,
-                check_ambiguity, override, 0, 0,
-                "train", '-',
+            if (update_arg((void *)&(args_info->predict_flag), 0, &(args_info->predict_given),
+                &(local_args_info.predict_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "predict", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* MEA decoding with gamma.  */
+          else if (strcmp (long_options[option_index].name, "mea") == 0)
+          {
+          
+            if (update_multiple_arg_temp(&mea_list, 
+                &(local_args_info.mea_given), optarg, 0, "6.0", ARG_FLOAT,
+                "mea", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Generalized centroid decoding with gamma.  */
+          else if (strcmp (long_options[option_index].name, "gce") == 0)
+          {
+          
+            if (update_multiple_arg_temp(&gce_list, 
+                &(local_args_info.gce_given), optarg, 0, "4.0", ARG_FLOAT,
+                "gce", '-',
                 additional_error))
               goto failure;
           
@@ -641,7 +1102,54 @@ cmdline_parser_internal (
               goto failure;
           
           }
-          /* The weight for negative interactions.  */
+          /* Trainining mode (write the trained parameters into output-file).  */
+          else if (strcmp (long_options[option_index].name, "train") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->train_arg), 
+                 &(args_info->train_orig), &(args_info->train_given),
+                &(local_args_info.train_given), optarg, 0, 0, ARG_STRING,
+                check_ambiguity, override, 0, 0,
+                "train", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The lists of training data with full structures.  */
+          else if (strcmp (long_options[option_index].name, "structure") == 0)
+          {
+          
+            if (update_multiple_arg_temp(&structure_list, 
+                &(local_args_info.structure_given), optarg, 0, 0, ARG_STRING,
+                "structure", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The lists of training data with unpaired reactivity.  */
+          else if (strcmp (long_options[option_index].name, "reactivity-unpaired") == 0)
+          {
+          
+            if (update_multiple_arg_temp(&reactivity_unpaired_list, 
+                &(local_args_info.reactivity_unpaired_given), optarg, 0, 0, ARG_STRING,
+                "reactivity-unpaired", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The lists of training data with paired reactivity.  */
+          else if (strcmp (long_options[option_index].name, "reactivity-paired") == 0)
+          {
+          
+            if (update_multiple_arg_temp(&reactivity_paired_list, 
+                &(local_args_info.reactivity_paired_given), optarg, 0, 0, ARG_STRING,
+                "reactivity-paired", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The weight for negative base-pairs.  */
           else if (strcmp (long_options[option_index].name, "neg-w") == 0)
           {
           
@@ -668,7 +1176,44 @@ cmdline_parser_internal (
     } /* while */
 
 
+  multiple_default_value.float_arg = 6.0;
+  update_multiple_arg((void *)&(args_info->mea_arg),
+    &(args_info->mea_orig), args_info->mea_given,
+    local_args_info.mea_given, &multiple_default_value,
+    ARG_FLOAT, mea_list);
+  multiple_default_value.float_arg = 4.0;
+  update_multiple_arg((void *)&(args_info->gce_arg),
+    &(args_info->gce_orig), args_info->gce_given,
+    local_args_info.gce_given, &multiple_default_value,
+    ARG_FLOAT, gce_list);
+  update_multiple_arg((void *)&(args_info->structure_arg),
+    &(args_info->structure_orig), args_info->structure_given,
+    local_args_info.structure_given, 0,
+    ARG_STRING, structure_list);
+  update_multiple_arg((void *)&(args_info->reactivity_unpaired_arg),
+    &(args_info->reactivity_unpaired_orig), args_info->reactivity_unpaired_given,
+    local_args_info.reactivity_unpaired_given, 0,
+    ARG_STRING, reactivity_unpaired_list);
+  update_multiple_arg((void *)&(args_info->reactivity_paired_arg),
+    &(args_info->reactivity_paired_orig), args_info->reactivity_paired_given,
+    local_args_info.reactivity_paired_given, 0,
+    ARG_STRING, reactivity_paired_list);
 
+  args_info->mea_given += local_args_info.mea_given;
+  local_args_info.mea_given = 0;
+  args_info->gce_given += local_args_info.gce_given;
+  local_args_info.gce_given = 0;
+  args_info->structure_given += local_args_info.structure_given;
+  local_args_info.structure_given = 0;
+  args_info->reactivity_unpaired_given += local_args_info.reactivity_unpaired_given;
+  local_args_info.reactivity_unpaired_given = 0;
+  args_info->reactivity_paired_given += local_args_info.reactivity_paired_given;
+  local_args_info.reactivity_paired_given = 0;
+  
+  if (check_required)
+    {
+      error_occurred += cmdline_parser_required2 (args_info, argv[0], additional_error);
+    }
 
   cmdline_parser_release (&local_args_info);
 
@@ -702,6 +1247,11 @@ cmdline_parser_internal (
   return 0;
 
 failure:
+  free_list (mea_list, 0 );
+  free_list (gce_list, 0 );
+  free_list (structure_list, 1 );
+  free_list (reactivity_unpaired_list, 1 );
+  free_list (reactivity_paired_list, 1 );
   
   cmdline_parser_release (&local_args_info);
   return (EXIT_FAILURE);

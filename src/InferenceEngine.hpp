@@ -24,7 +24,7 @@ class InferenceEngine
 {
 public:
     typedef std::unique_ptr<ParameterHash<RealT>> ParamPtr;
-    typedef std::unique_ptr<ParameterHash<uint>> CntPtr;
+    typedef std::unique_ptr<ParameterHash<RealT>> CntPtr;
 
 private:
     const bool allow_noncomplementary;
@@ -97,13 +97,13 @@ private:
 
     // cache
 #if PARAMS_BASE_PAIR_DIST
-    std::pair<RealT,uint> cache_score_base_pair_dist[BP_DIST_LAST_THRESHOLD+1];
+    std::pair<RealT,RealT> cache_score_base_pair_dist[BP_DIST_LAST_THRESHOLD+1];
 #endif
 #if PARAMS_HAIRPIN_LENGTH
-    std::pair<RealT,uint> cache_score_hairpin_length[D_MAX_HAIRPIN_LENGTH+1];
+    std::pair<RealT,RealT> cache_score_hairpin_length[D_MAX_HAIRPIN_LENGTH+1];
 #endif
 #if PARAMS_HELIX_LENGTH
-    std::pair<RealT,uint> cache_score_helix_length[D_MAX_HELIX_LENGTH+1];
+    std::pair<RealT,RealT> cache_score_helix_length[D_MAX_HELIX_LENGTH+1];
 #endif
 
 #if PROFILE
@@ -209,8 +209,8 @@ private:
 #endif
 
     // cache
-    std::pair<RealT,uint> cache_score_single[C_MAX_SINGLE_LENGTH+1][C_MAX_SINGLE_LENGTH+1];
-    std::vector<std::pair<RealT,uint> > cache_score_helix_sums;
+    std::pair<RealT,RealT> cache_score_single[C_MAX_SINGLE_LENGTH+1][C_MAX_SINGLE_LENGTH+1];
+    std::vector<std::pair<RealT,RealT> > cache_score_helix_sums;
 
     int ComputeRowOffset(int i, int N) const;
     bool IsComplementary(int i, int j) const;
@@ -233,23 +233,23 @@ private:
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;
     
-    void CountUnpairedPosition(int i, uint v);
-    void CountUnpaired(int i,int j, uint v);
-    void CountIsolated(uint v);
-    void CountMultiBase(uint v);
-    void CountMultiPaired(uint v);
-    void CountMultiUnpaired(int i, uint v);
-    void CountExternalPaired(uint v);
-    void CountExternalUnpaired(int i, uint v);
-    void CountHelixStacking(int i,int j, uint v);
+    void CountUnpairedPosition(int i, RealT v);
+    void CountUnpaired(int i,int j, RealT v);
+    void CountIsolated(RealT v);
+    void CountMultiBase(RealT v);
+    void CountMultiPaired(RealT v);
+    void CountMultiUnpaired(int i, RealT v);
+    void CountExternalPaired(RealT v);
+    void CountExternalUnpaired(int i, RealT v);
+    void CountHelixStacking(int i,int j, RealT v);
 
-    void CountJunctionA(int i, int j, uint value);
-    void CountJunctionB(int i, int j, uint value);
-    void CountBasePair(int i, int j, uint value);
-    void CountHairpin(int i, int j, uint value);
-    void CountHelix(int i, int j, int m, uint value);
-    void CountSingleNucleotides(int i, int j, int p, int q, uint value);
-    void CountSingle(int i, int j, int p, int q, uint value);
+    void CountJunctionA(int i, int j, RealT value);
+    void CountJunctionB(int i, int j, RealT value);
+    void CountBasePair(int i, int j, RealT value);
+    void CountHairpin(int i, int j, RealT value);
+    void CountHelix(int i, int j, int m, RealT value);
+    void CountSingleNucleotides(int i, int j, int p, int q, RealT value);
+    void CountSingle(int i, int j, int p, int q, RealT value);
 
     int EncodeTraceback(int i, int j) const;
     std::pair<int,int> DecodeTraceback(int s) const;
@@ -293,7 +293,7 @@ public:
     void ComputeOutside();
     CntPtr ComputeFeatureCountExpectations();
     void ComputePosterior();
-    std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
+    template <int GCE> std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;
 };
 
