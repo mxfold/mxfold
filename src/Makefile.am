@@ -6,4 +6,5 @@ ngsfold_SOURCES = \
 	InferenceEngine.hpp InferenceEngine.cpp \
 	ParameterHash.hpp ParameterHash.cpp \
 	SStruct.cpp SStruct.hpp \
-	Utilities.cpp Utilities.hpp Utilities.ipp 
+	Utilities.cpp Utilities.hpp Utilities.ipp \
+	sgd_updater.cpp sgd_updater.hpp

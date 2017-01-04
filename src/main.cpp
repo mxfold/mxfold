@@ -4,12 +4,14 @@
 #include <utility>
 #include <string>
 #include <stdexcept>
+#include "../config.h"
 #include "cmdline.h"
 #include "Config.hpp"
 #include "Utilities.hpp"
 #include "InferenceEngine.hpp"
 #include "ParameterHash.hpp"
 #include "SStruct.hpp"
+#include "sgd_updater.hpp"
 
 extern std::unordered_map<std::string, double> default_params_complementary;
 extern std::unordered_map<std::string, double> default_params_noncomplementary;
@@ -159,7 +161,7 @@ NGSfold::train()
   std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
   if (!param_file_.empty())
     pm->ReadFromFile(param_file_);
-  std::unordered_map<std::string,double> sum_squared_grad;
+  AdaGradRDAUpdater adagrad(eta0_, lambda_);
 
   // first round: train only from the full structure dataset
   std::vector<uint> idx(pos_str.second-pos_str.first);
@@ -169,35 +171,28 @@ NGSfold::train()
     std::random_shuffle(idx.begin(), idx.end());
     for (auto i : idx)
     {
-      std::unordered_map<std::string,double> cnt;
+      std::unordered_map<std::string,double> grad;
       inference_engine->LoadValues(std::move(pm));
 
       inference_engine->LoadSequence(data[i]);
       inference_engine->ComputeViterbi();
       auto pred = inference_engine->ComputeViterbiFeatureCounts();
       for (auto e : *pred)
-        cnt.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+        grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
 
       inference_engine->LoadSequence(data[i]);
       inference_engine->UseConstraints(data[i].GetMapping());
       inference_engine->ComputeViterbi();
       auto corr = inference_engine->ComputeViterbiFeatureCounts();
       for (auto e : *corr)
-        cnt.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+        grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
 
       pm = inference_engine->LoadValues(nullptr);
-      for (auto e : cnt)
-      {
-        if (e.second!=0.0)
-        {
-          auto sq = sum_squared_grad.insert(std::make_pair(e.first, 0.0));
-          pm->get_by_key(e.first) -= e.second * eta0_/std::sqrt(1.0+sq.first->second);
-          sq.first->second += e.second*e.second;
-        }
-      }
+      for (auto g : grad)
+        adagrad.update(g.first, pm->get_by_key(g.first), g.second);
+      adagrad.proceed_time();
     }
   }
-  
 
   // second round
 
