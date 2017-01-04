@@ -1,5 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
+#include <utility>
+#include <string>
 #include <stdexcept>
 #include "cmdline.h"
 #include "Config.hpp"
@@ -125,9 +128,81 @@ NGSfold::parse_options(int& argc, char**& argv)
   return *this;
 }
 
+std::pair<uint,uint>
+read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type)
+{
+  std::pair<uint,uint> pos = std::make_pair(data.size(), data.size());
+  for (auto l: lists)
+  {
+    std::ifstream is(l.c_str());
+    if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + l);
+    std::string f;
+    while (is >> f)
+      data.emplace_back(f, type);
+  }
+  pos.second = data.size();
+  return pos;
+}
+
 int
 NGSfold::train()
 {
+  uint n_first=1;
+
+  // read traing data
+  std::vector<SStruct> data;
+  auto pos_str = read_data(data, data_str_list_, SStruct::NO_REACTIVITY);
+  auto pos_unpaired = read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
+  auto pos_paired = read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
+
+  auto inference_engine = new InferenceEngine<double>(noncomplementary_);
+  std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
+  if (!param_file_.empty())
+    pm->ReadFromFile(param_file_);
+  std::unordered_map<std::string,double> sum_squared_grad;
+
+  // first round: train only from the full structure dataset
+  std::vector<uint> idx(pos_str.second-pos_str.first);
+  std::iota(idx.begin(), idx.end(), 0);
+  for (uint epoch=0; epoch!=n_first; ++epoch)
+  {
+    std::random_shuffle(idx.begin(), idx.end());
+    for (auto i : idx)
+    {
+      std::unordered_map<std::string,double> cnt;
+      inference_engine->LoadValues(std::move(pm));
+
+      inference_engine->LoadSequence(data[i]);
+      inference_engine->ComputeViterbi();
+      auto pred = inference_engine->ComputeViterbiFeatureCounts();
+      for (auto e : *pred)
+        cnt.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+
+      inference_engine->LoadSequence(data[i]);
+      inference_engine->UseConstraints(data[i].GetMapping());
+      inference_engine->ComputeViterbi();
+      auto corr = inference_engine->ComputeViterbiFeatureCounts();
+      for (auto e : *corr)
+        cnt.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+
+      pm = inference_engine->LoadValues(nullptr);
+      for (auto e : cnt)
+      {
+        if (e.second!=0.0)
+        {
+          auto sq = sum_squared_grad.insert(std::make_pair(e.first, 0.0));
+          pm->get_by_key(e.first) -= e.second * eta0_/std::sqrt(1.0+sq.first->second);
+          sq.first->second += e.second*e.second;
+        }
+      }
+    }
+  }
+  
+
+  // second round
+
+  delete inference_engine;
+
   return 0;
 }
 
@@ -145,7 +220,7 @@ NGSfold::predict()
     pm->LoadFromHash(default_params_complementary);
   
   // predict ss
-  InferenceEngine<double>* inference_engine = new InferenceEngine<double>(noncomplementary_);
+  auto inference_engine = new InferenceEngine<double>(noncomplementary_);
   inference_engine->LoadValues(std::move(pm));
   for (auto s : args_)
   {

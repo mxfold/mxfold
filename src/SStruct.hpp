@@ -30,6 +30,7 @@ class SStruct
     std::vector<int> mapping;
     std::vector<float> reactivity_unpair;
     std::vector<float> reactivity_pair;
+    int type;
  
     // automatic file format detection
     int AnalyzeFormat(const std::string &filename) const;
@@ -56,7 +57,7 @@ public:
 
     // constructor and destructor
     SStruct();
-    SStruct(const std::string &filename);
+    SStruct(const std::string &filename, int type = NO_REACTIVITY);
     SStruct(const SStruct &rhs);
     ~SStruct();
 
@@ -102,6 +103,7 @@ public:
     //get reactivity
     const std::vector<float> &GetReactivityUnpair() const { return reactivity_unpair; }
     const std::vector<float> &GetReactivityPair() const { return reactivity_pair; }
+    int GetType() const { return this->type; }
 };
 
 #endif

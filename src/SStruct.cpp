@@ -18,6 +18,7 @@ enum FileFormat
 //////////////////////////////////////////////////////////////////////
 
 SStruct::SStruct()
+    : type(NO_REACTIVITY)
 {}
 
 //////////////////////////////////////////////////////////////////////
@@ -26,7 +27,8 @@ SStruct::SStruct()
 // Create object from file.
 //////////////////////////////////////////////////////////////////////
 
-SStruct::SStruct(const std::string &filename)
+SStruct::SStruct(const std::string &filename, int type)
+    : type(type)
 {
     Load(filename);
 }
@@ -292,6 +294,7 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
               reactivity_unpair.push_back(reactivity_to);
               reactivity_pair.push_back(0);
               mapping.push_back(0);
+              this->type = type;
               break;
           }
           case REACTIVITY_PAIRED:
@@ -303,6 +306,7 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
               reactivity_unpair.push_back(0);
               reactivity_pair.push_back(reactivity_to);
               mapping.push_back(0);
+              this->type = type;
               break;
           }
           case NO_REACTIVITY:
@@ -317,6 +321,7 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
               mapping.push_back(maps_to);
               reactivity_unpair.push_back(0);
               reactivity_pair.push_back(0);
+              this->type = type;
               break;
           }
         }          
@@ -334,7 +339,8 @@ SStruct::SStruct(const SStruct &rhs) :
     sequences(rhs.sequences),
     mapping(rhs.mapping),
     reactivity_unpair(rhs.reactivity_unpair),
-    reactivity_pair(rhs.reactivity_pair)
+    reactivity_pair(rhs.reactivity_pair),
+    type(rhs.type)
 {}
 
 //////////////////////////////////////////////////////////////////////

@@ -23,6 +23,14 @@ public:
   void ReadFromFile(const std::string& filename);
   void WriteToFile(const std::string& filename) const;
 
+  ValueT  get_by_key(const std::string& key) const;
+  ValueT& get_by_key(const std::string& key);
+
+  typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
+  typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
+  typename std::unordered_map<std::string, ValueT>::iterator end() { return param_.end(); }
+  typename std::unordered_map<std::string, ValueT>::const_iterator end() const { return param_.end(); }
+
   // access to parameters
 #if PARAMS_BASE_PAIR
   ValueT  base_pair(NUCL i, NUCL j) const;
@@ -213,13 +221,11 @@ public:
 #endif
 
 private:
-  ValueT  get_by_key(const std::string& key) const;
-  ValueT& get_by_key(const std::string& key);
 
 private:
   std::unordered_map<std::string, ValueT> param_;
-  std::string alphabet_;
-  std::array<unsigned char, 256> char_mapping_;
+  //std::string alphabet_;
+  //std::array<unsigned char, 256> char_mapping_;
 };
 
 #endif  // PARAMETERHASH_HPP
