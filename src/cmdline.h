@@ -44,6 +44,9 @@ struct gengetopt_args_info
   char * param_arg;	/**< @brief Load parameters from parameter-file.  */
   char * param_orig;	/**< @brief Load parameters from parameter-file original value given at command line.  */
   const char *param_help; /**< @brief Load parameters from parameter-file help description.  */
+  int random_seed_arg;	/**< @brief Specify the seed of the random number generator (default='-1').  */
+  char * random_seed_orig;	/**< @brief Specify the seed of the random number generator original value given at command line.  */
+  const char *random_seed_help; /**< @brief Specify the seed of the random number generator help description.  */
   int predict_flag;	/**< @brief Prediction mode (default=on).  */
   const char *predict_help; /**< @brief Prediction mode help description.  */
   float* mea_arg;	/**< @brief MEA decoding with gamma (default='6.0').  */
@@ -61,21 +64,30 @@ struct gengetopt_args_info
   char * train_arg;	/**< @brief Trainining mode (write the trained parameters into output-file).  */
   char * train_orig;	/**< @brief Trainining mode (write the trained parameters into output-file) original value given at command line.  */
   const char *train_help; /**< @brief Trainining mode (write the trained parameters into output-file) help description.  */
+  int max_itr_arg;	/**< @brief The maximum number of iterations for training (default='100').  */
+  char * max_itr_orig;	/**< @brief The maximum number of iterations for training original value given at command line.  */
+  const char *max_itr_help; /**< @brief The maximum number of iterations for training help description.  */
+  int burn_in_arg;	/**< @brief The number of iterations for initial training from labeled data (default='10').  */
+  char * burn_in_orig;	/**< @brief The number of iterations for initial training from labeled data original value given at command line.  */
+  const char *burn_in_help; /**< @brief The number of iterations for initial training from labeled data help description.  */
+  float weight_weak_label_arg;	/**< @brief The weight for weak labeled data (default='0.1').  */
+  char * weight_weak_label_orig;	/**< @brief The weight for weak labeled data original value given at command line.  */
+  const char *weight_weak_label_help; /**< @brief The weight for weak labeled data help description.  */
   char ** structure_arg;	/**< @brief The lists of training data with full structures.  */
   char ** structure_orig;	/**< @brief The lists of training data with full structures original value given at command line.  */
   unsigned int structure_min; /**< @brief The lists of training data with full structures's minimum occurreces */
   unsigned int structure_max; /**< @brief The lists of training data with full structures's maximum occurreces */
   const char *structure_help; /**< @brief The lists of training data with full structures help description.  */
-  char ** reactivity_unpaired_arg;	/**< @brief The lists of training data with unpaired reactivity.  */
-  char ** reactivity_unpaired_orig;	/**< @brief The lists of training data with unpaired reactivity original value given at command line.  */
-  unsigned int reactivity_unpaired_min; /**< @brief The lists of training data with unpaired reactivity's minimum occurreces */
-  unsigned int reactivity_unpaired_max; /**< @brief The lists of training data with unpaired reactivity's maximum occurreces */
-  const char *reactivity_unpaired_help; /**< @brief The lists of training data with unpaired reactivity help description.  */
-  char ** reactivity_paired_arg;	/**< @brief The lists of training data with paired reactivity.  */
-  char ** reactivity_paired_orig;	/**< @brief The lists of training data with paired reactivity original value given at command line.  */
-  unsigned int reactivity_paired_min; /**< @brief The lists of training data with paired reactivity's minimum occurreces */
-  unsigned int reactivity_paired_max; /**< @brief The lists of training data with paired reactivity's maximum occurreces */
-  const char *reactivity_paired_help; /**< @brief The lists of training data with paired reactivity help description.  */
+  char ** unpaired_reactivity_arg;	/**< @brief The lists of training data with unpaired reactivity.  */
+  char ** unpaired_reactivity_orig;	/**< @brief The lists of training data with unpaired reactivity original value given at command line.  */
+  unsigned int unpaired_reactivity_min; /**< @brief The lists of training data with unpaired reactivity's minimum occurreces */
+  unsigned int unpaired_reactivity_max; /**< @brief The lists of training data with unpaired reactivity's maximum occurreces */
+  const char *unpaired_reactivity_help; /**< @brief The lists of training data with unpaired reactivity help description.  */
+  char ** paired_reactivity_arg;	/**< @brief The lists of training data with paired reactivity.  */
+  char ** paired_reactivity_orig;	/**< @brief The lists of training data with paired reactivity original value given at command line.  */
+  unsigned int paired_reactivity_min; /**< @brief The lists of training data with paired reactivity's minimum occurreces */
+  unsigned int paired_reactivity_max; /**< @brief The lists of training data with paired reactivity's maximum occurreces */
+  const char *paired_reactivity_help; /**< @brief The lists of training data with paired reactivity help description.  */
   float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='0.5').  */
   char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
@@ -88,23 +100,42 @@ struct gengetopt_args_info
   float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.125').  */
   char * lambda_orig;	/**< @brief The weight for the L1 regularization term original value given at command line.  */
   const char *lambda_help; /**< @brief The weight for the L1 regularization term help description.  */
+  float scale_reactivity_arg;	/**< @brief The scale of reactivity (default='0.1').  */
+  char * scale_reactivity_orig;	/**< @brief The scale of reactivity original value given at command line.  */
+  const char *scale_reactivity_help; /**< @brief The scale of reactivity help description.  */
+  float threshold_unpaired_reactivity_arg;	/**< @brief The threshold of reactiviy for unpaired bases (default='0.7').  */
+  char * threshold_unpaired_reactivity_orig;	/**< @brief The threshold of reactiviy for unpaired bases original value given at command line.  */
+  const char *threshold_unpaired_reactivity_help; /**< @brief The threshold of reactiviy for unpaired bases help description.  */
+  float threshold_paired_reactivity_arg;	/**< @brief The threshold of reactiviy for paired bases (default='0.7').  */
+  char * threshold_paired_reactivity_orig;	/**< @brief The threshold of reactiviy for paired bases original value given at command line.  */
+  const char *threshold_paired_reactivity_help; /**< @brief The threshold of reactiviy for paired bases help description.  */
+  int discretize_reactivity_flag;	/**< @brief Discretize reactivity with reactivity thresholds (default=off).  */
+  const char *discretize_reactivity_help; /**< @brief Discretize reactivity with reactivity thresholds help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int noncomplementary_given ;	/**< @brief Whether noncomplementary was given.  */
   unsigned int param_given ;	/**< @brief Whether param was given.  */
+  unsigned int random_seed_given ;	/**< @brief Whether random-seed was given.  */
   unsigned int predict_given ;	/**< @brief Whether predict was given.  */
   unsigned int mea_given ;	/**< @brief Whether mea was given.  */
   unsigned int gce_given ;	/**< @brief Whether gce was given.  */
   unsigned int bpseq_given ;	/**< @brief Whether bpseq was given.  */
   unsigned int train_given ;	/**< @brief Whether train was given.  */
+  unsigned int max_itr_given ;	/**< @brief Whether max-itr was given.  */
+  unsigned int burn_in_given ;	/**< @brief Whether burn-in was given.  */
+  unsigned int weight_weak_label_given ;	/**< @brief Whether weight-weak-label was given.  */
   unsigned int structure_given ;	/**< @brief Whether structure was given.  */
-  unsigned int reactivity_unpaired_given ;	/**< @brief Whether reactivity-unpaired was given.  */
-  unsigned int reactivity_paired_given ;	/**< @brief Whether reactivity-paired was given.  */
+  unsigned int unpaired_reactivity_given ;	/**< @brief Whether unpaired-reactivity was given.  */
+  unsigned int paired_reactivity_given ;	/**< @brief Whether paired-reactivity was given.  */
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */
   unsigned int lambda_given ;	/**< @brief Whether lambda was given.  */
+  unsigned int scale_reactivity_given ;	/**< @brief Whether scale-reactivity was given.  */
+  unsigned int threshold_unpaired_reactivity_given ;	/**< @brief Whether threshold-unpaired-reactivity was given.  */
+  unsigned int threshold_paired_reactivity_given ;	/**< @brief Whether threshold-paired-reactivity was given.  */
+  unsigned int discretize_reactivity_given ;	/**< @brief Whether discretize-reactivity was given.  */
 
   char **inputs ; /**< @brief unamed options (options without names) */
   unsigned inputs_num ; /**< @brief unamed options number */

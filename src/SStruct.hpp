@@ -91,6 +91,9 @@ public:
     // set mapping
     void SetMapping(const std::vector<int> &mapping);
 
+    // discretize reactivity
+    void DiscretizeReactivity(double threshold_unpaired, double threshold_paired);
+
     //////////////////////////////////////////////////////////////////////
     // Getters
     //////////////////////////////////////////////////////////////////////

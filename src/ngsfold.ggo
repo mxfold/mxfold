@@ -12,6 +12,8 @@ option "noncomplementary"     - "Allow non-canonical base pairs"
        			      	flag off
 option "param"                - "Load parameters from parameter-file"
        			      	string typestr="parameter-file" optional
+option "random-seed"	      - "Specify the seed of the random number generator"
+       			      	int default="-1" optional
 
 section "Prediction mode"
 
@@ -28,11 +30,17 @@ section "Training mode"
 
 option "train"                - "Trainining mode (write the trained parameters into output-file)"
        			      	string typestr="output-file" optional
+option "max-itr"	      - "The maximum number of iterations for training"
+       			      	int default="100" optional
+option "burn-in"	      - "The number of iterations for initial training from labeled data"
+       			        int default="10" optional
+option "weight-weak-label"    - "The weight for weak labeled data"
+       			        float default="0.1" optional
 option "structure"	      - "The lists of training data with full structures"
        			        string typestr="filename-list" optional multiple
-option "reactivity-unpaired"  - "The lists of training data with unpaired reactivity"
+option "unpaired-reactivity"  - "The lists of training data with unpaired reactivity"
        			        string typestr="filename-list" optional multiple
-option "reactivity-paired"    - "The lists of training data with paired reactivity"
+option "paired-reactivity"    - "The lists of training data with paired reactivity"
        			        string typestr="filename-list" optional multiple
 option "eta"		      e "Initial step width for the subgradient optimization"
        			      	float default="0.5" optional
@@ -42,4 +50,11 @@ option "neg-w"		      - "The weight for negative base-pairs"
        			        float default="1" optional
 option "lambda"		      D "The weight for the L1 regularization term"
        			      	float default="0.125" optional
-
+option "scale-reactivity"     - "The scale of reactivity"
+       			      	float default="0.1" optional
+option "threshold-unpaired-reactivity" - "The threshold of reactiviy for unpaired bases"
+       				float default="0.7" optional
+option "threshold-paired-reactivity" - "The threshold of reactiviy for paired bases"
+       				float default="0.7" optional
+option "discretize-reactivity"  - "Discretize reactivity with reactivity thresholds"
+       				flag off

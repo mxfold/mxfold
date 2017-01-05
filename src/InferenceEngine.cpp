@@ -146,10 +146,11 @@ InferenceEngine<RealT>::~InferenceEngine()
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reactivity)
+void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_reactivity,
+                                          RealT threshold_unpaired_reactivity, RealT threshold_paired_reactivity, RealT scale_reactivity)
 {
-    //std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
     const std::vector<float> &reactivity_unpair= sstruct.GetReactivityUnpair();
+    const std::vector<float> &reactivity_pair= sstruct.GetReactivityPair();    
     cache_initialized = false;
     
     // compute dimensions
@@ -311,15 +312,12 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reacti
         offset[i] = ComputeRowOffset(i,L+1);
         allow_unpaired_position[i] = 1;
         loss_unpaired_position[i] = RealT(0);
-        //std::cout << reactivity_unpair[i] << std::endl;
-        //std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
-        if(reactivity_unpair[i]>0.7){
-            reactivity_unpaired_position[i] =  0.1*use_reactivity * reactivity_unpair[i];
-            //std::cout << reactivity_unpaired_position[i] << std::endl;
-        }
-        else
+        reactivity_unpaired_position[i] = RealT(0);
+        if (use_reactivity)
         {
-            reactivity_unpaired_position[i] =  0;
+            auto ru = reactivity_unpair[i] >= threshold_unpaired_reactivity ? reactivity_unpair[i] : 0.0;
+            auto rp = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
+            reactivity_unpaired_position[i] = scale_reactivity * (ru - rp);
         }
     }
 
@@ -333,7 +331,7 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, int use_reacti
             reactivity_unpaired[offset[i]+j] = 
                 reactivity_unpaired[offset[i]+j-1] +
                 reactivity_unpaired_position[j];
-            reactivity_paired[offset[i]+j] =0; 
+            reactivity_paired[offset[i]+j] = 0; 
         }
     }
 
@@ -1378,9 +1376,8 @@ void InferenceEngine<RealT>::UseLoss(const std::vector<int> &true_mapping, RealT
         if (true_mapping[i] != SStruct::UNKNOWN && true_mapping[i] != SStruct::UNPAIRED)
             ++num_pairings;
 
-    //RealT per_position_loss = example_loss+(1/ RealT(num_pairings));
+    //RealT per_position_loss = example_loss / RealT(num_pairings);
     RealT per_position_loss = example_loss;
-    //std::cout << per_position_loss << std::endl;
     // RealT per_position_loss = 2*example_loss;
     
     // compute the penalty for each position that we declare to be unpaired
@@ -1404,6 +1401,101 @@ void InferenceEngine<RealT>::UseLoss(const std::vector<int> &true_mapping, RealT
             loss_paired[offset[i]+j] = 
                 ((i == 0 || true_mapping[i] == SStruct::UNKNOWN || true_mapping[i] == SStruct::UNPAIRED || true_mapping[i] == j) ? RealT(0) : per_position_loss) +
                 ((i == 0 || true_mapping[j] == SStruct::UNKNOWN || true_mapping[j] == SStruct::UNPAIRED || true_mapping[j] == i) ? RealT(0) : per_position_loss);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+// InferenceEngine::UseLossBasePair()
+//
+// Use per-base-pair loss.
+//////////////////////////////////////////////////////////////////////
+
+template<class RealT>
+void InferenceEngine<RealT>::UseLossBasePair(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w)
+{
+    Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
+    cache_initialized = false;
+    
+    for (int i = 0; i <= L; i++)
+    {
+        loss_paired[offset[i]+i] = RealT(NEG_INF);
+        for (int j = i+1; j <= L; j++)
+        {
+            if (i==0)
+                loss_paired[offset[i]+j] = 0;
+            else if (true_mapping[i] == j /* && true_mapping[j] == i */)
+                loss_paired[offset[i]+j] = -pos_w;
+            else if (true_mapping[i] == SStruct::UNPAIRED || true_mapping[j] == SStruct::UNPAIRED ||
+                     (true_mapping[i] > 0 && true_mapping[i] != j) || (true_mapping[j] > 0 && true_mapping[j] != i))
+                loss_paired[offset[i]+j] = neg_w;
+            //else if (true_mapping[i] == SStruct::PAIRED && true_mapping[j] == SStruct::PAIRED)
+            //    loss_paired[offset[i]+j] = -pos_w;
+            //else
+            //    loss_paired[offset[i]+j] = 0;
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////
+// InferenceEngine::UseLossPosition()
+//
+// Use per-position loss.
+//////////////////////////////////////////////////////////////////////
+
+template<class RealT>
+void InferenceEngine<RealT>::UseLossPosition(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w)
+{
+    Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
+    cache_initialized = false;
+    
+    // compute the penalty for each position that we declare to be unpaired
+    loss_unpaired_position[0] = 0;
+    for (int i = 1; i <= L; i++)
+    {
+        if (true_mapping[i] == SStruct::UNKNOWN)
+            loss_unpaired_position[i] = 0;
+        else if (true_mapping[i] == SStruct::UNPAIRED)
+            loss_unpaired_position[i] = -neg_w;
+        else if (true_mapping[i] == SStruct::PAIRED || true_mapping[i] > 0)
+            loss_unpaired_position[i] = pos_w;
+    }
+
+    // now, compute the penalty for declaring ranges of positions to be unpaired;
+    // also, compute the penalty for matching positions s[i] and s[j].
+    for (int i = 0; i <= L; i++)
+    {
+        loss_unpaired[offset[i]+i] = RealT(0);
+        for (int j = i+1; j <= L; j++)
+        {
+            loss_unpaired[offset[i]+j] = 
+                loss_unpaired[offset[i]+j-1] +
+                loss_unpaired_position[j];
+        }
+    }
+}
+
+template<class RealT>
+void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w)
+{
+    Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
+    cache_initialized = false;
+    
+    // compute the penalty for each position that we declare to be unpaired
+    loss_unpaired_position[0] = 0;
+    for (int i = 1; i <= L; i++)
+        loss_unpaired_position[i] = pos_w * reactivity_pair[i] - neg_w * reactivity_unpair[i];
+
+    // now, compute the penalty for declaring ranges of positions to be unpaired;
+    // also, compute the penalty for matching positions s[i] and s[j].
+    for (int i = 0; i <= L; i++)
+    {
+        loss_unpaired[offset[i]+i] = RealT(0);
+        for (int j = i+1; j <= L; j++)
+        {
+            loss_unpaired[offset[i]+j] = 
+                loss_unpaired[offset[i]+j-1] +
+                loss_unpaired_position[j];
         }
     }
 }
@@ -1827,7 +1919,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     const auto& pm = *parameter_manager;
     
-    return RealT(0)
+    return reactivity_paired[offset[i]+j]
 #if defined(HAMMING_LOSS)
         + loss_paired[offset[i]+j]
 #endif
@@ -1841,12 +1933,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 #if PARAMS_BASE_PAIR_DIST
         + cache_score_base_pair_dist[std::min(Abs(j - i), BP_DIST_LAST_THRESHOLD)].first
 #endif
-//pairのreactivity  
-//#if DISCRETE==0
-//                                  + use_reactivity*( sstruct.reactivity_pair[i] + sstruct.reactivity_pair[j])
-//#endif
-                                  ;
-   // std::cout <<"reactivity in InferenceEngine.ipp is " << use_reactivity << std::endl; 
+        ;
 }
 
 template<class RealT>

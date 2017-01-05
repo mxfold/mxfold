@@ -38,6 +38,7 @@ const char *gengetopt_args_info_help[] = {
   "  -V, --version                 Print version and exit",
   "      --noncomplementary        Allow non-canonical base pairs  (default=off)",
   "      --param=parameter-file    Load parameters from parameter-file",
+  "      --random-seed=INT         Specify the seed of the random number generator\n                                  (default=`-1')",
   "\nPrediction mode:",
   "      --predict                 Prediction mode  (default=on)",
   "      --mea=gamma               MEA decoding with gamma  (default=`6.0')",
@@ -45,19 +46,27 @@ const char *gengetopt_args_info_help[] = {
   "      --bpseq                   Output predicted results as the BPSEQ format\n                                  (default=off)",
   "\nTraining mode:",
   "      --train=output-file       Trainining mode (write the trained parameters\n                                  into output-file)",
+  "      --max-itr=INT             The maximum number of iterations for training\n                                  (default=`100')",
+  "      --burn-in=INT             The number of iterations for initial training\n                                  from labeled data  (default=`10')",
+  "      --weight-weak-label=FLOAT The weight for weak labeled data\n                                  (default=`0.1')",
   "      --structure=filename-list The lists of training data with full structures",
-  "      --reactivity-unpaired=filename-list\n                                The lists of training data with unpaired\n                                  reactivity",
-  "      --reactivity-paired=filename-list\n                                The lists of training data with paired\n                                  reactivity",
+  "      --unpaired-reactivity=filename-list\n                                The lists of training data with unpaired\n                                  reactivity",
+  "      --paired-reactivity=filename-list\n                                The lists of training data with paired\n                                  reactivity",
   "  -e, --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`0.5')",
   "  -w, --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`4')",
   "      --neg-w=FLOAT             The weight for negative base-pairs\n                                  (default=`1')",
   "  -D, --lambda=FLOAT            The weight for the L1 regularization term\n                                  (default=`0.125')",
+  "      --scale-reactivity=FLOAT  The scale of reactivity  (default=`0.1')",
+  "      --threshold-unpaired-reactivity=FLOAT\n                                The threshold of reactiviy for unpaired bases\n                                  (default=`0.7')",
+  "      --threshold-paired-reactivity=FLOAT\n                                The threshold of reactiviy for paired bases\n                                  (default=`0.7')",
+  "      --discretize-reactivity   Discretize reactivity with reactivity\n                                  thresholds  (default=off)",
     0
 };
 
 typedef enum {ARG_NO
   , ARG_FLAG
   , ARG_STRING
+  , ARG_INT
   , ARG_FLOAT
 } cmdline_parser_arg_type;
 
@@ -83,18 +92,26 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->version_given = 0 ;
   args_info->noncomplementary_given = 0 ;
   args_info->param_given = 0 ;
+  args_info->random_seed_given = 0 ;
   args_info->predict_given = 0 ;
   args_info->mea_given = 0 ;
   args_info->gce_given = 0 ;
   args_info->bpseq_given = 0 ;
   args_info->train_given = 0 ;
+  args_info->max_itr_given = 0 ;
+  args_info->burn_in_given = 0 ;
+  args_info->weight_weak_label_given = 0 ;
   args_info->structure_given = 0 ;
-  args_info->reactivity_unpaired_given = 0 ;
-  args_info->reactivity_paired_given = 0 ;
+  args_info->unpaired_reactivity_given = 0 ;
+  args_info->paired_reactivity_given = 0 ;
   args_info->eta_given = 0 ;
   args_info->pos_w_given = 0 ;
   args_info->neg_w_given = 0 ;
   args_info->lambda_given = 0 ;
+  args_info->scale_reactivity_given = 0 ;
+  args_info->threshold_unpaired_reactivity_given = 0 ;
+  args_info->threshold_paired_reactivity_given = 0 ;
+  args_info->discretize_reactivity_given = 0 ;
 }
 
 static
@@ -104,6 +121,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->noncomplementary_flag = 0;
   args_info->param_arg = NULL;
   args_info->param_orig = NULL;
+  args_info->random_seed_arg = -1;
+  args_info->random_seed_orig = NULL;
   args_info->predict_flag = 1;
   args_info->mea_arg = NULL;
   args_info->mea_orig = NULL;
@@ -112,12 +131,18 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->bpseq_flag = 0;
   args_info->train_arg = NULL;
   args_info->train_orig = NULL;
+  args_info->max_itr_arg = 100;
+  args_info->max_itr_orig = NULL;
+  args_info->burn_in_arg = 10;
+  args_info->burn_in_orig = NULL;
+  args_info->weight_weak_label_arg = 0.1;
+  args_info->weight_weak_label_orig = NULL;
   args_info->structure_arg = NULL;
   args_info->structure_orig = NULL;
-  args_info->reactivity_unpaired_arg = NULL;
-  args_info->reactivity_unpaired_orig = NULL;
-  args_info->reactivity_paired_arg = NULL;
-  args_info->reactivity_paired_orig = NULL;
+  args_info->unpaired_reactivity_arg = NULL;
+  args_info->unpaired_reactivity_orig = NULL;
+  args_info->paired_reactivity_arg = NULL;
+  args_info->paired_reactivity_orig = NULL;
   args_info->eta_arg = 0.5;
   args_info->eta_orig = NULL;
   args_info->pos_w_arg = 4;
@@ -126,6 +151,13 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->neg_w_orig = NULL;
   args_info->lambda_arg = 0.125;
   args_info->lambda_orig = NULL;
+  args_info->scale_reactivity_arg = 0.1;
+  args_info->scale_reactivity_orig = NULL;
+  args_info->threshold_unpaired_reactivity_arg = 0.7;
+  args_info->threshold_unpaired_reactivity_orig = NULL;
+  args_info->threshold_paired_reactivity_arg = 0.7;
+  args_info->threshold_paired_reactivity_orig = NULL;
+  args_info->discretize_reactivity_flag = 0;
   
 }
 
@@ -138,28 +170,36 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->version_help = gengetopt_args_info_help[1] ;
   args_info->noncomplementary_help = gengetopt_args_info_help[2] ;
   args_info->param_help = gengetopt_args_info_help[3] ;
-  args_info->predict_help = gengetopt_args_info_help[5] ;
-  args_info->mea_help = gengetopt_args_info_help[6] ;
+  args_info->random_seed_help = gengetopt_args_info_help[4] ;
+  args_info->predict_help = gengetopt_args_info_help[6] ;
+  args_info->mea_help = gengetopt_args_info_help[7] ;
   args_info->mea_min = 0;
   args_info->mea_max = 0;
-  args_info->gce_help = gengetopt_args_info_help[7] ;
+  args_info->gce_help = gengetopt_args_info_help[8] ;
   args_info->gce_min = 0;
   args_info->gce_max = 0;
-  args_info->bpseq_help = gengetopt_args_info_help[8] ;
-  args_info->train_help = gengetopt_args_info_help[10] ;
-  args_info->structure_help = gengetopt_args_info_help[11] ;
+  args_info->bpseq_help = gengetopt_args_info_help[9] ;
+  args_info->train_help = gengetopt_args_info_help[11] ;
+  args_info->max_itr_help = gengetopt_args_info_help[12] ;
+  args_info->burn_in_help = gengetopt_args_info_help[13] ;
+  args_info->weight_weak_label_help = gengetopt_args_info_help[14] ;
+  args_info->structure_help = gengetopt_args_info_help[15] ;
   args_info->structure_min = 0;
   args_info->structure_max = 0;
-  args_info->reactivity_unpaired_help = gengetopt_args_info_help[12] ;
-  args_info->reactivity_unpaired_min = 0;
-  args_info->reactivity_unpaired_max = 0;
-  args_info->reactivity_paired_help = gengetopt_args_info_help[13] ;
-  args_info->reactivity_paired_min = 0;
-  args_info->reactivity_paired_max = 0;
-  args_info->eta_help = gengetopt_args_info_help[14] ;
-  args_info->pos_w_help = gengetopt_args_info_help[15] ;
-  args_info->neg_w_help = gengetopt_args_info_help[16] ;
-  args_info->lambda_help = gengetopt_args_info_help[17] ;
+  args_info->unpaired_reactivity_help = gengetopt_args_info_help[16] ;
+  args_info->unpaired_reactivity_min = 0;
+  args_info->unpaired_reactivity_max = 0;
+  args_info->paired_reactivity_help = gengetopt_args_info_help[17] ;
+  args_info->paired_reactivity_min = 0;
+  args_info->paired_reactivity_max = 0;
+  args_info->eta_help = gengetopt_args_info_help[18] ;
+  args_info->pos_w_help = gengetopt_args_info_help[19] ;
+  args_info->neg_w_help = gengetopt_args_info_help[20] ;
+  args_info->lambda_help = gengetopt_args_info_help[21] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_help[22] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_help[23] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_help[24] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_help[25] ;
   
 }
 
@@ -243,6 +283,7 @@ free_string_field (char **s)
 
 /** @brief generic value variable */
 union generic_value {
+    int int_arg;
     float float_arg;
     char *string_arg;
     const char *default_string_arg;
@@ -311,19 +352,26 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   unsigned int i;
   free_string_field (&(args_info->param_arg));
   free_string_field (&(args_info->param_orig));
+  free_string_field (&(args_info->random_seed_orig));
   free_multiple_field (args_info->mea_given, (void *)(args_info->mea_arg), &(args_info->mea_orig));
   args_info->mea_arg = 0;
   free_multiple_field (args_info->gce_given, (void *)(args_info->gce_arg), &(args_info->gce_orig));
   args_info->gce_arg = 0;
   free_string_field (&(args_info->train_arg));
   free_string_field (&(args_info->train_orig));
+  free_string_field (&(args_info->max_itr_orig));
+  free_string_field (&(args_info->burn_in_orig));
+  free_string_field (&(args_info->weight_weak_label_orig));
   free_multiple_string_field (args_info->structure_given, &(args_info->structure_arg), &(args_info->structure_orig));
-  free_multiple_string_field (args_info->reactivity_unpaired_given, &(args_info->reactivity_unpaired_arg), &(args_info->reactivity_unpaired_orig));
-  free_multiple_string_field (args_info->reactivity_paired_given, &(args_info->reactivity_paired_arg), &(args_info->reactivity_paired_orig));
+  free_multiple_string_field (args_info->unpaired_reactivity_given, &(args_info->unpaired_reactivity_arg), &(args_info->unpaired_reactivity_orig));
+  free_multiple_string_field (args_info->paired_reactivity_given, &(args_info->paired_reactivity_arg), &(args_info->paired_reactivity_orig));
   free_string_field (&(args_info->eta_orig));
   free_string_field (&(args_info->pos_w_orig));
   free_string_field (&(args_info->neg_w_orig));
   free_string_field (&(args_info->lambda_orig));
+  free_string_field (&(args_info->scale_reactivity_orig));
+  free_string_field (&(args_info->threshold_unpaired_reactivity_orig));
+  free_string_field (&(args_info->threshold_paired_reactivity_orig));
   
   
   for (i = 0; i < args_info->inputs_num; ++i)
@@ -375,6 +423,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "noncomplementary", 0, 0 );
   if (args_info->param_given)
     write_into_file(outfile, "param", args_info->param_orig, 0);
+  if (args_info->random_seed_given)
+    write_into_file(outfile, "random-seed", args_info->random_seed_orig, 0);
   if (args_info->predict_given)
     write_into_file(outfile, "predict", 0, 0 );
   write_multiple_into_file(outfile, args_info->mea_given, "mea", args_info->mea_orig, 0);
@@ -383,9 +433,15 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "bpseq", 0, 0 );
   if (args_info->train_given)
     write_into_file(outfile, "train", args_info->train_orig, 0);
+  if (args_info->max_itr_given)
+    write_into_file(outfile, "max-itr", args_info->max_itr_orig, 0);
+  if (args_info->burn_in_given)
+    write_into_file(outfile, "burn-in", args_info->burn_in_orig, 0);
+  if (args_info->weight_weak_label_given)
+    write_into_file(outfile, "weight-weak-label", args_info->weight_weak_label_orig, 0);
   write_multiple_into_file(outfile, args_info->structure_given, "structure", args_info->structure_orig, 0);
-  write_multiple_into_file(outfile, args_info->reactivity_unpaired_given, "reactivity-unpaired", args_info->reactivity_unpaired_orig, 0);
-  write_multiple_into_file(outfile, args_info->reactivity_paired_given, "reactivity-paired", args_info->reactivity_paired_orig, 0);
+  write_multiple_into_file(outfile, args_info->unpaired_reactivity_given, "unpaired-reactivity", args_info->unpaired_reactivity_orig, 0);
+  write_multiple_into_file(outfile, args_info->paired_reactivity_given, "paired-reactivity", args_info->paired_reactivity_orig, 0);
   if (args_info->eta_given)
     write_into_file(outfile, "eta", args_info->eta_orig, 0);
   if (args_info->pos_w_given)
@@ -394,6 +450,14 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "neg-w", args_info->neg_w_orig, 0);
   if (args_info->lambda_given)
     write_into_file(outfile, "lambda", args_info->lambda_orig, 0);
+  if (args_info->scale_reactivity_given)
+    write_into_file(outfile, "scale-reactivity", args_info->scale_reactivity_orig, 0);
+  if (args_info->threshold_unpaired_reactivity_given)
+    write_into_file(outfile, "threshold-unpaired-reactivity", args_info->threshold_unpaired_reactivity_orig, 0);
+  if (args_info->threshold_paired_reactivity_given)
+    write_into_file(outfile, "threshold-paired-reactivity", args_info->threshold_paired_reactivity_orig, 0);
+  if (args_info->discretize_reactivity_given)
+    write_into_file(outfile, "discretize-reactivity", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -654,10 +718,10 @@ cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *pro
   if (check_multiple_option_occurrences(prog_name, args_info->structure_given, args_info->structure_min, args_info->structure_max, "'--structure'"))
      error_occurred = 1;
   
-  if (check_multiple_option_occurrences(prog_name, args_info->reactivity_unpaired_given, args_info->reactivity_unpaired_min, args_info->reactivity_unpaired_max, "'--reactivity-unpaired'"))
+  if (check_multiple_option_occurrences(prog_name, args_info->unpaired_reactivity_given, args_info->unpaired_reactivity_min, args_info->unpaired_reactivity_max, "'--unpaired-reactivity'"))
      error_occurred = 1;
   
-  if (check_multiple_option_occurrences(prog_name, args_info->reactivity_paired_given, args_info->reactivity_paired_min, args_info->reactivity_paired_max, "'--reactivity-paired'"))
+  if (check_multiple_option_occurrences(prog_name, args_info->paired_reactivity_given, args_info->paired_reactivity_min, args_info->paired_reactivity_max, "'--paired-reactivity'"))
      error_occurred = 1;
   
   
@@ -735,6 +799,9 @@ int update_arg(void *field, char **orig_field,
   case ARG_FLAG:
     *((int *)field) = !*((int *)field);
     break;
+  case ARG_INT:
+    if (val) *((int *)field) = strtol (val, &stop_char, 0);
+    break;
   case ARG_FLOAT:
     if (val) *((float *)field) = (float)strtod (val, &stop_char);
     break;
@@ -752,6 +819,7 @@ int update_arg(void *field, char **orig_field,
 
   /* check numeric conversion */
   switch(arg_type) {
+  case ARG_INT:
   case ARG_FLOAT:
     if (val && !(stop_char && *stop_char == '\0')) {
       fprintf(stderr, "%s: invalid numeric value: %s\n", package_name, val);
@@ -865,6 +933,8 @@ void update_multiple_arg(void *field, char ***orig_field,
     *orig_field = (char **) realloc (*orig_field, (field_given + prev_given) * sizeof (char *));
 
     switch(arg_type) {
+    case ARG_INT:
+      *((int **)field) = (int *)realloc (*((int **)field), (field_given + prev_given) * sizeof (int)); break;
     case ARG_FLOAT:
       *((float **)field) = (float *)realloc (*((float **)field), (field_given + prev_given) * sizeof (float)); break;
     case ARG_STRING:
@@ -878,6 +948,8 @@ void update_multiple_arg(void *field, char ***orig_field,
         tmp = list;
         
         switch(arg_type) {
+        case ARG_INT:
+          (*((int **)field))[i + field_given] = tmp->arg.int_arg; break;
         case ARG_FLOAT:
           (*((float **)field))[i + field_given] = tmp->arg.float_arg; break;
         case ARG_STRING:
@@ -892,6 +964,12 @@ void update_multiple_arg(void *field, char ***orig_field,
   } else { /* set the default value */
     if (default_value && ! field_given) {
       switch(arg_type) {
+      case ARG_INT:
+        if (! *((int **)field)) {
+          *((int **)field) = (int *)malloc (sizeof (int));
+          (*((int **)field))[0] = default_value->int_arg; 
+        }
+        break;
       case ARG_FLOAT:
         if (! *((float **)field)) {
           *((float **)field) = (float *)malloc (sizeof (float));
@@ -925,8 +1003,8 @@ cmdline_parser_internal (
   struct generic_list * mea_list = NULL;
   struct generic_list * gce_list = NULL;
   struct generic_list * structure_list = NULL;
-  struct generic_list * reactivity_unpaired_list = NULL;
-  struct generic_list * reactivity_paired_list = NULL;
+  struct generic_list * unpaired_reactivity_list = NULL;
+  struct generic_list * paired_reactivity_list = NULL;
   int error_occurred = 0;
   struct gengetopt_args_info local_args_info;
   
@@ -961,18 +1039,26 @@ cmdline_parser_internal (
         { "version",	0, NULL, 'V' },
         { "noncomplementary",	0, NULL, 0 },
         { "param",	1, NULL, 0 },
+        { "random-seed",	1, NULL, 0 },
         { "predict",	0, NULL, 0 },
         { "mea",	1, NULL, 0 },
         { "gce",	1, NULL, 0 },
         { "bpseq",	0, NULL, 0 },
         { "train",	1, NULL, 0 },
+        { "max-itr",	1, NULL, 0 },
+        { "burn-in",	1, NULL, 0 },
+        { "weight-weak-label",	1, NULL, 0 },
         { "structure",	1, NULL, 0 },
-        { "reactivity-unpaired",	1, NULL, 0 },
-        { "reactivity-paired",	1, NULL, 0 },
+        { "unpaired-reactivity",	1, NULL, 0 },
+        { "paired-reactivity",	1, NULL, 0 },
         { "eta",	1, NULL, 'e' },
         { "pos-w",	1, NULL, 'w' },
         { "neg-w",	1, NULL, 0 },
         { "lambda",	1, NULL, 'D' },
+        { "scale-reactivity",	1, NULL, 0 },
+        { "threshold-unpaired-reactivity",	1, NULL, 0 },
+        { "threshold-paired-reactivity",	1, NULL, 0 },
+        { "discretize-reactivity",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -1056,6 +1142,20 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* Specify the seed of the random number generator.  */
+          else if (strcmp (long_options[option_index].name, "random-seed") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->random_seed_arg), 
+                 &(args_info->random_seed_orig), &(args_info->random_seed_given),
+                &(local_args_info.random_seed_given), optarg, 0, "-1", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "random-seed", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* Prediction mode.  */
           else if (strcmp (long_options[option_index].name, "predict") == 0)
           {
@@ -1116,6 +1216,48 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* The maximum number of iterations for training.  */
+          else if (strcmp (long_options[option_index].name, "max-itr") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->max_itr_arg), 
+                 &(args_info->max_itr_orig), &(args_info->max_itr_given),
+                &(local_args_info.max_itr_given), optarg, 0, "100", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "max-itr", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The number of iterations for initial training from labeled data.  */
+          else if (strcmp (long_options[option_index].name, "burn-in") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->burn_in_arg), 
+                 &(args_info->burn_in_orig), &(args_info->burn_in_given),
+                &(local_args_info.burn_in_given), optarg, 0, "10", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "burn-in", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The weight for weak labeled data.  */
+          else if (strcmp (long_options[option_index].name, "weight-weak-label") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->weight_weak_label_arg), 
+                 &(args_info->weight_weak_label_orig), &(args_info->weight_weak_label_given),
+                &(local_args_info.weight_weak_label_given), optarg, 0, "0.1", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "weight-weak-label", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* The lists of training data with full structures.  */
           else if (strcmp (long_options[option_index].name, "structure") == 0)
           {
@@ -1128,23 +1270,23 @@ cmdline_parser_internal (
           
           }
           /* The lists of training data with unpaired reactivity.  */
-          else if (strcmp (long_options[option_index].name, "reactivity-unpaired") == 0)
+          else if (strcmp (long_options[option_index].name, "unpaired-reactivity") == 0)
           {
           
-            if (update_multiple_arg_temp(&reactivity_unpaired_list, 
-                &(local_args_info.reactivity_unpaired_given), optarg, 0, 0, ARG_STRING,
-                "reactivity-unpaired", '-',
+            if (update_multiple_arg_temp(&unpaired_reactivity_list, 
+                &(local_args_info.unpaired_reactivity_given), optarg, 0, 0, ARG_STRING,
+                "unpaired-reactivity", '-',
                 additional_error))
               goto failure;
           
           }
           /* The lists of training data with paired reactivity.  */
-          else if (strcmp (long_options[option_index].name, "reactivity-paired") == 0)
+          else if (strcmp (long_options[option_index].name, "paired-reactivity") == 0)
           {
           
-            if (update_multiple_arg_temp(&reactivity_paired_list, 
-                &(local_args_info.reactivity_paired_given), optarg, 0, 0, ARG_STRING,
-                "reactivity-paired", '-',
+            if (update_multiple_arg_temp(&paired_reactivity_list, 
+                &(local_args_info.paired_reactivity_given), optarg, 0, 0, ARG_STRING,
+                "paired-reactivity", '-',
                 additional_error))
               goto failure;
           
@@ -1159,6 +1301,60 @@ cmdline_parser_internal (
                 &(local_args_info.neg_w_given), optarg, 0, "1", ARG_FLOAT,
                 check_ambiguity, override, 0, 0,
                 "neg-w", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The scale of reactivity.  */
+          else if (strcmp (long_options[option_index].name, "scale-reactivity") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->scale_reactivity_arg), 
+                 &(args_info->scale_reactivity_orig), &(args_info->scale_reactivity_given),
+                &(local_args_info.scale_reactivity_given), optarg, 0, "0.1", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "scale-reactivity", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The threshold of reactiviy for unpaired bases.  */
+          else if (strcmp (long_options[option_index].name, "threshold-unpaired-reactivity") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->threshold_unpaired_reactivity_arg), 
+                 &(args_info->threshold_unpaired_reactivity_orig), &(args_info->threshold_unpaired_reactivity_given),
+                &(local_args_info.threshold_unpaired_reactivity_given), optarg, 0, "0.7", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "threshold-unpaired-reactivity", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The threshold of reactiviy for paired bases.  */
+          else if (strcmp (long_options[option_index].name, "threshold-paired-reactivity") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->threshold_paired_reactivity_arg), 
+                 &(args_info->threshold_paired_reactivity_orig), &(args_info->threshold_paired_reactivity_given),
+                &(local_args_info.threshold_paired_reactivity_given), optarg, 0, "0.7", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "threshold-paired-reactivity", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Discretize reactivity with reactivity thresholds.  */
+          else if (strcmp (long_options[option_index].name, "discretize-reactivity") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->discretize_reactivity_flag), 0, &(args_info->discretize_reactivity_given),
+                &(local_args_info.discretize_reactivity_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "discretize-reactivity", '-',
                 additional_error))
               goto failure;
           
@@ -1190,14 +1386,14 @@ cmdline_parser_internal (
     &(args_info->structure_orig), args_info->structure_given,
     local_args_info.structure_given, 0,
     ARG_STRING, structure_list);
-  update_multiple_arg((void *)&(args_info->reactivity_unpaired_arg),
-    &(args_info->reactivity_unpaired_orig), args_info->reactivity_unpaired_given,
-    local_args_info.reactivity_unpaired_given, 0,
-    ARG_STRING, reactivity_unpaired_list);
-  update_multiple_arg((void *)&(args_info->reactivity_paired_arg),
-    &(args_info->reactivity_paired_orig), args_info->reactivity_paired_given,
-    local_args_info.reactivity_paired_given, 0,
-    ARG_STRING, reactivity_paired_list);
+  update_multiple_arg((void *)&(args_info->unpaired_reactivity_arg),
+    &(args_info->unpaired_reactivity_orig), args_info->unpaired_reactivity_given,
+    local_args_info.unpaired_reactivity_given, 0,
+    ARG_STRING, unpaired_reactivity_list);
+  update_multiple_arg((void *)&(args_info->paired_reactivity_arg),
+    &(args_info->paired_reactivity_orig), args_info->paired_reactivity_given,
+    local_args_info.paired_reactivity_given, 0,
+    ARG_STRING, paired_reactivity_list);
 
   args_info->mea_given += local_args_info.mea_given;
   local_args_info.mea_given = 0;
@@ -1205,10 +1401,10 @@ cmdline_parser_internal (
   local_args_info.gce_given = 0;
   args_info->structure_given += local_args_info.structure_given;
   local_args_info.structure_given = 0;
-  args_info->reactivity_unpaired_given += local_args_info.reactivity_unpaired_given;
-  local_args_info.reactivity_unpaired_given = 0;
-  args_info->reactivity_paired_given += local_args_info.reactivity_paired_given;
-  local_args_info.reactivity_paired_given = 0;
+  args_info->unpaired_reactivity_given += local_args_info.unpaired_reactivity_given;
+  local_args_info.unpaired_reactivity_given = 0;
+  args_info->paired_reactivity_given += local_args_info.paired_reactivity_given;
+  local_args_info.paired_reactivity_given = 0;
   
   if (check_required)
     {
@@ -1250,8 +1446,8 @@ failure:
   free_list (mea_list, 0 );
   free_list (gce_list, 0 );
   free_list (structure_list, 1 );
-  free_list (reactivity_unpaired_list, 1 );
-  free_list (reactivity_paired_list, 1 );
+  free_list (unpaired_reactivity_list, 1 );
+  free_list (paired_reactivity_list, 1 );
   
   cmdline_parser_release (&local_args_info);
   return (EXIT_FAILURE);

@@ -4,6 +4,7 @@
 #include <utility>
 #include <string>
 #include <stdexcept>
+#include <ctime>
 #include "../config.h"
 #include "cmdline.h"
 #include "Config.hpp"
@@ -34,6 +35,9 @@ public:
 private:
   int train();
   int predict();
+  std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
+  std::unordered_map<std::string,double> compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine);
+  
 
 private:
   bool train_mode_;
@@ -47,10 +51,17 @@ private:
   bool mea_;
   bool gce_;
   std::vector<float> gamma_;
+  uint t_max_;
+  uint t_burn_in_;
+  float weight_weak_labeled_;
   float pos_w_;
   float neg_w_;
   float lambda_;
   float eta0_;
+  float scale_reactivity_;
+  float threshold_unpaired_reactivity_;
+  float threshold_paired_reactivity_;
+  bool discretize_reactivity_;
   std::vector<std::string> args_;
 };
 
@@ -92,26 +103,35 @@ NGSfold::parse_options(int& argc, char**& argv)
       data_str_list_[i] = args_info.structure_arg[i];
   }
 
-  if (args_info.reactivity_unpaired_given)
+  if (args_info.unpaired_reactivity_given)
   {
-    data_unpaired_list_.resize(args_info.reactivity_unpaired_given);
-    for (uint i=0; i!=args_info.reactivity_unpaired_given; ++i)
-      data_unpaired_list_[i] = args_info.reactivity_unpaired_arg[i];
+    data_unpaired_list_.resize(args_info.unpaired_reactivity_given);
+    for (uint i=0; i!=args_info.unpaired_reactivity_given; ++i)
+      data_unpaired_list_[i] = args_info.unpaired_reactivity_arg[i];
   }
 
-  if (args_info.reactivity_paired_given)
+  if (args_info.paired_reactivity_given)
   {
-    data_paired_list_.resize(args_info.reactivity_paired_given);
-    for (uint i=0; i!=args_info.reactivity_paired_given; ++i)
-      data_paired_list_[i] = args_info.reactivity_paired_arg[i];
+    data_paired_list_.resize(args_info.paired_reactivity_given);
+    for (uint i=0; i!=args_info.paired_reactivity_given; ++i)
+      data_paired_list_[i] = args_info.paired_reactivity_arg[i];
   }
 
   noncomplementary_ = args_info.noncomplementary_flag==1;
   output_bpseq_ = args_info.bpseq_flag==1;
+  t_max_ = args_info.max_itr_arg;
+  t_burn_in_ = args_info.burn_in_arg;
+  weight_weak_labeled_ = args_info.weight_weak_label_arg;
   pos_w_ = args_info.pos_w_arg;
   neg_w_ = args_info.neg_w_arg;
   lambda_ = args_info.lambda_arg;
   eta0_ = args_info.eta_arg;
+  scale_reactivity_ = args_info.scale_reactivity_arg;
+  threshold_unpaired_reactivity_ = args_info.threshold_unpaired_reactivity_arg;
+  threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
+  discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
+
+  srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
   if ((!train_mode_ && args_info.inputs_num==0) ||
       (train_mode_ && data_str_list_.empty() && data_unpaired_list_.empty() && data_paired_list_.empty() && args_info.inputs_num==0)) 
@@ -131,7 +151,8 @@ NGSfold::parse_options(int& argc, char**& argv)
 }
 
 std::pair<uint,uint>
-read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type)
+NGSfold::
+read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const
 {
   std::pair<uint,uint> pos = std::make_pair(data.size(), data.size());
   for (auto l: lists)
@@ -140,17 +161,55 @@ read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int
     if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + l);
     std::string f;
     while (is >> f)
+    {
       data.emplace_back(f, type);
+      if (type!=SStruct::NO_REACTIVITY && discretize_reactivity_)
+        data.back().DiscretizeReactivity(threshold_unpaired_reactivity_, threshold_paired_reactivity_);
+    }
   }
   pos.second = data.size();
   return pos;
 }
 
+std::unordered_map<std::string,double>
+NGSfold::
+compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
+{
+  std::unordered_map<std::string,double> grad;
+  // count the occurence of parameters in the predicted structure
+  inference_engine->LoadSequence(s);
+  if (s.GetType() == SStruct::NO_REACTIVITY)
+    inference_engine->UseLossBasePair(s.GetMapping(), pos_w_, neg_w_);
+  else if (discretize_reactivity_)
+    inference_engine->UseLossPosition(s.GetMapping(), pos_w_, neg_w_);
+  else
+    inference_engine->UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_, neg_w_);
+  inference_engine->ComputeViterbi();
+  auto pred = inference_engine->ComputeViterbiFeatureCounts();
+  for (auto e : *pred)
+    grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+
+  // count the occurence of parameters in the correct structure
+  if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
+  {
+    inference_engine->LoadSequence(s);
+    inference_engine->UseConstraints(s.GetMapping());
+  }
+  else
+  {
+    inference_engine->LoadSequence(s, true, threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
+  }    
+  inference_engine->ComputeViterbi();
+  auto corr = inference_engine->ComputeViterbiFeatureCounts();
+  for (auto e : *corr)
+    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+
+  return std::move(grad);
+}
+
 int
 NGSfold::train()
 {
-  uint n_first=1;
-
   // read traing data
   std::vector<SStruct> data;
   auto pos_str = read_data(data, data_str_list_, SStruct::NO_REACTIVITY);
@@ -163,38 +222,22 @@ NGSfold::train()
     pm->ReadFromFile(param_file_);
   AdaGradRDAUpdater adagrad(eta0_, lambda_);
 
-  // first round: train only from the full structure dataset
-  std::vector<uint> idx(pos_str.second-pos_str.first);
-  std::iota(idx.begin(), idx.end(), 0);
-  for (uint epoch=0; epoch!=n_first; ++epoch)
+  for (uint t=0; t!=t_max_; ++t)
   {
+    std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_paired.second);
+    std::iota(idx.begin(), idx.end(), 0);
     std::random_shuffle(idx.begin(), idx.end());
     for (auto i : idx)
     {
-      std::unordered_map<std::string,double> grad;
+      auto w = i<pos_str.second ? 1.0 : weight_weak_labeled_;
       inference_engine->LoadValues(std::move(pm));
-
-      inference_engine->LoadSequence(data[i]);
-      inference_engine->ComputeViterbi();
-      auto pred = inference_engine->ComputeViterbiFeatureCounts();
-      for (auto e : *pred)
-        grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
-
-      inference_engine->LoadSequence(data[i]);
-      inference_engine->UseConstraints(data[i].GetMapping());
-      inference_engine->ComputeViterbi();
-      auto corr = inference_engine->ComputeViterbiFeatureCounts();
-      for (auto e : *corr)
-        grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
-
+      auto grad = compute_gradients(data[i], inference_engine);
       pm = inference_engine->LoadValues(nullptr);
       for (auto g : grad)
-        adagrad.update(g.first, pm->get_by_key(g.first), g.second);
+        adagrad.update(g.first, pm->get_by_key(g.first), g.second*w);
       adagrad.proceed_time();
     }
   }
-
-  // second round
 
   delete inference_engine;
 

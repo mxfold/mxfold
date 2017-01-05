@@ -270,13 +270,17 @@ public:
     ~InferenceEngine();
 
     // load sequence
-    void LoadSequence(const SStruct &sstruct, int use_reactivity=0);
+    void LoadSequence(const SStruct &sstruct, bool use_reactivity=false,
+                      RealT threshold_unpaired_reactivity=0.7, RealT threshold_paired_reactivity=0.7, RealT scale_reactivity=0.1);
     
     // load parameter values                        
     ParamPtr LoadValues(ParamPtr pm);
     
     // load loss function
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);
+    void UseLossBasePair(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w);
+    void UseLossPosition(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w);
+    void UseLossReactivity(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w);
 
     // use constraints
     void UseConstraints(const std::vector<int> &true_mapping);

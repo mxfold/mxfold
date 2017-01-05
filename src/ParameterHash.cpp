@@ -74,8 +74,7 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  auto ret = param_.insert(std::make_pair(key, static_cast<ValueT>(0)));
-  return ret.first->second;
+  return param_.insert(std::make_pair(key, static_cast<ValueT>(0))).first->second;
 }
 
 #if PARAMS_BASE_PAIR

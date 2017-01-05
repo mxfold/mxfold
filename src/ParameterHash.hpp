@@ -30,6 +30,7 @@ public:
   typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
   typename std::unordered_map<std::string, ValueT>::iterator end() { return param_.end(); }
   typename std::unordered_map<std::string, ValueT>::const_iterator end() const { return param_.end(); }
+  typename std::unordered_map<std::string, ValueT>::iterator erase(typename std::unordered_map<std::string, ValueT>::const_iterator pos) { return param_.erase(pos); }
 
   // access to parameters
 #if PARAMS_BASE_PAIR

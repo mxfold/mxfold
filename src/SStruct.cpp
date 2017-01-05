@@ -287,11 +287,12 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
         {
           case REACTIVITY_UNPAIRED: 
           {
-              float reactivity_to=0;
-              data >> token;
-              ConvertToNumber(token, reactivity_to);
+              float reactivity=0;
+              if (!(data >> token)) Error("Expected real number after sequence letter: %s", filename.c_str());
+              if (!ConvertToNumber(token, reactivity)) Error("Could not read reactivity row number: %s", filename.c_str());
+              ConvertToNumber(token, reactivity);
               sequences.back().push_back(ch);
-              reactivity_unpair.push_back(reactivity_to);
+              reactivity_unpair.push_back(reactivity);
               reactivity_pair.push_back(0);
               mapping.push_back(0);
               this->type = type;
@@ -299,12 +300,12 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
           }
           case REACTIVITY_PAIRED:
           {
-              float reactivity_to=0;
-              data >> token;
-              ConvertToNumber(token, reactivity_to);
+              float reactivity=0;
+              if (!(data >> token)) Error("Expected real number after sequence letter: %s", filename.c_str());
+              if (!ConvertToNumber(token, reactivity)) Error("Could not read reactivity row number: %s", filename.c_str());
               sequences.back().push_back(ch);
               reactivity_unpair.push_back(0);
-              reactivity_pair.push_back(reactivity_to);
+              reactivity_pair.push_back(reactivity);
               mapping.push_back(0);
               this->type = type;
               break;
@@ -690,6 +691,19 @@ void SStruct::SetMapping(const std::vector<int> &mapping)
 {
     this->mapping = mapping;
     ValidateMapping(mapping);
+}
+
+void SStruct::DiscretizeReactivity(double threshold_unpaired, double threshold_paired)
+{
+    for (size_t i=0; i!=mapping.size(); ++i)
+    {
+        if (reactivity_unpair[i]>=threshold_unpaired && reactivity_pair[i]<threshold_paired)
+            mapping[i] = UNPAIRED;
+        else if (reactivity_unpair[i]<threshold_unpaired && reactivity_pair[i]>=threshold_paired)
+            mapping[i] = PAIRED;
+        else
+            mapping[i] = UNKNOWN;
+    }
 }
 
 // Local Variables:
