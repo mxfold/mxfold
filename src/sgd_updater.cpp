@@ -1,4 +1,5 @@
 #include "../config.h"
+#include <cmath>
 #include "sgd_updater.hpp"
 
 SGDUpdater::

@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <memory>
 #include <stdexcept>
 #include <cerrno>
 #include <cstdio>
