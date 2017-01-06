@@ -30,7 +30,7 @@ SStruct::SStruct()
 SStruct::SStruct(const std::string &filename, int type)
     : type(type)
 {
-    Load(filename);
+    Load(filename, type);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -40,14 +40,14 @@ SStruct::SStruct(const std::string &filename, int type)
 // automatically.
 //////////////////////////////////////////////////////////////////////
 
-void SStruct::Load(const std::string &filename)
+void SStruct::Load(const std::string &filename, int type)
 {
     // auto-detect file format and load file
     switch (AnalyzeFormat(filename))
     {
         case FileFormat_FASTA: LoadFASTA(filename); break;
         case FileFormat_RAW: LoadRAW(filename); break;
-        case FileFormat_BPSEQ: LoadBPSEQ(filename); break;
+        case FileFormat_BPSEQ: LoadBPSEQ(filename, type); break;
         default: Error("Unable to determine file type.");
     }
 
@@ -294,7 +294,7 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
               sequences.back().push_back(ch);
               reactivity_unpair.push_back(reactivity);
               reactivity_pair.push_back(0);
-              mapping.push_back(0);
+              mapping.push_back(UNKNOWN);
               this->type = type;
               break;
           }
@@ -306,7 +306,7 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
               sequences.back().push_back(ch);
               reactivity_unpair.push_back(0);
               reactivity_pair.push_back(reactivity);
-              mapping.push_back(0);
+              mapping.push_back(UNKNOWN);
               this->type = type;
               break;
           }

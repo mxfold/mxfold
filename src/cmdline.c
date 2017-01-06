@@ -39,6 +39,7 @@ const char *gengetopt_args_info_help[] = {
   "      --noncomplementary        Allow non-canonical base pairs  (default=off)",
   "      --param=parameter-file    Load parameters from parameter-file",
   "      --random-seed=INT         Specify the seed of the random number generator\n                                  (default=`-1')",
+  "      --verbose=INT             Verbose output  (default=`0')",
   "\nPrediction mode:",
   "      --predict                 Prediction mode  (default=on)",
   "      --mea=gamma               MEA decoding with gamma  (default=`6.0')",
@@ -46,7 +47,7 @@ const char *gengetopt_args_info_help[] = {
   "      --bpseq                   Output predicted results as the BPSEQ format\n                                  (default=off)",
   "\nTraining mode:",
   "      --train=output-file       Trainining mode (write the trained parameters\n                                  into output-file)",
-  "      --max-itr=INT             The maximum number of iterations for training\n                                  (default=`100')",
+  "      --max-iter=INT            The maximum number of iterations for training\n                                  (default=`100')",
   "      --burn-in=INT             The number of iterations for initial training\n                                  from labeled data  (default=`10')",
   "      --weight-weak-label=FLOAT The weight for weak labeled data\n                                  (default=`0.1')",
   "      --structure=filename-list The lists of training data with full structures",
@@ -93,12 +94,13 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->noncomplementary_given = 0 ;
   args_info->param_given = 0 ;
   args_info->random_seed_given = 0 ;
+  args_info->verbose_given = 0 ;
   args_info->predict_given = 0 ;
   args_info->mea_given = 0 ;
   args_info->gce_given = 0 ;
   args_info->bpseq_given = 0 ;
   args_info->train_given = 0 ;
-  args_info->max_itr_given = 0 ;
+  args_info->max_iter_given = 0 ;
   args_info->burn_in_given = 0 ;
   args_info->weight_weak_label_given = 0 ;
   args_info->structure_given = 0 ;
@@ -123,6 +125,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->param_orig = NULL;
   args_info->random_seed_arg = -1;
   args_info->random_seed_orig = NULL;
+  args_info->verbose_arg = 0;
+  args_info->verbose_orig = NULL;
   args_info->predict_flag = 1;
   args_info->mea_arg = NULL;
   args_info->mea_orig = NULL;
@@ -131,8 +135,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->bpseq_flag = 0;
   args_info->train_arg = NULL;
   args_info->train_orig = NULL;
-  args_info->max_itr_arg = 100;
-  args_info->max_itr_orig = NULL;
+  args_info->max_iter_arg = 100;
+  args_info->max_iter_orig = NULL;
   args_info->burn_in_arg = 10;
   args_info->burn_in_orig = NULL;
   args_info->weight_weak_label_arg = 0.1;
@@ -171,35 +175,36 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->noncomplementary_help = gengetopt_args_info_help[2] ;
   args_info->param_help = gengetopt_args_info_help[3] ;
   args_info->random_seed_help = gengetopt_args_info_help[4] ;
-  args_info->predict_help = gengetopt_args_info_help[6] ;
-  args_info->mea_help = gengetopt_args_info_help[7] ;
+  args_info->verbose_help = gengetopt_args_info_help[5] ;
+  args_info->predict_help = gengetopt_args_info_help[7] ;
+  args_info->mea_help = gengetopt_args_info_help[8] ;
   args_info->mea_min = 0;
   args_info->mea_max = 0;
-  args_info->gce_help = gengetopt_args_info_help[8] ;
+  args_info->gce_help = gengetopt_args_info_help[9] ;
   args_info->gce_min = 0;
   args_info->gce_max = 0;
-  args_info->bpseq_help = gengetopt_args_info_help[9] ;
-  args_info->train_help = gengetopt_args_info_help[11] ;
-  args_info->max_itr_help = gengetopt_args_info_help[12] ;
-  args_info->burn_in_help = gengetopt_args_info_help[13] ;
-  args_info->weight_weak_label_help = gengetopt_args_info_help[14] ;
-  args_info->structure_help = gengetopt_args_info_help[15] ;
+  args_info->bpseq_help = gengetopt_args_info_help[10] ;
+  args_info->train_help = gengetopt_args_info_help[12] ;
+  args_info->max_iter_help = gengetopt_args_info_help[13] ;
+  args_info->burn_in_help = gengetopt_args_info_help[14] ;
+  args_info->weight_weak_label_help = gengetopt_args_info_help[15] ;
+  args_info->structure_help = gengetopt_args_info_help[16] ;
   args_info->structure_min = 0;
   args_info->structure_max = 0;
-  args_info->unpaired_reactivity_help = gengetopt_args_info_help[16] ;
+  args_info->unpaired_reactivity_help = gengetopt_args_info_help[17] ;
   args_info->unpaired_reactivity_min = 0;
   args_info->unpaired_reactivity_max = 0;
-  args_info->paired_reactivity_help = gengetopt_args_info_help[17] ;
+  args_info->paired_reactivity_help = gengetopt_args_info_help[18] ;
   args_info->paired_reactivity_min = 0;
   args_info->paired_reactivity_max = 0;
-  args_info->eta_help = gengetopt_args_info_help[18] ;
-  args_info->pos_w_help = gengetopt_args_info_help[19] ;
-  args_info->neg_w_help = gengetopt_args_info_help[20] ;
-  args_info->lambda_help = gengetopt_args_info_help[21] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_help[22] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_help[23] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_help[24] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_help[25] ;
+  args_info->eta_help = gengetopt_args_info_help[19] ;
+  args_info->pos_w_help = gengetopt_args_info_help[20] ;
+  args_info->neg_w_help = gengetopt_args_info_help[21] ;
+  args_info->lambda_help = gengetopt_args_info_help[22] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_help[23] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_help[24] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_help[25] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_help[26] ;
   
 }
 
@@ -353,13 +358,14 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->param_arg));
   free_string_field (&(args_info->param_orig));
   free_string_field (&(args_info->random_seed_orig));
+  free_string_field (&(args_info->verbose_orig));
   free_multiple_field (args_info->mea_given, (void *)(args_info->mea_arg), &(args_info->mea_orig));
   args_info->mea_arg = 0;
   free_multiple_field (args_info->gce_given, (void *)(args_info->gce_arg), &(args_info->gce_orig));
   args_info->gce_arg = 0;
   free_string_field (&(args_info->train_arg));
   free_string_field (&(args_info->train_orig));
-  free_string_field (&(args_info->max_itr_orig));
+  free_string_field (&(args_info->max_iter_orig));
   free_string_field (&(args_info->burn_in_orig));
   free_string_field (&(args_info->weight_weak_label_orig));
   free_multiple_string_field (args_info->structure_given, &(args_info->structure_arg), &(args_info->structure_orig));
@@ -425,6 +431,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "param", args_info->param_orig, 0);
   if (args_info->random_seed_given)
     write_into_file(outfile, "random-seed", args_info->random_seed_orig, 0);
+  if (args_info->verbose_given)
+    write_into_file(outfile, "verbose", args_info->verbose_orig, 0);
   if (args_info->predict_given)
     write_into_file(outfile, "predict", 0, 0 );
   write_multiple_into_file(outfile, args_info->mea_given, "mea", args_info->mea_orig, 0);
@@ -433,8 +441,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "bpseq", 0, 0 );
   if (args_info->train_given)
     write_into_file(outfile, "train", args_info->train_orig, 0);
-  if (args_info->max_itr_given)
-    write_into_file(outfile, "max-itr", args_info->max_itr_orig, 0);
+  if (args_info->max_iter_given)
+    write_into_file(outfile, "max-iter", args_info->max_iter_orig, 0);
   if (args_info->burn_in_given)
     write_into_file(outfile, "burn-in", args_info->burn_in_orig, 0);
   if (args_info->weight_weak_label_given)
@@ -1040,12 +1048,13 @@ cmdline_parser_internal (
         { "noncomplementary",	0, NULL, 0 },
         { "param",	1, NULL, 0 },
         { "random-seed",	1, NULL, 0 },
+        { "verbose",	1, NULL, 0 },
         { "predict",	0, NULL, 0 },
         { "mea",	1, NULL, 0 },
         { "gce",	1, NULL, 0 },
         { "bpseq",	0, NULL, 0 },
         { "train",	1, NULL, 0 },
-        { "max-itr",	1, NULL, 0 },
+        { "max-iter",	1, NULL, 0 },
         { "burn-in",	1, NULL, 0 },
         { "weight-weak-label",	1, NULL, 0 },
         { "structure",	1, NULL, 0 },
@@ -1156,6 +1165,20 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* Verbose output.  */
+          else if (strcmp (long_options[option_index].name, "verbose") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->verbose_arg), 
+                 &(args_info->verbose_orig), &(args_info->verbose_given),
+                &(local_args_info.verbose_given), optarg, 0, "0", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "verbose", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* Prediction mode.  */
           else if (strcmp (long_options[option_index].name, "predict") == 0)
           {
@@ -1217,15 +1240,15 @@ cmdline_parser_internal (
           
           }
           /* The maximum number of iterations for training.  */
-          else if (strcmp (long_options[option_index].name, "max-itr") == 0)
+          else if (strcmp (long_options[option_index].name, "max-iter") == 0)
           {
           
           
-            if (update_arg( (void *)&(args_info->max_itr_arg), 
-                 &(args_info->max_itr_orig), &(args_info->max_itr_given),
-                &(local_args_info.max_itr_given), optarg, 0, "100", ARG_INT,
+            if (update_arg( (void *)&(args_info->max_iter_arg), 
+                 &(args_info->max_iter_orig), &(args_info->max_iter_given),
+                &(local_args_info.max_iter_given), optarg, 0, "100", ARG_INT,
                 check_ambiguity, override, 0, 0,
-                "max-itr", '-',
+                "max-iter", '-',
                 additional_error))
               goto failure;
           

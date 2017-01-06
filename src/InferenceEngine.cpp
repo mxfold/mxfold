@@ -1478,7 +1478,7 @@ void InferenceEngine<RealT>::UseLossPosition(const std::vector<int> &true_mappin
 template<class RealT>
 void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w)
 {
-    Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
+    Assert(int(reactivity_unpair.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
     
     // compute the penalty for each position that we declare to be unpaired

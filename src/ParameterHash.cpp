@@ -46,15 +46,26 @@ ReadFromFile(const std::string& filename)
 template < class ValueT >
 void
 ParameterHash<ValueT>::
-WriteToFile(const std::string& filename) const
+WriteToFile(const std::string& filename, bool sort) const
 {
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
-  
-  for (const auto& e : param_)
+
+  if (sort)
   {
-    if (e.second!=0.0)
-      os << e.first << " " << e.second << std::endl;
+    std::vector<std::string> keys;
+    for (const auto& e : param_)
+      if (e.second!=0.0)
+        keys.emplace_back(e.first);
+    std::sort(keys.begin(), keys.end());
+    for (const auto& k : keys)
+      os << k << " " << param_.find(k)->second << std::endl;
+  }
+  else
+  {
+    for (const auto& e : param_)
+      if (e.second!=0.0)
+        os << e.first << " " << e.second << std::endl;
   }
 }
 

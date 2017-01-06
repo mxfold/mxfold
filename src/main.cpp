@@ -62,6 +62,7 @@ private:
   float threshold_unpaired_reactivity_;
   float threshold_paired_reactivity_;
   bool discretize_reactivity_;
+  int verbose_;
   std::vector<std::string> args_;
 };
 
@@ -119,7 +120,7 @@ NGSfold::parse_options(int& argc, char**& argv)
 
   noncomplementary_ = args_info.noncomplementary_flag==1;
   output_bpseq_ = args_info.bpseq_flag==1;
-  t_max_ = args_info.max_itr_arg;
+  t_max_ = args_info.max_iter_arg;
   t_burn_in_ = args_info.burn_in_arg;
   weight_weak_labeled_ = args_info.weight_weak_label_arg;
   pos_w_ = args_info.pos_w_arg;
@@ -130,6 +131,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   threshold_unpaired_reactivity_ = args_info.threshold_unpaired_reactivity_arg;
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
+  verbose_ = args_info.verbose_arg;
 
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
@@ -175,6 +177,7 @@ std::unordered_map<std::string,double>
 NGSfold::
 compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
 {
+  if (verbose_>1) std::cout << std::endl;
   std::unordered_map<std::string,double> grad;
   // count the occurence of parameters in the predicted structure
   inference_engine->LoadSequence(s);
@@ -185,9 +188,15 @@ compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
   else
     inference_engine->UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_, neg_w_);
   inference_engine->ComputeViterbi();
+  if (verbose_>1)
+  {
+    SStruct solution(s);
+    solution.SetMapping(inference_engine->PredictPairingsViterbi());
+    solution.WriteParens(std::cout);
+  }
   auto pred = inference_engine->ComputeViterbiFeatureCounts();
   for (auto e : *pred)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
 
   // count the occurence of parameters in the correct structure
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
@@ -200,9 +209,15 @@ compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
     inference_engine->LoadSequence(s, true, threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
   }    
   inference_engine->ComputeViterbi();
+  if (verbose_>1)
+  {
+    SStruct solution(s);
+    solution.SetMapping(inference_engine->PredictPairingsViterbi());
+    solution.WriteParens(std::cout);
+  }
   auto corr = inference_engine->ComputeViterbiFeatureCounts();
   for (auto e : *corr)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+    grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
 
   return std::move(grad);
 }
@@ -216,14 +231,18 @@ NGSfold::train()
   auto pos_unpaired = read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
   auto pos_paired = read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
 
+  // set up the inference engine
   auto inference_engine = new InferenceEngine<double>(noncomplementary_);
   std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
   if (!param_file_.empty())
     pm->ReadFromFile(param_file_);
   AdaGradRDAUpdater adagrad(eta0_, lambda_);
 
+  // run max-margin training
   for (uint t=0; t!=t_max_; ++t)
   {
+    if (verbose_>0)
+      std::cout << "=== Epoch " << t << " ===" << std::endl;
     std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_paired.second);
     std::iota(idx.begin(), idx.end(), 0);
     std::random_shuffle(idx.begin(), idx.end());
@@ -234,12 +253,15 @@ NGSfold::train()
       auto grad = compute_gradients(data[i], inference_engine);
       pm = inference_engine->LoadValues(nullptr);
       for (auto g : grad)
-        adagrad.update(g.first, pm->get_by_key(g.first), g.second*w);
+        if (g.second!=0.0)
+          adagrad.update(g.first, pm->get_by_key(g.first), g.second*w);
       adagrad.proceed_time();
     }
   }
 
   delete inference_engine;
+  
+  pm->WriteToFile(out_file_);
 
   return 0;
 }

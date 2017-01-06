@@ -14,6 +14,8 @@ option "param"                - "Load parameters from parameter-file"
        			      	string typestr="parameter-file" optional
 option "random-seed"	      - "Specify the seed of the random number generator"
        			      	int default="-1" optional
+option "verbose"	      - "Verbose output"
+       			        int default="0" optional
 
 section "Prediction mode"
 
@@ -30,7 +32,7 @@ section "Training mode"
 
 option "train"                - "Trainining mode (write the trained parameters into output-file)"
        			      	string typestr="output-file" optional
-option "max-itr"	      - "The maximum number of iterations for training"
+option "max-iter"	      - "The maximum number of iterations for training"
        			      	int default="100" optional
 option "burn-in"	      - "The number of iterations for initial training from labeled data"
        			        int default="10" optional

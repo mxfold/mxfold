@@ -62,7 +62,7 @@ public:
     ~SStruct();
 
     // load sequence and struture from file
-    void Load(const std::string &filename);
+    void Load(const std::string &filename, int type = NO_REACTIVITY);
 
     // load file of a particular file format
     void LoadFASTA(const std::string &filename);

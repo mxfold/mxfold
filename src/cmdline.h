@@ -47,6 +47,9 @@ struct gengetopt_args_info
   int random_seed_arg;	/**< @brief Specify the seed of the random number generator (default='-1').  */
   char * random_seed_orig;	/**< @brief Specify the seed of the random number generator original value given at command line.  */
   const char *random_seed_help; /**< @brief Specify the seed of the random number generator help description.  */
+  int verbose_arg;	/**< @brief Verbose output (default='0').  */
+  char * verbose_orig;	/**< @brief Verbose output original value given at command line.  */
+  const char *verbose_help; /**< @brief Verbose output help description.  */
   int predict_flag;	/**< @brief Prediction mode (default=on).  */
   const char *predict_help; /**< @brief Prediction mode help description.  */
   float* mea_arg;	/**< @brief MEA decoding with gamma (default='6.0').  */
@@ -64,9 +67,9 @@ struct gengetopt_args_info
   char * train_arg;	/**< @brief Trainining mode (write the trained parameters into output-file).  */
   char * train_orig;	/**< @brief Trainining mode (write the trained parameters into output-file) original value given at command line.  */
   const char *train_help; /**< @brief Trainining mode (write the trained parameters into output-file) help description.  */
-  int max_itr_arg;	/**< @brief The maximum number of iterations for training (default='100').  */
-  char * max_itr_orig;	/**< @brief The maximum number of iterations for training original value given at command line.  */
-  const char *max_itr_help; /**< @brief The maximum number of iterations for training help description.  */
+  int max_iter_arg;	/**< @brief The maximum number of iterations for training (default='100').  */
+  char * max_iter_orig;	/**< @brief The maximum number of iterations for training original value given at command line.  */
+  const char *max_iter_help; /**< @brief The maximum number of iterations for training help description.  */
   int burn_in_arg;	/**< @brief The number of iterations for initial training from labeled data (default='10').  */
   char * burn_in_orig;	/**< @brief The number of iterations for initial training from labeled data original value given at command line.  */
   const char *burn_in_help; /**< @brief The number of iterations for initial training from labeled data help description.  */
@@ -117,12 +120,13 @@ struct gengetopt_args_info
   unsigned int noncomplementary_given ;	/**< @brief Whether noncomplementary was given.  */
   unsigned int param_given ;	/**< @brief Whether param was given.  */
   unsigned int random_seed_given ;	/**< @brief Whether random-seed was given.  */
+  unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
   unsigned int predict_given ;	/**< @brief Whether predict was given.  */
   unsigned int mea_given ;	/**< @brief Whether mea was given.  */
   unsigned int gce_given ;	/**< @brief Whether gce was given.  */
   unsigned int bpseq_given ;	/**< @brief Whether bpseq was given.  */
   unsigned int train_given ;	/**< @brief Whether train was given.  */
-  unsigned int max_itr_given ;	/**< @brief Whether max-itr was given.  */
+  unsigned int max_iter_given ;	/**< @brief Whether max-iter was given.  */
   unsigned int burn_in_given ;	/**< @brief Whether burn-in was given.  */
   unsigned int weight_weak_label_given ;	/**< @brief Whether weight-weak-label was given.  */
   unsigned int structure_given ;	/**< @brief Whether structure was given.  */

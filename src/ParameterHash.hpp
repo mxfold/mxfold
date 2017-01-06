@@ -21,7 +21,7 @@ public:
   void LoadDefaultComplementary();
   void LoadDefaultNonComplementary();
   void ReadFromFile(const std::string& filename);
-  void WriteToFile(const std::string& filename) const;
+  void WriteToFile(const std::string& filename, bool sort=true) const;
 
   ValueT  get_by_key(const std::string& key) const;
   ValueT& get_by_key(const std::string& key);
@@ -225,8 +225,6 @@ private:
 
 private:
   std::unordered_map<std::string, ValueT> param_;
-  //std::string alphabet_;
-  //std::array<unsigned char, 256> char_mapping_;
 };
 
 #endif  // PARAMETERHASH_HPP
