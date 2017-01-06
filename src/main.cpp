@@ -1,3 +1,4 @@
+#include "../config.h"
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -12,7 +13,7 @@
 #include "InferenceEngine.hpp"
 #include "ParameterHash.hpp"
 #include "SStruct.hpp"
-#include "sgd_updater.hpp"
+#include "adagrad.hpp"
 
 extern std::unordered_map<std::string, double> default_params_complementary;
 extern std::unordered_map<std::string, double> default_params_noncomplementary;

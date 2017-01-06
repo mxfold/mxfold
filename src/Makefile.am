@@ -7,4 +7,4 @@ ngsfold_SOURCES = \
 	ParameterHash.hpp ParameterHash.cpp \
 	SStruct.cpp SStruct.hpp \
 	Utilities.cpp Utilities.hpp Utilities.ipp \
-	sgd_updater.cpp sgd_updater.hpp
+	adagrad.cpp adagrad.hpp

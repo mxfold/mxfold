@@ -35,17 +35,10 @@ private:
     
     // dimensions
     int L, SIZE;
-#if PROFILE
-    int N, SIZE2;
-#endif
 
     // sequence data
     std::vector<char> s;
     std::vector<int> offset;
-#if PROFILE
-    std::vector<int> A;
-    std::vector<RealT> weights;
-#endif
     std::vector<int> allow_unpaired_position;
     std::vector<int> allow_unpaired, allow_paired;
     std::vector<RealT> loss_unpaired_position;
@@ -106,108 +99,6 @@ private:
     std::pair<RealT,RealT> cache_score_helix_length[D_MAX_HELIX_LENGTH+1];
 #endif
 
-#if PROFILE
-
-    // multiple sequence scoring
-#if PARAMS_BASE_PAIR
-    std::vector<std::pair<RealT,RealT> > profile_score_base_pair;
-#endif
-#if PARAMS_TERMINAL_MISMATCH
-    std::vector<std::pair<RealT,RealT> > profile_score_terminal_mismatch;
-#endif
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_3_nucleotides;
-#endif
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_4_nucleotides;
-#endif
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x1_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_1x0_nucleotides;
-#endif
-#if PARAMS_BULGE_0x2_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x2_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_2x0_nucleotides;
-#endif
-#if PARAMS_BULGE_0x3_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x3_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_3x0_nucleotides;
-#endif
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_1x1_nucleotides;
-#endif
-#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_1x2_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_2x1_nucleotides;
-#endif
-#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_2x2_nucleotides;
-#endif
-#if PARAMS_HELIX_STACKING
-    std::vector<std::pair<RealT,RealT> > profile_score_helix_stacking;
-#endif
-#if PARAMS_HELIX_CLOSING
-    std::vector<std::pair<RealT,RealT> > profile_score_helix_closing;
-#endif
-#if PARAMS_DANGLE
-    std::vector<std::pair<RealT,RealT> > profile_score_dangle_left;
-    std::vector<std::pair<RealT,RealT> > profile_score_dangle_right;
-#endif
-
-    //自作パラメータ,multi
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_5_nucleotides;
-#endif
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_6_nucleotides;
-#endif
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_hairpin_7_nucleotides;
-#endif
-
-#if PARAMS_BULGE_0x4_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x4_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_4x0_nucleotides;
-#endif
-#if PARAMS_BULGE_0x5_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x5_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_5x0_nucleotides;
-#endif
-#if PARAMS_BULGE_0x6_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_0x6_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_bulge_6x0_nucleotides;
-#endif
-
-#if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_1x3_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x1_nucleotides;
-#endif
-#if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_2x3_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x2_nucleotides;
-#endif
-#if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x3_nucleotides;
-#endif
-
-#if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_1x4_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x1_nucleotides;
-#endif
-#if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_2x4_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x2_nucleotides;
-#endif
-#if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_3x4_nucleotides;
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x3_nucleotides;
-#endif
-#if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-    std::vector<std::pair<RealT,RealT> > profile_score_internal_4x4_nucleotides;
-#endif
-  
-#endif
-
     // cache
     std::pair<RealT,RealT> cache_score_single[C_MAX_SINGLE_LENGTH+1][C_MAX_SINGLE_LENGTH+1];
     std::vector<std::pair<RealT,RealT> > cache_score_helix_sums;
@@ -257,11 +148,6 @@ private:
     void ClearCounts();
     void InitializeCache();
     void FinalizeCounts();
-    
-#if PROFILE
-    void ComputeProfileScore(RealT &profile_score, const int *pos, int dimensions, std::pair<RealT,RealT> *table);
-    void ConvertProfileCount(const RealT &profile_score, const int *pos, int dimensions, std::pair<RealT,RealT> *table);
-#endif
     
 public:
 

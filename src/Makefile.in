@@ -102,7 +102,7 @@ PROGRAMS = $(bin_PROGRAMS)
 am_ngsfold_OBJECTS = main.$(OBJEXT) cmdline.$(OBJEXT) \
 	default_params.$(OBJEXT) InferenceEngine.$(OBJEXT) \
 	ParameterHash.$(OBJEXT) SStruct.$(OBJEXT) Utilities.$(OBJEXT) \
-	sgd_updater.$(OBJEXT)
+	adagrad.$(OBJEXT)
 ngsfold_OBJECTS = $(am_ngsfold_OBJECTS)
 ngsfold_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
@@ -274,7 +274,7 @@ ngsfold_SOURCES = \
 	ParameterHash.hpp ParameterHash.cpp \
 	SStruct.cpp SStruct.hpp \
 	Utilities.cpp Utilities.hpp Utilities.ipp \
-	sgd_updater.cpp sgd_updater.hpp
+	adagrad.cpp adagrad.hpp
 
 all: all-am
 
@@ -366,10 +366,10 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/ParameterHash.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/SStruct.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/Utilities.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/adagrad.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/cmdline.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/default_params.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/main.Po@am__quote@
-@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/sgd_updater.Po@am__quote@
 
 .c.o:
 @am__fastdepCC_TRUE@	$(AM_V_CC)$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

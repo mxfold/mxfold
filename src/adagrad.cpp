@@ -1,6 +1,6 @@
 #include "../config.h"
 #include <cmath>
-#include "sgd_updater.hpp"
+#include "adagrad.hpp"
 
 SGDUpdater::
 SGDUpdater(double eta)
