@@ -65,6 +65,7 @@ private:
   bool discretize_reactivity_;
   int verbose_;
   std::string out_param_;
+  bool use_constraints_;
   std::vector<std::string> args_;
 };
 
@@ -120,6 +121,9 @@ NGSfold::parse_options(int& argc, char**& argv)
       data_paired_list_[i] = args_info.paired_reactivity_arg[i];
   }
 
+  if (args_info.out_param_given)
+    out_param_ = args_info.out_param_arg;
+
   noncomplementary_ = args_info.noncomplementary_flag==1;
   output_bpseq_ = args_info.bpseq_flag==1;
   t_max_ = args_info.max_iter_arg;
@@ -134,7 +138,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
   verbose_ = args_info.verbose_arg;
-  out_param_ = args_info.out_param_arg;
+  use_constraints_ = args_info.constraints_flag==1;
 
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
@@ -304,6 +308,8 @@ NGSfold::predict()
     sstruct.Load(s);
     SStruct solution(sstruct);
     inference_engine->LoadSequence(sstruct);
+    if (use_constraints_)
+      inference_engine->UseConstraints(sstruct.GetMapping());
     if (!mea_ && !gce_)
     {
       inference_engine->ComputeViterbi();

@@ -17,6 +17,8 @@ option "random-seed"	      - "Specify the seed of the random number generator"
 option "verbose"	      - "Verbose output"
        			        int default="0" optional
 
+################################
+
 section "Prediction mode"
 
 option "predict"              - "Prediction mode"
@@ -27,6 +29,11 @@ option "gce"		      - "Generalized centroid decoding with gamma"
        			        float default="4.0" typestr="gamma" optional multiple
 option "bpseq"                - "Output predicted results as the BPSEQ format"
        			      	flag off
+option "constraints"          - "Use contraints"
+       			      	flag off
+
+
+################################
 
 section "Training mode"
 
@@ -60,5 +67,5 @@ option "threshold-paired-reactivity" - "The threshold of reactiviy for paired ba
        				float default="0.7" optional
 option "discretize-reactivity" - "Discretize reactivity with reactivity thresholds"
        				flag off
-option "out-param"	       - "output parameter sets for each step"
+option "out-param"	       - "Output parameter sets for each step"
        			       	 string typestr="dirname" optional hidden

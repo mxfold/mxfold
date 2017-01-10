@@ -46,6 +46,7 @@ const char *gengetopt_args_info_full_help[] = {
   "      --mea=gamma               MEA decoding with gamma  (default=`6.0')",
   "      --gce=gamma               Generalized centroid decoding with gamma\n                                  (default=`4.0')",
   "      --bpseq                   Output predicted results as the BPSEQ format\n                                  (default=off)",
+  "      --constraints             Use contraints  (default=off)",
   "\nTraining mode:",
   "      --train=output-file       Trainining mode (write the trained parameters\n                                  into output-file)",
   "      --max-iter=INT            The maximum number of iterations for training\n                                  (default=`100')",
@@ -62,7 +63,7 @@ const char *gengetopt_args_info_full_help[] = {
   "      --threshold-unpaired-reactivity=FLOAT\n                                The threshold of reactiviy for unpaired bases\n                                  (default=`0.7')",
   "      --threshold-paired-reactivity=FLOAT\n                                The threshold of reactiviy for paired bases\n                                  (default=`0.7')",
   "      --discretize-reactivity   Discretize reactivity with reactivity\n                                  thresholds  (default=off)",
-  "      --out-param=dirname       output parameter sets for each step",
+  "      --out-param=dirname       Output parameter sets for each step",
     0
 };
 
@@ -97,11 +98,12 @@ init_help_array(void)
   gengetopt_args_info_help[25] = gengetopt_args_info_full_help[25];
   gengetopt_args_info_help[26] = gengetopt_args_info_full_help[26];
   gengetopt_args_info_help[27] = gengetopt_args_info_full_help[27];
-  gengetopt_args_info_help[28] = 0; 
+  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[28];
+  gengetopt_args_info_help[29] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[29];
+const char *gengetopt_args_info_help[30];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -139,6 +141,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->mea_given = 0 ;
   args_info->gce_given = 0 ;
   args_info->bpseq_given = 0 ;
+  args_info->constraints_given = 0 ;
   args_info->train_given = 0 ;
   args_info->max_iter_given = 0 ;
   args_info->burn_in_given = 0 ;
@@ -174,6 +177,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->gce_arg = NULL;
   args_info->gce_orig = NULL;
   args_info->bpseq_flag = 0;
+  args_info->constraints_flag = 0;
   args_info->train_arg = NULL;
   args_info->train_orig = NULL;
   args_info->max_iter_arg = 100;
@@ -228,28 +232,29 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->gce_min = 0;
   args_info->gce_max = 0;
   args_info->bpseq_help = gengetopt_args_info_full_help[11] ;
-  args_info->train_help = gengetopt_args_info_full_help[13] ;
-  args_info->max_iter_help = gengetopt_args_info_full_help[14] ;
-  args_info->burn_in_help = gengetopt_args_info_full_help[15] ;
-  args_info->weight_weak_label_help = gengetopt_args_info_full_help[16] ;
-  args_info->structure_help = gengetopt_args_info_full_help[17] ;
+  args_info->constraints_help = gengetopt_args_info_full_help[12] ;
+  args_info->train_help = gengetopt_args_info_full_help[14] ;
+  args_info->max_iter_help = gengetopt_args_info_full_help[15] ;
+  args_info->burn_in_help = gengetopt_args_info_full_help[16] ;
+  args_info->weight_weak_label_help = gengetopt_args_info_full_help[17] ;
+  args_info->structure_help = gengetopt_args_info_full_help[18] ;
   args_info->structure_min = 0;
   args_info->structure_max = 0;
-  args_info->unpaired_reactivity_help = gengetopt_args_info_full_help[18] ;
+  args_info->unpaired_reactivity_help = gengetopt_args_info_full_help[19] ;
   args_info->unpaired_reactivity_min = 0;
   args_info->unpaired_reactivity_max = 0;
-  args_info->paired_reactivity_help = gengetopt_args_info_full_help[19] ;
+  args_info->paired_reactivity_help = gengetopt_args_info_full_help[20] ;
   args_info->paired_reactivity_min = 0;
   args_info->paired_reactivity_max = 0;
-  args_info->eta_help = gengetopt_args_info_full_help[20] ;
-  args_info->pos_w_help = gengetopt_args_info_full_help[21] ;
-  args_info->neg_w_help = gengetopt_args_info_full_help[22] ;
-  args_info->lambda_help = gengetopt_args_info_full_help[23] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_full_help[24] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[25] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[26] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[27] ;
-  args_info->out_param_help = gengetopt_args_info_full_help[28] ;
+  args_info->eta_help = gengetopt_args_info_full_help[21] ;
+  args_info->pos_w_help = gengetopt_args_info_full_help[22] ;
+  args_info->neg_w_help = gengetopt_args_info_full_help[23] ;
+  args_info->lambda_help = gengetopt_args_info_full_help[24] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_full_help[25] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[26] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[27] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[28] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[29] ;
   
 }
 
@@ -497,6 +502,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
   write_multiple_into_file(outfile, args_info->gce_given, "gce", args_info->gce_orig, 0);
   if (args_info->bpseq_given)
     write_into_file(outfile, "bpseq", 0, 0 );
+  if (args_info->constraints_given)
+    write_into_file(outfile, "constraints", 0, 0 );
   if (args_info->train_given)
     write_into_file(outfile, "train", args_info->train_orig, 0);
   if (args_info->max_iter_given)
@@ -1114,6 +1121,7 @@ cmdline_parser_internal (
         { "mea",	1, NULL, 0 },
         { "gce",	1, NULL, 0 },
         { "bpseq",	0, NULL, 0 },
+        { "constraints",	0, NULL, 0 },
         { "train",	1, NULL, 0 },
         { "max-iter",	1, NULL, 0 },
         { "burn-in",	1, NULL, 0 },
@@ -1293,6 +1301,18 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* Use contraints.  */
+          else if (strcmp (long_options[option_index].name, "constraints") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->constraints_flag), 0, &(args_info->constraints_given),
+                &(local_args_info.constraints_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "constraints", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* Trainining mode (write the trained parameters into output-file).  */
           else if (strcmp (long_options[option_index].name, "train") == 0)
           {
@@ -1450,7 +1470,7 @@ cmdline_parser_internal (
               goto failure;
           
           }
-          /* output parameter sets for each step.  */
+          /* Output parameter sets for each step.  */
           else if (strcmp (long_options[option_index].name, "out-param") == 0)
           {
           

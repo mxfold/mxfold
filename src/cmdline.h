@@ -65,6 +65,8 @@ struct gengetopt_args_info
   const char *gce_help; /**< @brief Generalized centroid decoding with gamma help description.  */
   int bpseq_flag;	/**< @brief Output predicted results as the BPSEQ format (default=off).  */
   const char *bpseq_help; /**< @brief Output predicted results as the BPSEQ format help description.  */
+  int constraints_flag;	/**< @brief Use contraints (default=off).  */
+  const char *constraints_help; /**< @brief Use contraints help description.  */
   char * train_arg;	/**< @brief Trainining mode (write the trained parameters into output-file).  */
   char * train_orig;	/**< @brief Trainining mode (write the trained parameters into output-file) original value given at command line.  */
   const char *train_help; /**< @brief Trainining mode (write the trained parameters into output-file) help description.  */
@@ -115,9 +117,9 @@ struct gengetopt_args_info
   const char *threshold_paired_reactivity_help; /**< @brief The threshold of reactiviy for paired bases help description.  */
   int discretize_reactivity_flag;	/**< @brief Discretize reactivity with reactivity thresholds (default=off).  */
   const char *discretize_reactivity_help; /**< @brief Discretize reactivity with reactivity thresholds help description.  */
-  char * out_param_arg;	/**< @brief output parameter sets for each step.  */
-  char * out_param_orig;	/**< @brief output parameter sets for each step original value given at command line.  */
-  const char *out_param_help; /**< @brief output parameter sets for each step help description.  */
+  char * out_param_arg;	/**< @brief Output parameter sets for each step.  */
+  char * out_param_orig;	/**< @brief Output parameter sets for each step original value given at command line.  */
+  const char *out_param_help; /**< @brief Output parameter sets for each step help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int full_help_given ;	/**< @brief Whether full-help was given.  */
@@ -130,6 +132,7 @@ struct gengetopt_args_info
   unsigned int mea_given ;	/**< @brief Whether mea was given.  */
   unsigned int gce_given ;	/**< @brief Whether gce was given.  */
   unsigned int bpseq_given ;	/**< @brief Whether bpseq was given.  */
+  unsigned int constraints_given ;	/**< @brief Whether constraints was given.  */
   unsigned int train_given ;	/**< @brief Whether train was given.  */
   unsigned int max_iter_given ;	/**< @brief Whether max-iter was given.  */
   unsigned int burn_in_given ;	/**< @brief Whether burn-in was given.  */
