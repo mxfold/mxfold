@@ -149,6 +149,7 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_react
     loss_unpaired_position.resize(L+1);
     loss_unpaired.resize(SIZE);
     loss_paired.resize(SIZE);
+    loss_const = RealT(0);
     
     reactivity_unpaired_position.resize(L+1);
     reactivity_unpaired.resize(SIZE);
@@ -613,8 +614,11 @@ void InferenceEngine<RealT>::UseLossBasePair(const std::vector<int> &true_mappin
         {
             if (i==0)
                 loss_paired[offset[i]+j] = 0;
-            else if (true_mapping[i] == j /* && true_mapping[j] == i */)
+            else if (true_mapping[i] == j /* && true_mapping[j] == i */) 
+            {
                 loss_paired[offset[i]+j] = -pos_w;
+                loss_const += pos_w;
+            }
             else if (true_mapping[i] == SStruct::UNPAIRED || true_mapping[j] == SStruct::UNPAIRED ||
                      (true_mapping[i] > 0 && true_mapping[i] != j) || (true_mapping[j] > 0 && true_mapping[j] != i))
                 loss_paired[offset[i]+j] = neg_w;
@@ -645,7 +649,10 @@ void InferenceEngine<RealT>::UseLossPosition(const std::vector<int> &true_mappin
         if (true_mapping[i] == SStruct::UNKNOWN)
             loss_unpaired_position[i] = 0;
         else if (true_mapping[i] == SStruct::UNPAIRED)
+        {
             loss_unpaired_position[i] = -neg_w;
+            loss_const += neg_w;
+        }
         else if (true_mapping[i] == SStruct::PAIRED || true_mapping[i] > 0)
             loss_unpaired_position[i] = pos_w;
     }
@@ -673,7 +680,10 @@ void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactiv
     // compute the penalty for each position that we declare to be unpaired
     loss_unpaired_position[0] = 0;
     for (int i = 1; i <= L; i++)
+    {
         loss_unpaired_position[i] = pos_w * reactivity_pair[i] - neg_w * reactivity_unpair[i];
+        loss_const += neg_w * reactivity_unpair[i];
+    }
 
     // now, compute the penalty for declaring ranges of positions to be unpaired;
     // also, compute the penalty for matching positions s[i] and s[j].
@@ -2035,7 +2045,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
 template<class RealT>
 inline RealT InferenceEngine<RealT>::GetViterbiScore() const
 {
-    return F5v[L];
+    return F5v[L]+loss_const;
 }
 
 //////////////////////////////////////////////////////////////////////

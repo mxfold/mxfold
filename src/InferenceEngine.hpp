@@ -43,6 +43,7 @@ private:
     std::vector<int> allow_unpaired, allow_paired;
     std::vector<RealT> loss_unpaired_position;
     std::vector<RealT> loss_unpaired, loss_paired;
+    RealT loss_const;
     std::vector<float> reactivity_unpaired_position;
     std::vector<float> reactivity_unpaired, reactivity_paired;
 

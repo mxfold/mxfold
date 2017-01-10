@@ -178,7 +178,7 @@ std::unordered_map<std::string,double>
 NGSfold::
 compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
 {
-  if (verbose_>1) std::cout << std::endl;
+  double starting_time = GetSystemTime();
   std::unordered_map<std::string,double> grad;
   // count the occurence of parameters in the predicted structure
   inference_engine->LoadSequence(s);
@@ -189,10 +189,12 @@ compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
   else
     inference_engine->UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_, neg_w_);
   inference_engine->ComputeViterbi();
+  auto loss1 = inference_engine->GetViterbiScore();
   if (verbose_>1)
   {
     SStruct solution(s);
     solution.SetMapping(inference_engine->PredictPairingsViterbi());
+    std::cout << std::endl;
     solution.WriteParens(std::cout);
   }
   auto pred = inference_engine->ComputeViterbiFeatureCounts();
@@ -210,6 +212,7 @@ compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
     inference_engine->LoadSequence(s, true, threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
   }    
   inference_engine->ComputeViterbi();
+  auto loss2 = inference_engine->GetViterbiScore();
   if (verbose_>1)
   {
     SStruct solution(s);
@@ -219,6 +222,13 @@ compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
   auto corr = inference_engine->ComputeViterbiFeatureCounts();
   for (auto e : *corr)
     grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+
+  if (verbose_>0)
+  {
+    std::cout << "Seq: " << s.GetNames()[0] << ", "
+              << "Loss: " << loss1-loss2 << ", "
+              << "Time: " << GetSystemTime() - starting_time << "sec" << std::endl;
+  }
 
   return std::move(grad);
 }
@@ -243,7 +253,7 @@ NGSfold::train()
   for (uint t=0; t!=t_max_; ++t)
   {
     if (verbose_>0)
-      std::cout << "=== Epoch " << t << " ===" << std::endl;
+      std::cout << std::endl << "=== Epoch " << t << " ===" << std::endl;
     std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_paired.second);
     std::iota(idx.begin(), idx.end(), 0);
     std::random_shuffle(idx.begin(), idx.end());
