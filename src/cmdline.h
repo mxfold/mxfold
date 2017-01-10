@@ -120,6 +120,8 @@ struct gengetopt_args_info
   char * out_param_arg;	/**< @brief Output parameter sets for each step.  */
   char * out_param_orig;	/**< @brief Output parameter sets for each step original value given at command line.  */
   const char *out_param_help; /**< @brief Output parameter sets for each step help description.  */
+  int validate_flag;	/**< @brief Validation mode: validate the given structure can be parsed (default=off).  */
+  const char *validate_help; /**< @brief Validation mode: validate the given structure can be parsed help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int full_help_given ;	/**< @brief Whether full-help was given.  */
@@ -149,6 +151,7 @@ struct gengetopt_args_info
   unsigned int threshold_paired_reactivity_given ;	/**< @brief Whether threshold-paired-reactivity was given.  */
   unsigned int discretize_reactivity_given ;	/**< @brief Whether discretize-reactivity was given.  */
   unsigned int out_param_given ;	/**< @brief Whether out-param was given.  */
+  unsigned int validate_given ;	/**< @brief Whether validate was given.  */
 
   char **inputs ; /**< @brief unamed options (options without names) */
   unsigned inputs_num ; /**< @brief unamed options number */

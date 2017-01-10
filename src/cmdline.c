@@ -64,6 +64,8 @@ const char *gengetopt_args_info_full_help[] = {
   "      --threshold-paired-reactivity=FLOAT\n                                The threshold of reactiviy for paired bases\n                                  (default=`0.7')",
   "      --discretize-reactivity   Discretize reactivity with reactivity\n                                  thresholds  (default=off)",
   "      --out-param=dirname       Output parameter sets for each step",
+  "\nValidation mode:",
+  "      --validate                Validation mode: validate the given structure\n                                  can be parsed  (default=off)",
     0
 };
 
@@ -99,11 +101,13 @@ init_help_array(void)
   gengetopt_args_info_help[26] = gengetopt_args_info_full_help[26];
   gengetopt_args_info_help[27] = gengetopt_args_info_full_help[27];
   gengetopt_args_info_help[28] = gengetopt_args_info_full_help[28];
-  gengetopt_args_info_help[29] = 0; 
+  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[30];
+  gengetopt_args_info_help[30] = gengetopt_args_info_full_help[31];
+  gengetopt_args_info_help[31] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[30];
+const char *gengetopt_args_info_help[32];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -158,6 +162,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->threshold_paired_reactivity_given = 0 ;
   args_info->discretize_reactivity_given = 0 ;
   args_info->out_param_given = 0 ;
+  args_info->validate_given = 0 ;
 }
 
 static
@@ -209,6 +214,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->discretize_reactivity_flag = 0;
   args_info->out_param_arg = NULL;
   args_info->out_param_orig = NULL;
+  args_info->validate_flag = 0;
   
 }
 
@@ -255,6 +261,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[27] ;
   args_info->discretize_reactivity_help = gengetopt_args_info_full_help[28] ;
   args_info->out_param_help = gengetopt_args_info_full_help[29] ;
+  args_info->validate_help = gengetopt_args_info_full_help[31] ;
   
 }
 
@@ -533,6 +540,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "discretize-reactivity", 0, 0 );
   if (args_info->out_param_given)
     write_into_file(outfile, "out-param", args_info->out_param_orig, 0);
+  if (args_info->validate_given)
+    write_into_file(outfile, "validate", 0, 0 );
   
 
   i = EXIT_SUCCESS;
@@ -1138,6 +1147,7 @@ cmdline_parser_internal (
         { "threshold-paired-reactivity",	1, NULL, 0 },
         { "discretize-reactivity",	0, NULL, 0 },
         { "out-param",	1, NULL, 0 },
+        { "validate",	0, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -1480,6 +1490,18 @@ cmdline_parser_internal (
                 &(local_args_info.out_param_given), optarg, 0, 0, ARG_STRING,
                 check_ambiguity, override, 0, 0,
                 "out-param", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Validation mode: validate the given structure can be parsed.  */
+          else if (strcmp (long_options[option_index].name, "validate") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->validate_flag), 0, &(args_info->validate_given),
+                &(local_args_info.validate_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "validate", '-',
                 additional_error))
               goto failure;
           

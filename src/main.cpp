@@ -27,6 +27,8 @@ public:
 
   int run()
   {
+    if (validation_mode_)
+      return validate();
     if (train_mode_)
       return train();
     else
@@ -36,6 +38,7 @@ public:
 private:
   int train();
   int predict();
+  int validate();
   std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
   std::unordered_map<std::string,double> compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine);
   
@@ -65,6 +68,7 @@ private:
   bool discretize_reactivity_;
   int verbose_;
   std::string out_param_;
+  bool validation_mode_;
   bool use_constraints_;
   std::vector<std::string> args_;
 };
@@ -139,6 +143,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
   verbose_ = args_info.verbose_arg;
   use_constraints_ = args_info.constraints_flag==1;
+  validation_mode_ = args_info.validate_flag==1;
 
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
@@ -308,8 +313,8 @@ NGSfold::predict()
     sstruct.Load(s);
     SStruct solution(sstruct);
     inference_engine->LoadSequence(sstruct);
-    sstruct.WriteParens(std::cout);
-    std::cout << std::endl;
+    //sstruct.WriteParens(std::cout); // for debug
+    //std::cout << std::endl;
     if (use_constraints_)
       inference_engine->UseConstraints(sstruct.GetMapping());
     if (!mea_ && !gce_)
@@ -331,6 +336,38 @@ NGSfold::predict()
       solution.WriteBPSEQ(std::cout);
     else
       solution.WriteParens(std::cout);
+  }
+  delete inference_engine;
+
+  return 0;
+}
+
+int
+NGSfold::validate()
+{
+  // set parameters
+  std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
+
+  if (!param_file_.empty())
+    pm->ReadFromFile(param_file_);
+  else if (noncomplementary_)
+    pm->LoadFromHash(default_params_noncomplementary);
+  else
+    pm->LoadFromHash(default_params_complementary);
+  
+  auto inference_engine = new InferenceEngine<double>(noncomplementary_);
+  inference_engine->LoadValues(std::move(pm));
+  for (auto s : args_)
+  {
+    SStruct sstruct;
+    sstruct.Load(s);
+    SStruct solution(sstruct);
+    inference_engine->LoadSequence(sstruct);
+    inference_engine->UseConstraints(sstruct.GetMapping());
+    inference_engine->ComputeViterbi();
+    auto score = inference_engine->GetViterbiScore();
+    std::cout << sstruct.GetNames()[0] << " " 
+              << (score>NEG_INF ? "OK" : "NG") << std::endl;
   }
   delete inference_engine;
 

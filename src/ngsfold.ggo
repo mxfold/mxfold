@@ -69,3 +69,10 @@ option "discretize-reactivity" - "Discretize reactivity with reactivity threshol
        				flag off
 option "out-param"	       - "Output parameter sets for each step"
        			       	 string typestr="dirname" optional hidden
+
+################################
+
+section "Validation mode"
+
+option "validate"              - "Validation mode: validate the given structure can be parsed"
+       			      	 flag off
