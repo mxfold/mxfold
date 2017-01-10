@@ -738,7 +738,8 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
     { 
         allow_unpaired_position[i] =
             (true_mapping[i] == SStruct::UNKNOWN || 
-             true_mapping[i] == SStruct::UNPAIRED);
+             true_mapping[i] == SStruct::UNPAIRED ||
+             (!allow_noncomplementary && true_mapping[i]>0 && !IsComplementary(i, true_mapping[i])));
     }
 
     // determine whether we allow ranges of positions to be unpaired;
