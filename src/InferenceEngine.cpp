@@ -5,6 +5,29 @@
 #include "../config.h"
 #include "InferenceEngine.hpp"
 
+template < class M, class OFFSET >
+void show_matrix(const M& matrix, const OFFSET& offset, const std::string& name, int L)
+{
+    for (int i = 0; i <= L; i++)
+    {
+        for (int j = i+1; j <= L; j++)
+        {
+            if (matrix[offset[i]+j]!=0.0)
+                std::cout << name << "[" << i << "," << j << "]=" << matrix[offset[i]+j] << std::endl;
+        }
+    }
+}
+
+template < class M >
+void show_matrix(const M& matrix, const std::string& name, int L)
+{
+    for (int i = 0; i <= L; i++)
+    {
+        if (matrix[i]!=0.0)
+            std::cout << name << "[" << i << "]=" << matrix[i] << std::endl;
+    }
+}
+
 //////////////////////////////////////////////////////////////////////
 // UPDATE_MAX()
 //
@@ -161,7 +184,7 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_react
 
     // convert sequences to index representation
     const std::string &sequence = sstruct.GetSequences()[0];
-    s[0] = -1; //BYTE(alphabet.size());
+    s[0] = '@';
     for (int i = 1; i <= L; i++)
     {
         s[i] = toupper(sequence[i]);
@@ -184,7 +207,6 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_react
         }
     }
 
-    //std::cout << reactivity_unpaired_position[18] << std::endl;
     for (int i = 0; i <= L; i++)
     {
         reactivity_unpaired[offset[i]+i] = RealT(0);
@@ -2034,6 +2056,11 @@ void InferenceEngine<RealT>::ComputeViterbi()
 #if CANDIDATE_LIST
     //std::cerr << "Candidates: " << candidates_seen << "/" << candidates_possible << " = " << double(candidates_seen)/candidates_possible << std::endl;
 #endif
+
+    //show_matrix(FCv, "F5", L);
+    //show_matrix(FCv, offset, "FC", L);
+    //show_matrix(FMv, offset, "FM", L);
+    //show_matrix(FM1v, offset, "FM1", L);
 }
 
 //////////////////////////////////////////////////////////////////////

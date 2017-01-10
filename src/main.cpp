@@ -308,6 +308,8 @@ NGSfold::predict()
     sstruct.Load(s);
     SStruct solution(sstruct);
     inference_engine->LoadSequence(sstruct);
+    sstruct.WriteParens(std::cout);
+    std::cout << std::endl;
     if (use_constraints_)
       inference_engine->UseConstraints(sstruct.GetMapping());
     if (!mea_ && !gce_)
