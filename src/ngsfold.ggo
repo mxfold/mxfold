@@ -58,5 +58,7 @@ option "threshold-unpaired-reactivity" - "The threshold of reactiviy for unpaire
        				float default="0.7" optional
 option "threshold-paired-reactivity" - "The threshold of reactiviy for paired bases"
        				float default="0.7" optional
-option "discretize-reactivity"  - "Discretize reactivity with reactivity thresholds"
+option "discretize-reactivity" - "Discretize reactivity with reactivity thresholds"
        				flag off
+option "out-param"	       - "output parameter sets for each step"
+       			       	 string typestr="dirname" optional hidden

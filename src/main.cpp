@@ -64,6 +64,7 @@ private:
   float threshold_paired_reactivity_;
   bool discretize_reactivity_;
   int verbose_;
+  std::string out_param_;
   std::vector<std::string> args_;
 };
 
@@ -133,6 +134,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
   verbose_ = args_info.verbose_arg;
+  out_param_ = args_info.out_param_arg;
 
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
@@ -250,7 +252,7 @@ NGSfold::train()
   AdaGradRDAUpdater adagrad(eta0_, lambda_);
 
   // run max-margin training
-  for (uint t=0; t!=t_max_; ++t)
+  for (uint t=0, k=0; t!=t_max_; ++t)
   {
     if (verbose_>0)
       std::cout << std::endl << "=== Epoch " << t << " ===" << std::endl;
@@ -267,6 +269,9 @@ NGSfold::train()
         if (g.second!=0.0)
           adagrad.update(g.first, pm->get_by_key(g.first), g.second*w);
       adagrad.proceed_time();
+
+      if (!out_param_.empty())
+        pm->WriteToFile(SPrintF("%s/%d.param", out_param_.c_str(), k++));
     }
   }
 

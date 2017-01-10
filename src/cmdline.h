@@ -38,6 +38,7 @@ extern "C" {
 struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
+  const char *full_help_help; /**< @brief Print help, including hidden options, and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
   int noncomplementary_flag;	/**< @brief Allow non-canonical base pairs (default=off).  */
   const char *noncomplementary_help; /**< @brief Allow non-canonical base pairs help description.  */
@@ -114,8 +115,12 @@ struct gengetopt_args_info
   const char *threshold_paired_reactivity_help; /**< @brief The threshold of reactiviy for paired bases help description.  */
   int discretize_reactivity_flag;	/**< @brief Discretize reactivity with reactivity thresholds (default=off).  */
   const char *discretize_reactivity_help; /**< @brief Discretize reactivity with reactivity thresholds help description.  */
+  char * out_param_arg;	/**< @brief output parameter sets for each step.  */
+  char * out_param_orig;	/**< @brief output parameter sets for each step original value given at command line.  */
+  const char *out_param_help; /**< @brief output parameter sets for each step help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
+  unsigned int full_help_given ;	/**< @brief Whether full-help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int noncomplementary_given ;	/**< @brief Whether noncomplementary was given.  */
   unsigned int param_given ;	/**< @brief Whether param was given.  */
@@ -140,6 +145,7 @@ struct gengetopt_args_info
   unsigned int threshold_unpaired_reactivity_given ;	/**< @brief Whether threshold-unpaired-reactivity was given.  */
   unsigned int threshold_paired_reactivity_given ;	/**< @brief Whether threshold-paired-reactivity was given.  */
   unsigned int discretize_reactivity_given ;	/**< @brief Whether discretize-reactivity was given.  */
+  unsigned int out_param_given ;	/**< @brief Whether out-param was given.  */
 
   char **inputs ; /**< @brief unamed options (options without names) */
   unsigned inputs_num ; /**< @brief unamed options number */
@@ -163,6 +169,8 @@ extern const char *gengetopt_args_info_usage;
 extern const char *gengetopt_args_info_description;
 /** @brief all the lines making the help output */
 extern const char *gengetopt_args_info_help[];
+/** @brief all the lines making the full help output (including hidden options) */
+extern const char *gengetopt_args_info_full_help[];
 
 /**
  * The command line parser
@@ -224,6 +232,10 @@ int cmdline_parser_file_save(const char *filename,
  * Print the help
  */
 void cmdline_parser_print_help(void);
+/**
+ * Print the full help (including hidden options)
+ */
+void cmdline_parser_print_full_help(void);
 /**
  * Print the version
  */

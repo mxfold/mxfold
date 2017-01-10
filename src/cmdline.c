@@ -33,8 +33,9 @@ const char *gengetopt_args_info_versiontext = "";
 
 const char *gengetopt_args_info_description = "";
 
-const char *gengetopt_args_info_help[] = {
+const char *gengetopt_args_info_full_help[] = {
   "  -h, --help                    Print help and exit",
+  "      --full-help               Print help, including hidden options, and exit",
   "  -V, --version                 Print version and exit",
   "      --noncomplementary        Allow non-canonical base pairs  (default=off)",
   "      --param=parameter-file    Load parameters from parameter-file",
@@ -61,8 +62,46 @@ const char *gengetopt_args_info_help[] = {
   "      --threshold-unpaired-reactivity=FLOAT\n                                The threshold of reactiviy for unpaired bases\n                                  (default=`0.7')",
   "      --threshold-paired-reactivity=FLOAT\n                                The threshold of reactiviy for paired bases\n                                  (default=`0.7')",
   "      --discretize-reactivity   Discretize reactivity with reactivity\n                                  thresholds  (default=off)",
+  "      --out-param=dirname       output parameter sets for each step",
     0
 };
+
+static void
+init_help_array(void)
+{
+  gengetopt_args_info_help[0] = gengetopt_args_info_full_help[0];
+  gengetopt_args_info_help[1] = gengetopt_args_info_full_help[1];
+  gengetopt_args_info_help[2] = gengetopt_args_info_full_help[2];
+  gengetopt_args_info_help[3] = gengetopt_args_info_full_help[3];
+  gengetopt_args_info_help[4] = gengetopt_args_info_full_help[4];
+  gengetopt_args_info_help[5] = gengetopt_args_info_full_help[5];
+  gengetopt_args_info_help[6] = gengetopt_args_info_full_help[6];
+  gengetopt_args_info_help[7] = gengetopt_args_info_full_help[7];
+  gengetopt_args_info_help[8] = gengetopt_args_info_full_help[8];
+  gengetopt_args_info_help[9] = gengetopt_args_info_full_help[9];
+  gengetopt_args_info_help[10] = gengetopt_args_info_full_help[10];
+  gengetopt_args_info_help[11] = gengetopt_args_info_full_help[11];
+  gengetopt_args_info_help[12] = gengetopt_args_info_full_help[12];
+  gengetopt_args_info_help[13] = gengetopt_args_info_full_help[13];
+  gengetopt_args_info_help[14] = gengetopt_args_info_full_help[14];
+  gengetopt_args_info_help[15] = gengetopt_args_info_full_help[15];
+  gengetopt_args_info_help[16] = gengetopt_args_info_full_help[16];
+  gengetopt_args_info_help[17] = gengetopt_args_info_full_help[17];
+  gengetopt_args_info_help[18] = gengetopt_args_info_full_help[18];
+  gengetopt_args_info_help[19] = gengetopt_args_info_full_help[19];
+  gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
+  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[21];
+  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[22];
+  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[23];
+  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[24];
+  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[25];
+  gengetopt_args_info_help[26] = gengetopt_args_info_full_help[26];
+  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[27];
+  gengetopt_args_info_help[28] = 0; 
+  
+}
+
+const char *gengetopt_args_info_help[29];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -90,6 +129,7 @@ static
 void clear_given (struct gengetopt_args_info *args_info)
 {
   args_info->help_given = 0 ;
+  args_info->full_help_given = 0 ;
   args_info->version_given = 0 ;
   args_info->noncomplementary_given = 0 ;
   args_info->param_given = 0 ;
@@ -114,6 +154,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->threshold_unpaired_reactivity_given = 0 ;
   args_info->threshold_paired_reactivity_given = 0 ;
   args_info->discretize_reactivity_given = 0 ;
+  args_info->out_param_given = 0 ;
 }
 
 static
@@ -162,6 +203,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->threshold_paired_reactivity_arg = 0.7;
   args_info->threshold_paired_reactivity_orig = NULL;
   args_info->discretize_reactivity_flag = 0;
+  args_info->out_param_arg = NULL;
+  args_info->out_param_orig = NULL;
   
 }
 
@@ -169,42 +212,44 @@ static
 void init_args_info(struct gengetopt_args_info *args_info)
 {
 
-
-  args_info->help_help = gengetopt_args_info_help[0] ;
-  args_info->version_help = gengetopt_args_info_help[1] ;
-  args_info->noncomplementary_help = gengetopt_args_info_help[2] ;
-  args_info->param_help = gengetopt_args_info_help[3] ;
-  args_info->random_seed_help = gengetopt_args_info_help[4] ;
-  args_info->verbose_help = gengetopt_args_info_help[5] ;
-  args_info->predict_help = gengetopt_args_info_help[7] ;
-  args_info->mea_help = gengetopt_args_info_help[8] ;
+  init_help_array(); 
+  args_info->help_help = gengetopt_args_info_full_help[0] ;
+  args_info->full_help_help = gengetopt_args_info_full_help[1] ;
+  args_info->version_help = gengetopt_args_info_full_help[2] ;
+  args_info->noncomplementary_help = gengetopt_args_info_full_help[3] ;
+  args_info->param_help = gengetopt_args_info_full_help[4] ;
+  args_info->random_seed_help = gengetopt_args_info_full_help[5] ;
+  args_info->verbose_help = gengetopt_args_info_full_help[6] ;
+  args_info->predict_help = gengetopt_args_info_full_help[8] ;
+  args_info->mea_help = gengetopt_args_info_full_help[9] ;
   args_info->mea_min = 0;
   args_info->mea_max = 0;
-  args_info->gce_help = gengetopt_args_info_help[9] ;
+  args_info->gce_help = gengetopt_args_info_full_help[10] ;
   args_info->gce_min = 0;
   args_info->gce_max = 0;
-  args_info->bpseq_help = gengetopt_args_info_help[10] ;
-  args_info->train_help = gengetopt_args_info_help[12] ;
-  args_info->max_iter_help = gengetopt_args_info_help[13] ;
-  args_info->burn_in_help = gengetopt_args_info_help[14] ;
-  args_info->weight_weak_label_help = gengetopt_args_info_help[15] ;
-  args_info->structure_help = gengetopt_args_info_help[16] ;
+  args_info->bpseq_help = gengetopt_args_info_full_help[11] ;
+  args_info->train_help = gengetopt_args_info_full_help[13] ;
+  args_info->max_iter_help = gengetopt_args_info_full_help[14] ;
+  args_info->burn_in_help = gengetopt_args_info_full_help[15] ;
+  args_info->weight_weak_label_help = gengetopt_args_info_full_help[16] ;
+  args_info->structure_help = gengetopt_args_info_full_help[17] ;
   args_info->structure_min = 0;
   args_info->structure_max = 0;
-  args_info->unpaired_reactivity_help = gengetopt_args_info_help[17] ;
+  args_info->unpaired_reactivity_help = gengetopt_args_info_full_help[18] ;
   args_info->unpaired_reactivity_min = 0;
   args_info->unpaired_reactivity_max = 0;
-  args_info->paired_reactivity_help = gengetopt_args_info_help[18] ;
+  args_info->paired_reactivity_help = gengetopt_args_info_full_help[19] ;
   args_info->paired_reactivity_min = 0;
   args_info->paired_reactivity_max = 0;
-  args_info->eta_help = gengetopt_args_info_help[19] ;
-  args_info->pos_w_help = gengetopt_args_info_help[20] ;
-  args_info->neg_w_help = gengetopt_args_info_help[21] ;
-  args_info->lambda_help = gengetopt_args_info_help[22] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_help[23] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_help[24] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_help[25] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_help[26] ;
+  args_info->eta_help = gengetopt_args_info_full_help[20] ;
+  args_info->pos_w_help = gengetopt_args_info_full_help[21] ;
+  args_info->neg_w_help = gengetopt_args_info_full_help[22] ;
+  args_info->lambda_help = gengetopt_args_info_full_help[23] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_full_help[24] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[25] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[26] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[27] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[28] ;
   
 }
 
@@ -241,6 +286,15 @@ cmdline_parser_print_help (void)
   print_help_common();
   while (gengetopt_args_info_help[i])
     printf("%s\n", gengetopt_args_info_help[i++]);
+}
+
+void
+cmdline_parser_print_full_help (void)
+{
+  int i = 0;
+  print_help_common();
+  while (gengetopt_args_info_full_help[i])
+    printf("%s\n", gengetopt_args_info_full_help[i++]);
 }
 
 void
@@ -378,6 +432,8 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->scale_reactivity_orig));
   free_string_field (&(args_info->threshold_unpaired_reactivity_orig));
   free_string_field (&(args_info->threshold_paired_reactivity_orig));
+  free_string_field (&(args_info->out_param_arg));
+  free_string_field (&(args_info->out_param_orig));
   
   
   for (i = 0; i < args_info->inputs_num; ++i)
@@ -423,6 +479,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
 
   if (args_info->help_given)
     write_into_file(outfile, "help", 0, 0 );
+  if (args_info->full_help_given)
+    write_into_file(outfile, "full-help", 0, 0 );
   if (args_info->version_given)
     write_into_file(outfile, "version", 0, 0 );
   if (args_info->noncomplementary_given)
@@ -466,6 +524,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "threshold-paired-reactivity", args_info->threshold_paired_reactivity_orig, 0);
   if (args_info->discretize_reactivity_given)
     write_into_file(outfile, "discretize-reactivity", 0, 0 );
+  if (args_info->out_param_given)
+    write_into_file(outfile, "out-param", args_info->out_param_orig, 0);
   
 
   i = EXIT_SUCCESS;
@@ -1044,6 +1104,7 @@ cmdline_parser_internal (
 
       static struct option long_options[] = {
         { "help",	0, NULL, 'h' },
+        { "full-help",	0, NULL, 0 },
         { "version",	0, NULL, 'V' },
         { "noncomplementary",	0, NULL, 0 },
         { "param",	1, NULL, 0 },
@@ -1068,6 +1129,7 @@ cmdline_parser_internal (
         { "threshold-unpaired-reactivity",	1, NULL, 0 },
         { "threshold-paired-reactivity",	1, NULL, 0 },
         { "discretize-reactivity",	0, NULL, 0 },
+        { "out-param",	1, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -1125,6 +1187,12 @@ cmdline_parser_internal (
           break;
 
         case 0:	/* Long option with no short option */
+          if (strcmp (long_options[option_index].name, "full-help") == 0) {
+            cmdline_parser_print_full_help ();
+            cmdline_parser_free (&local_args_info);
+            exit (EXIT_SUCCESS);
+          }
+
           /* Allow non-canonical base pairs.  */
           if (strcmp (long_options[option_index].name, "noncomplementary") == 0)
           {
@@ -1378,6 +1446,20 @@ cmdline_parser_internal (
             if (update_arg((void *)&(args_info->discretize_reactivity_flag), 0, &(args_info->discretize_reactivity_given),
                 &(local_args_info.discretize_reactivity_given), optarg, 0, 0, ARG_FLAG,
                 check_ambiguity, override, 1, 0, "discretize-reactivity", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* output parameter sets for each step.  */
+          else if (strcmp (long_options[option_index].name, "out-param") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->out_param_arg), 
+                 &(args_info->out_param_orig), &(args_info->out_param_given),
+                &(local_args_info.out_param_given), optarg, 0, 0, ARG_STRING,
+                check_ambiguity, override, 0, 0,
+                "out-param", '-',
                 additional_error))
               goto failure;
           
