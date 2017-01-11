@@ -355,17 +355,17 @@ NGSfold::validate()
   else
     pm->LoadFromHash(default_params_complementary);
   
-  auto inference_engine = new InferenceEngine<double>(noncomplementary_);
-  inference_engine->LoadValues(std::move(pm));
   for (auto s : args_)
   {
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    inference_engine->LoadSequence(sstruct);
-    inference_engine->UseConstraints(sstruct.GetMapping());
-    inference_engine->ComputeViterbi();
-    auto score = inference_engine->GetViterbiScore();
+    InferenceEngine<double> inference_engine(noncomplementary_, sstruct.GetLength()/5.);
+    inference_engine.LoadValues(std::move(pm));
+    inference_engine.LoadSequence(sstruct);
+    inference_engine.UseConstraints(sstruct.GetMapping());
+    inference_engine.ComputeViterbi();
+    auto score = inference_engine.GetViterbiScore();
     std::cout << sstruct.GetNames()[0] << " " 
               << (score>NEG_INF ? "OK" : "NG") << std::endl;
     if (score==NEG_INF)
@@ -373,8 +373,8 @@ NGSfold::validate()
       sstruct.WriteParens(std::cout); // for debug
       std::cout << std::endl;
     }  
+    pm = inference_engine.LoadValues(nullptr);
   }
-  delete inference_engine;
 
   return 0;
 }

@@ -120,11 +120,16 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary) :
+InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, 
+                                        int max_single_length /*= DEFAULT_C_MAX_SINGLE_LENGTH*/, 
+                                        int min_hairpin_length /*= DEFAULT_C_MIN_HAIRPIN_LENGTH*/) :
     allow_noncomplementary(allow_noncomplementary),
+    C_MAX_SINGLE_LENGTH(max_single_length),
+    C_MIN_HAIRPIN_LENGTH(min_hairpin_length),
     cache_initialized(false),
     L(0),
-    SIZE(0)
+    SIZE(0),
+    cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
     // precompute complementary pairings
     for (auto e : is_complementary)

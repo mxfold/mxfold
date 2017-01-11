@@ -28,6 +28,8 @@ public:
 
 private:
     const bool allow_noncomplementary;
+    const int C_MAX_SINGLE_LENGTH;
+    const int C_MIN_HAIRPIN_LENGTH;
     std::array<std::array<char, 256>, 256> is_complementary;
     bool cache_initialized;
     ParamPtr parameter_manager;
@@ -101,7 +103,7 @@ private:
 #endif
 
     // cache
-    std::pair<RealT,RealT> cache_score_single[C_MAX_SINGLE_LENGTH+1][C_MAX_SINGLE_LENGTH+1];
+    std::vector<std::vector<std::pair<RealT,RealT>>> cache_score_single;
     std::vector<std::pair<RealT,RealT> > cache_score_helix_sums;
 
     int ComputeRowOffset(int i, int N) const;
@@ -153,7 +155,9 @@ private:
 public:
 
     // constructor and destructor
-    InferenceEngine(bool allow_noncomplementary);
+    InferenceEngine(bool allow_noncomplementary, 
+                    int max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH,
+                    int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH);
     ~InferenceEngine();
 
     // load sequence
