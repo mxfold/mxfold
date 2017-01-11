@@ -360,7 +360,8 @@ NGSfold::validate()
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    InferenceEngine<double> inference_engine(noncomplementary_, sstruct.GetLength()/5.);
+    InferenceEngine<double> inference_engine(noncomplementary_, 
+                                             std::max<int>(sstruct.GetLength()/5., DEFAULT_C_MAX_SINGLE_LENGTH));
     inference_engine.LoadValues(std::move(pm));
     inference_engine.LoadSequence(sstruct);
     inference_engine.UseConstraints(sstruct.GetMapping());
