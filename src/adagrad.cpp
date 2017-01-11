@@ -2,19 +2,14 @@
 #include <cmath>
 #include "adagrad.hpp"
 
-SGDUpdater::
-SGDUpdater(double eta)
-  : eta_(eta)
-{
-}
-
+inline
 double
-SGDUpdater::
-update(const std::string& fname, double& w, double grad)
+clip(double w, double c)
 {
-  auto v = eta_ * grad;
-  w -= v;
-  return v;
+  if (w>=0.0)
+    return w>c ? w-c : 0.0;
+  else
+    return -clip(-w, c);
 }
 
 AdaGradRDAUpdater::
@@ -23,7 +18,7 @@ AdaGradRDAUpdater(double eta, double lambda, double eps)
 {
 }
 
-double
+void
 AdaGradRDAUpdater::
 update(const std::string& fname, double& w, double grad)
 {
@@ -31,17 +26,14 @@ update(const std::string& fname, double& w, double grad)
   u.first->second += grad;
   auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
   g.first->second += grad*grad;
-  if (u.first->second>0.0)
-  {
-    auto v = u.first->second/t_ - lambda_;
-    w = v<=0.0 ? 0.0 : - eta_ * t_ / std::sqrt(g.first->second) * v;
-    return v-w; 
-  }
-  else if (u.first->second<0.0)
-  {
-    auto v = -u.first->second/t_ - lambda_;
-    w = v<=0.0 ? 0.0 : eta_ * t_ / std::sqrt(g.first->second) * v;
-    return v-w; 
-  }
-  return 0.0;
+  if (!u.second) regularize(fname, w);
+}
+
+void
+AdaGradRDAUpdater::
+regularize(const std::string& fname, double& w) const
+{
+  auto u = sum_grad_.find(fname);
+  auto g = sum_squared_grad_.find(fname);
+  w = - eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, lambda_);
 }

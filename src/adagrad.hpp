@@ -4,24 +4,14 @@
 #include <string>
 #include <unordered_map>
 
-class SGDUpdater
-{
-public:
-  SGDUpdater(double eta);
-  
-  double update(const std::string& fname, double& w, double grad);
-
-private:
-  double eta_;
-};
-
 class AdaGradRDAUpdater
 {
 public:
   AdaGradRDAUpdater(double eta,  double lambda, double eps=1e-8);
 
-  double update(const std::string& fname, double& w, double grad);
-  void proceed_time() { ++t_; }
+  void update(const std::string& fname, double& w, double grad);
+  void regularize(const std::string& fname, double& w) const;
+  void proceed_timestamp() { ++t_; }
 
 private:
   double eta_;

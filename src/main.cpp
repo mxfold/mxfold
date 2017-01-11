@@ -21,7 +21,7 @@ extern std::unordered_map<std::string, double> default_params_noncomplementary;
 class NGSfold
 {
 public:
-  NGSfold() : train_mode_(false), validation_mode_(false), mea_(false), gce_(false) { }
+  NGSfold() : train_mode_(false), mea_(false), gce_(false), validation_mode_(false) { }
 
   NGSfold& parse_options(int& argc, char**& argv);
 
@@ -263,24 +263,38 @@ NGSfold::train()
   ParameterHash<double> pm;
   if (!param_file_.empty())
     pm.ReadFromFile(param_file_);
-  AdaGradRDAUpdater adagrad(eta0_, lambda_);
+  AdaGradRDAUpdater optimizer(eta0_, lambda_);
 
   // run max-margin training
   for (uint t=0, k=0; t!=t_max_; ++t)
   {
     if (verbose_>0)
       std::cout << std::endl << "=== Epoch " << t << " ===" << std::endl;
+
     std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_paired.second);
     std::iota(idx.begin(), idx.end(), 0);
     std::random_shuffle(idx.begin(), idx.end());
+
     for (auto i : idx)
     {
+      // weight for this instance
       auto w = i<pos_str.second ? 1.0 : weight_weak_labeled_;
+      // gradient
       auto grad = compute_gradients(data[i], &pm);
+      // update
       for (auto g : grad)
         if (g.second!=0.0)
-          adagrad.update(g.first, pm.get_by_key(g.first), g.second*w);
-      adagrad.proceed_time();
+          optimizer.update(g.first, pm.get_by_key(g.first), g.second*w);
+      // regularize
+      for (auto p=pm.begin(); p!=pm.end(); )
+      {
+        optimizer.regularize(p->first, p->second);
+        if (p->second==0.0)
+          p = pm.erase(p);
+        else
+          ++p;
+      }
+      optimizer.proceed_timestamp();
 
       if (!out_param_.empty())
         pm.WriteToFile(SPrintF("%s/%d.param", out_param_.c_str(), k++));
