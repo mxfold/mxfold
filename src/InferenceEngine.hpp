@@ -22,18 +22,14 @@
 template<class RealT>
 class InferenceEngine
 {
-public:
-    typedef std::unique_ptr<ParameterHash<RealT>> ParamPtr;
-    typedef std::unique_ptr<ParameterHash<RealT>> CntPtr;
-
 private:
     const bool allow_noncomplementary;
     const int C_MAX_SINGLE_LENGTH;
     const int C_MIN_HAIRPIN_LENGTH;
     std::array<std::array<char, 256>, 256> is_complementary;
     bool cache_initialized;
-    ParamPtr parameter_manager;
-    CntPtr parameter_count;
+    const ParameterHash<RealT>* parameter_manager;
+    ParameterHash<RealT>* parameter_count;
     
     // dimensions
     int L, SIZE;
@@ -161,11 +157,10 @@ public:
     ~InferenceEngine();
 
     // load sequence
-    void LoadSequence(const SStruct &sstruct, bool use_reactivity=false,
-                      RealT threshold_unpaired_reactivity=0.7, RealT threshold_paired_reactivity=0.7, RealT scale_reactivity=0.1);
+    void LoadSequence(const SStruct &sstruct);
     
     // load parameter values                        
-    ParamPtr LoadValues(ParamPtr pm);
+    void LoadValues(const ParameterHash<RealT>* pm);
     
     // load loss function
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);
@@ -175,18 +170,20 @@ public:
 
     // use constraints
     void UseConstraints(const std::vector<int> &true_mapping);
+    void UseSoftConstraints(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, 
+                            RealT threshold_unpaired_reactivity=0.7, RealT threshold_paired_reactivity=0.7, RealT scale_reactivity=0.1);
 
     // Viterbi inference
     void ComputeViterbi();
     RealT GetViterbiScore() const;
     std::vector<int> PredictPairingsViterbi() const;
-    CntPtr ComputeViterbiFeatureCounts();
+    ParameterHash<RealT> ComputeViterbiFeatureCounts();
 
     // MEA inference
     void ComputeInside();
     RealT ComputeLogPartitionCoefficient() const;
     void ComputeOutside();
-    CntPtr ComputeFeatureCountExpectations();
+    ParameterHash<RealT> ComputeFeatureCountExpectations();
     void ComputePosterior();
     template <int GCE> std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;

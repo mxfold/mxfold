@@ -21,7 +21,7 @@ extern std::unordered_map<std::string, double> default_params_noncomplementary;
 class NGSfold
 {
 public:
-  NGSfold() : train_mode_(false), mea_(false), gce_(false) { }
+  NGSfold() : train_mode_(false), validation_mode_(false), mea_(false), gce_(false) { }
 
   NGSfold& parse_options(int& argc, char**& argv);
 
@@ -40,7 +40,7 @@ private:
   int predict();
   int validate();
   std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
-  std::unordered_map<std::string,double> compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine);
+  std::unordered_map<std::string,double> compute_gradients(const SStruct& s, const ParameterHash<double>* pm);
   
 
 private:
@@ -187,57 +187,63 @@ read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int
 
 std::unordered_map<std::string,double>
 NGSfold::
-compute_gradients(const SStruct& s, InferenceEngine<double>* inference_engine)
+compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
 {
   double starting_time = GetSystemTime();
   std::unordered_map<std::string,double> grad;
+
   // count the occurence of parameters in the predicted structure
-  inference_engine->LoadSequence(s);
+  InferenceEngine<double> inference_engine0(noncomplementary_);
+  inference_engine0.LoadValues(pm);
+  inference_engine0.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY)
-    inference_engine->UseLossBasePair(s.GetMapping(), pos_w_, neg_w_);
+    inference_engine0.UseLossBasePair(s.GetMapping(), pos_w_, neg_w_);
   else if (discretize_reactivity_)
-    inference_engine->UseLossPosition(s.GetMapping(), pos_w_, neg_w_);
+    inference_engine0.UseLossPosition(s.GetMapping(), pos_w_, neg_w_);
   else
-    inference_engine->UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_, neg_w_);
-  inference_engine->ComputeViterbi();
-  auto loss1 = inference_engine->GetViterbiScore();
+    inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_, neg_w_);
+
+  inference_engine0.ComputeViterbi();
+  auto loss0 = inference_engine0.GetViterbiScore();
   if (verbose_>1)
   {
     SStruct solution(s);
-    solution.SetMapping(inference_engine->PredictPairingsViterbi());
+    solution.SetMapping(inference_engine0.PredictPairingsViterbi());
     std::cout << std::endl;
     solution.WriteParens(std::cout);
   }
-  auto pred = inference_engine->ComputeViterbiFeatureCounts();
-  for (auto e : *pred)
+  auto pred = inference_engine0.ComputeViterbiFeatureCounts();
+  for (auto e : pred)
     grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
 
+
   // count the occurence of parameters in the correct structure
+  InferenceEngine<double> inference_engine1(noncomplementary_, 
+                                            std::max<int>(s.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+  inference_engine1.LoadValues(pm);
+  inference_engine1.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
-  {
-    inference_engine->LoadSequence(s);
-    inference_engine->UseConstraints(s.GetMapping());
-  }
+    inference_engine1.UseConstraints(s.GetMapping());
   else
-  {
-    inference_engine->LoadSequence(s, true, threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
-  }    
-  inference_engine->ComputeViterbi();
-  auto loss2 = inference_engine->GetViterbiScore();
+    inference_engine1.UseSoftConstraints(s.GetReactivityUnpair(), s.GetReactivityPair(), 
+                                         threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
+
+  inference_engine1.ComputeViterbi();
+  auto loss1 = inference_engine1.GetViterbiScore();
   if (verbose_>1)
   {
     SStruct solution(s);
-    solution.SetMapping(inference_engine->PredictPairingsViterbi());
+    solution.SetMapping(inference_engine1.PredictPairingsViterbi());
     solution.WriteParens(std::cout);
   }
-  auto corr = inference_engine->ComputeViterbiFeatureCounts();
-  for (auto e : *corr)
+  auto corr = inference_engine1.ComputeViterbiFeatureCounts();
+  for (auto e : corr)
     grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
 
   if (verbose_>0)
   {
     std::cout << "Seq: " << s.GetNames()[0] << ", "
-              << "Loss: " << loss1-loss2 << ", "
+              << "Loss: " << loss0-loss1 << ", "
               << "Time: " << GetSystemTime() - starting_time << "sec" << std::endl;
   }
 
@@ -250,14 +256,13 @@ NGSfold::train()
   // read traing data
   std::vector<SStruct> data;
   auto pos_str = read_data(data, data_str_list_, SStruct::NO_REACTIVITY);
-  auto pos_unpaired = read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
+  /*auto pos_unpaired =*/ read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
   auto pos_paired = read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
 
   // set up the inference engine
-  auto inference_engine = new InferenceEngine<double>(noncomplementary_);
-  std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
+  ParameterHash<double> pm;
   if (!param_file_.empty())
-    pm->ReadFromFile(param_file_);
+    pm.ReadFromFile(param_file_);
   AdaGradRDAUpdater adagrad(eta0_, lambda_);
 
   // run max-margin training
@@ -271,22 +276,18 @@ NGSfold::train()
     for (auto i : idx)
     {
       auto w = i<pos_str.second ? 1.0 : weight_weak_labeled_;
-      inference_engine->LoadValues(std::move(pm));
-      auto grad = compute_gradients(data[i], inference_engine);
-      pm = inference_engine->LoadValues(nullptr);
+      auto grad = compute_gradients(data[i], &pm);
       for (auto g : grad)
         if (g.second!=0.0)
-          adagrad.update(g.first, pm->get_by_key(g.first), g.second*w);
+          adagrad.update(g.first, pm.get_by_key(g.first), g.second*w);
       adagrad.proceed_time();
 
       if (!out_param_.empty())
-        pm->WriteToFile(SPrintF("%s/%d.param", out_param_.c_str(), k++));
+        pm.WriteToFile(SPrintF("%s/%d.param", out_param_.c_str(), k++));
     }
   }
 
-  delete inference_engine;
-  
-  pm->WriteToFile(out_file_);
+  pm.WriteToFile(out_file_);
 
   return 0;
 }
@@ -295,49 +296,48 @@ int
 NGSfold::predict()
 {
   // set parameters
-  std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
+  ParameterHash<double> pm;
 
   if (!param_file_.empty())
-    pm->ReadFromFile(param_file_);
+    pm.ReadFromFile(param_file_);
   else if (noncomplementary_)
-    pm->LoadFromHash(default_params_noncomplementary);
+    pm.LoadFromHash(default_params_noncomplementary);
   else
-    pm->LoadFromHash(default_params_complementary);
+    pm.LoadFromHash(default_params_complementary);
   
   // predict ss
-  auto inference_engine = new InferenceEngine<double>(noncomplementary_);
-  inference_engine->LoadValues(std::move(pm));
+  InferenceEngine<double> inference_engine(noncomplementary_);
+  inference_engine.LoadValues(&pm);
   for (auto s : args_)
   {
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    inference_engine->LoadSequence(sstruct);
+    inference_engine.LoadSequence(sstruct);
     //sstruct.WriteParens(std::cout); // for debug
     //std::cout << std::endl;
     if (use_constraints_)
-      inference_engine->UseConstraints(sstruct.GetMapping());
+      inference_engine.UseConstraints(sstruct.GetMapping());
     if (!mea_ && !gce_)
     {
-      inference_engine->ComputeViterbi();
-      solution.SetMapping(inference_engine->PredictPairingsViterbi());
+      inference_engine.ComputeViterbi();
+      solution.SetMapping(inference_engine.PredictPairingsViterbi());
     }
     else
     {
-      inference_engine->ComputeInside();
-      inference_engine->ComputeOutside();
-      inference_engine->ComputePosterior();
+      inference_engine.ComputeInside();
+      inference_engine.ComputeOutside();
+      inference_engine.ComputePosterior();
       if (mea_)
-        solution.SetMapping(inference_engine->PredictPairingsPosterior<0>(gamma_[0]));
+        solution.SetMapping(inference_engine.PredictPairingsPosterior<0>(gamma_[0]));
       else
-        solution.SetMapping(inference_engine->PredictPairingsPosterior<1>(gamma_[0]));
+        solution.SetMapping(inference_engine.PredictPairingsPosterior<1>(gamma_[0]));
     }
     if (output_bpseq_)
       solution.WriteBPSEQ(std::cout);
     else
       solution.WriteParens(std::cout);
   }
-  delete inference_engine;
 
   return 0;
 }
@@ -346,14 +346,13 @@ int
 NGSfold::validate()
 {
   // set parameters
-  std::unique_ptr<ParameterHash<double>> pm(new ParameterHash<double>());
-
+  ParameterHash<double> pm;
   if (!param_file_.empty())
-    pm->ReadFromFile(param_file_);
+    pm.ReadFromFile(param_file_);
   else if (noncomplementary_)
-    pm->LoadFromHash(default_params_noncomplementary);
+    pm.LoadFromHash(default_params_noncomplementary);
   else
-    pm->LoadFromHash(default_params_complementary);
+    pm.LoadFromHash(default_params_complementary);
   
   for (auto s : args_)
   {
@@ -362,7 +361,7 @@ NGSfold::validate()
     SStruct solution(sstruct);
     InferenceEngine<double> inference_engine(noncomplementary_, 
                                              std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
-    inference_engine.LoadValues(std::move(pm));
+    inference_engine.LoadValues(&pm);
     inference_engine.LoadSequence(sstruct);
     inference_engine.UseConstraints(sstruct.GetMapping());
     inference_engine.ComputeViterbi();
@@ -374,7 +373,6 @@ NGSfold::validate()
       sstruct.WriteParens(std::cout); // for debug
       std::cout << std::endl;
     }  
-    pm = inference_engine.LoadValues(nullptr);
   }
 
   return 0;

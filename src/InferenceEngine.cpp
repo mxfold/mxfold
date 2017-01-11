@@ -157,11 +157,8 @@ InferenceEngine<RealT>::~InferenceEngine()
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_reactivity,
-                                          RealT threshold_unpaired_reactivity, RealT threshold_paired_reactivity, RealT scale_reactivity)
+void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
 {
-    const std::vector<float> &reactivity_unpair= sstruct.GetReactivityUnpair();
-    const std::vector<float> &reactivity_pair= sstruct.GetReactivityPair();    
     cache_initialized = false;
     
     // compute dimensions
@@ -178,7 +175,6 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_react
     loss_unpaired.resize(SIZE);
     loss_paired.resize(SIZE);
     loss_const = RealT(0);
-    
     reactivity_unpaired_position.resize(L+1);
     reactivity_unpaired.resize(SIZE);
     reactivity_paired.resize(SIZE);
@@ -204,25 +200,6 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_react
         allow_unpaired_position[i] = 1;
         loss_unpaired_position[i] = RealT(0);
         reactivity_unpaired_position[i] = RealT(0);
-        if (use_reactivity)
-        {
-            auto ru = reactivity_unpair[i] >= threshold_unpaired_reactivity ? reactivity_unpair[i] : 0.0;
-            auto rp = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
-            reactivity_unpaired_position[i] = scale_reactivity * (ru - rp);
-        }
-    }
-
-    for (int i = 0; i <= L; i++)
-    {
-        reactivity_unpaired[offset[i]+i] = RealT(0);
-        reactivity_paired[offset[i]+i] = RealT(NEG_INF);
-        for (int j = i+1; j <= L; j++)
-        {
-            reactivity_unpaired[offset[i]+j] = 
-                reactivity_unpaired[offset[i]+j-1] +
-                reactivity_unpaired_position[j];
-            reactivity_paired[offset[i]+j] = 0; 
-        }
     }
 
     // allow all ranges to be unpaired, and all pairs of letters
@@ -233,6 +210,8 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct, bool use_react
         allow_paired[i] = 1;
         loss_unpaired[i] = RealT(0);
         loss_paired[i] = RealT(0);
+        reactivity_unpaired[i] = RealT(0);
+        reactivity_paired[i] = RealT(0);
     }
 
     // prevent the non-letter before each sequence from pairing with anything;
@@ -387,12 +366,11 @@ void InferenceEngine<RealT>::InitializeCache()
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-typename InferenceEngine<RealT>::ParamPtr
-InferenceEngine<RealT>::LoadValues(ParamPtr pm)
+void
+InferenceEngine<RealT>::LoadValues(const ParameterHash<RealT>* pm)
 {
     cache_initialized = false;
-    std::swap(pm, parameter_manager);
-    return std::move(pm);
+    parameter_manager = pm;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -767,6 +745,42 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
     }
 }
 
+
+//////////////////////////////////////////////////////////////////////
+// InferenceEngine::UseSoftConstraints()
+//
+// Use soft constraints such as reactivity
+//////////////////////////////////////////////////////////////////////
+
+template<class RealT>
+void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, 
+                                                RealT threshold_unpaired_reactivity /*=0.7*/, RealT threshold_paired_reactivity /*=0.7*/, RealT scale_reactivity /*=0.1*/)
+{
+    cache_initialized = false;
+    
+    // determine whether we allow each position to be unpaired
+    for (int i = 1; i <= L; i++)
+    { 
+        auto ru = reactivity_unpair[i] >= threshold_unpaired_reactivity ? reactivity_unpair[i] : 0.0;
+        auto rp = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
+        reactivity_unpaired_position[i] = scale_reactivity * (ru - rp);
+    }
+
+    // determine whether we allow ranges of positions to be unpaired;
+    // also determine which base-pairings we allow
+    for (int i = 0; i <= L; i++)
+    {
+        reactivity_unpaired[offset[i]+i] = RealT(0);
+        reactivity_paired[offset[i]+i] = RealT(NEG_INF);
+        for (int j = i+1; j <= L; j++)
+        {
+            reactivity_unpaired[offset[i]+j] = 
+                reactivity_unpaired[offset[i]+j-1] +
+                reactivity_unpaired_position[j];
+            reactivity_paired[offset[i]+j] = 0; 
+        }
+    }
+}
 
 
 // score for leaving s[i] unpaired
@@ -2250,14 +2264,15 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-typename InferenceEngine<RealT>::CntPtr
+ParameterHash<RealT>
 InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 {
     std::queue<triple<int *,int,int> > traceback_queue;
     traceback_queue.push(make_triple(&F5t[0], 0, L));
 
     ClearCounts();
-    parameter_count.reset(new ParameterHash<RealT>());
+    ParameterHash<RealT> cnt;
+    parameter_count = &cnt;
     
     while (!traceback_queue.empty())
     {
@@ -2410,7 +2425,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
     }
 
     FinalizeCounts();
-    return std::move(parameter_count);
+    return std::move(cnt);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3148,7 +3163,7 @@ inline RealT InferenceEngine<RealT>::ComputeLogPartitionCoefficient() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-typename InferenceEngine<RealT>::CntPtr 
+ParameterHash<RealT>
 InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 {
 #if SHOW_TIMINGS
@@ -3161,7 +3176,8 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     const RealT Z = ComputeLogPartitionCoefficient();
 
     ClearCounts();
-    parameter_count.reset(new ParameterHash<RealT>());
+    ParameterHash<RealT> cnt;
+    parameter_count = &cnt;
     
     for (int i = L; i >= 0; i--)
     {
@@ -3525,7 +3541,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     std::cerr << "Feature expectations (" << GetSystemTime() - starting_time << " seconds)" << std::endl;
 #endif
 
-    return std::move(parameter_count);
+    return std::move(cnt);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3538,7 +3554,8 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 template<class RealT>
 void InferenceEngine<RealT>::ComputePosterior()
 { 
-    parameter_count.reset(new ParameterHash<RealT>());
+    ParameterHash<RealT> cnt;
+    parameter_count = &cnt;
     posterior.clear();
     posterior.resize(SIZE, RealT(0));
     
