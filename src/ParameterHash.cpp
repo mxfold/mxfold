@@ -20,6 +20,29 @@ string_format( const std::string& format, Args ... args )
   return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
+    
+template < class ValueT >
+ParameterHash<ValueT>::
+ParameterHash()
+{
+  // precompute complementary pairings
+  for (auto e : is_complementary_)
+    std::fill(std::begin(e), std::end(e), false);
+
+  is_complementary_['A']['U'] = is_complementary_['U']['A'] = true;
+  is_complementary_['G']['U'] = is_complementary_['U']['G'] = true;
+  is_complementary_['C']['G'] = is_complementary_['G']['C'] = true;
+}
+
+template < class ValueT >
+bool
+ParameterHash<ValueT>::
+is_complementary(NUCL x, NUCL y) const
+{
+  return is_complementary_[x][y];
+}
+
+
 template < class ValueT >
 void
 ParameterHash<ValueT>::

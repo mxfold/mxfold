@@ -110,7 +110,7 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
     Assert(1 <= i && i <= L, "Index out-of-bounds.");
     Assert(1 <= j && j <= L, "Index out-of-bounds.");
 
-    return is_complementary[s[i]][s[j]];
+    return parameter_manager->is_complementary(s[i], s[j]);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -131,13 +131,6 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
     SIZE(0),
     cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
-    // precompute complementary pairings
-    for (auto e : is_complementary)
-        std::fill(std::begin(e), std::end(e), 0);
-    
-    is_complementary['A']['U'] = is_complementary['U']['A'] = 1;
-    is_complementary['G']['U'] = is_complementary['U']['G'] = 1;
-    is_complementary['C']['G'] = is_complementary['G']['C'] = 1;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -788,11 +781,7 @@ void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reacti
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreUnpairedPosition(int i) const
 {
-#if defined(HAMMING_LOSS)
     return loss_unpaired_position[i]+reactivity_unpaired_position[i];
-#else
-    return RealT(0)+reactivity_unpaired_position[i];
-#endif
 }
 
 template<class RealT>
@@ -805,11 +794,7 @@ inline void InferenceEngine<RealT>::CountUnpairedPosition(int i, RealT v)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreUnpaired(int i, int j) const
 {
-#if defined(HAMMING_LOSS)
     return loss_unpaired[offset[i]+j]+reactivity_unpaired[offset[i]+j];
-#else
-    return RealT(0)+reactivity_unpaired[offset[i]+j];
-#endif
 }
 
 template<class RealT>
@@ -1118,10 +1103,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     const auto& pm = *parameter_manager;
     
-    return reactivity_paired[offset[i]+j]
-#if defined(HAMMING_LOSS)
-        + loss_paired[offset[i]+j]
-#endif
+    return reactivity_paired[offset[i]+j] + loss_paired[offset[i]+j]
 #if PARAMS_BASE_PAIR
         + pm.base_pair(s[i], s[j])
 #endif

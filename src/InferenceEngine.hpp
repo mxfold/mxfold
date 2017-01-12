@@ -26,7 +26,6 @@ private:
     const bool allow_noncomplementary;
     const int C_MAX_SINGLE_LENGTH;
     const int C_MIN_HAIRPIN_LENGTH;
-    std::array<std::array<char, 256>, 256> is_complementary;
     bool cache_initialized;
     const ParameterHash<RealT>* parameter_manager;
     ParameterHash<RealT>* parameter_count;
