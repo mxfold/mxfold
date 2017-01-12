@@ -1114,7 +1114,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 {
     // Clearly, i and j must refer to actual letters of the sequence,
     // and no letter may base-pair to itself.
-    
+    Assert(allow_noncomplementary || IsComplementary(i,j), "non complementary  base-pair");
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     const auto& pm = *parameter_manager;
     
@@ -1134,6 +1134,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 template<class RealT>
 inline void InferenceEngine<RealT>::CountBasePair(int i, int j, RealT value)
 {
+    Assert(allow_noncomplementary || IsComplementary(i,j), "non complementary  base-pair");
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     auto& pc = *parameter_count;
     

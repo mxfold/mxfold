@@ -265,6 +265,7 @@ NGSfold::train()
   if (!param_file_.empty())
     pm.ReadFromFile(param_file_);
   AdaGradRDAUpdater optimizer(eta0_, lambda_);
+  //AdaGradFobosUpdater optimizer(eta0_, lambda_);
 
   // run max-margin training
   for (uint t=0, k=0; t!=t_max_; ++t)

@@ -37,3 +37,26 @@ regularize(const std::string& fname, double& w) const
   auto g = sum_squared_grad_.find(fname);
   w = - eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, lambda_);
 }
+
+
+AdaGradFobosUpdater::
+AdaGradFobosUpdater(double eta, double lambda, double eps)
+  : eta_(eta), lambda_(lambda), eps_(eps), sum_squared_grad_()
+{
+}
+
+void
+AdaGradFobosUpdater::
+update(const std::string& fname, double& w, double grad)
+{
+  auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
+  g.first->second += grad*grad;
+  w -= eta_ / std::sqrt(g.first->second) * grad;
+}
+
+void
+AdaGradFobosUpdater::
+regularize(const std::string& fname, double& w) const
+{
+  w = clip(w, lambda_);
+}
