@@ -109,8 +109,8 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 {
     Assert(1 <= i && i <= L, "Index out-of-bounds.");
     Assert(1 <= j && j <= L, "Index out-of-bounds.");
-
     return parameter_manager->is_complementary(s[i], s[j]);
+    //return is_complementary[s[i]][s[j]];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -131,6 +131,15 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
     SIZE(0),
     cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
+#if 0
+  // precompute complementary pairings
+  for (auto e : is_complementary)
+    std::fill(std::begin(e), std::end(e), false);
+
+  is_complementary['A']['U'] = is_complementary['U']['A'] = true;
+  is_complementary['G']['U'] = is_complementary['U']['G'] = true;
+  is_complementary['C']['G'] = is_complementary['G']['C'] = true;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1099,7 +1108,6 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 {
     // Clearly, i and j must refer to actual letters of the sequence,
     // and no letter may base-pair to itself.
-    Assert(allow_noncomplementary || IsComplementary(i,j), "non complementary  base-pair");
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     const auto& pm = *parameter_manager;
     
@@ -1116,7 +1124,7 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
 template<class RealT>
 inline void InferenceEngine<RealT>::CountBasePair(int i, int j, RealT value)
 {
-    Assert(allow_noncomplementary || IsComplementary(i,j), "non complementary  base-pair");
+    Assert(allow_noncomplementary || IsComplementary(i,j), "non-complementary base-pair");
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
     auto& pc = *parameter_count;
     

@@ -7,6 +7,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cctype>
+#include <cassert>
 #include "ParameterHash.hpp"
 #include "Utilities.hpp"
 
@@ -122,6 +123,7 @@ ValueT
 ParameterHash<ValueT>::
 base_pair(NUCL i, NUCL j) const
 {
+  assert(is_complementary(i, j));
   auto v = std::minmax(i, j);
   return get_by_key(string_format(format_base_pair, v.first, v.second));
 }
@@ -132,6 +134,7 @@ ValueT&
 ParameterHash<ValueT>::
 base_pair(NUCL i, NUCL j)
 {
+  assert(is_complementary(i, j));
   auto v = std::minmax(i, j);
   return get_by_key(string_format(format_base_pair, v.first, v.second));
 }

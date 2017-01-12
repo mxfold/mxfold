@@ -225,7 +225,7 @@ public:
 
 private:
   std::unordered_map<std::string, ValueT> param_;
-  std::array<std::array<bool, 256>, 256> is_complementary_;
+  std::array<std::array<int, 256>, 256> is_complementary_;
 };
 
 #endif  // PARAMETERHASH_HPP

@@ -29,6 +29,8 @@ private:
     bool cache_initialized;
     const ParameterHash<RealT>* parameter_manager;
     ParameterHash<RealT>* parameter_count;
+
+    //std::array<std::array<int, 256>, 256> is_complementary;
     
     // dimensions
     int L, SIZE;
