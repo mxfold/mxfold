@@ -60,12 +60,23 @@ ReadFromFile(const std::string& filename)
   param_.clear();
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+
   std::string k;
   ValueT v;
-  while (is >> k >> v)
+  if (!std::isdigit(is.peek()))
   {
-    if (v!=0.0)
-      param_.insert(std::make_pair(k, v));
+    while (is >> k >> v)
+      if (v!=0.0)
+        param_.insert(std::make_pair(k, v));
+  }
+  else
+  {
+    // for reading AdaGradRDA outputs
+    ValueT eta, lambda, eps, t, s1, s2;
+    is >> eta >> lambda >> eps >> t;
+    while (is >> k >> v >> s1 >> s2)
+      if (v!=0.0)
+        param_.insert(std::make_pair(k, v));
   }
 }
 

@@ -13,6 +13,12 @@ public:
   void regularize(const std::string& fname, double& w) const;
   void proceed_timestamp() { ++t_; }
 
+  void read_from_file(const std::string& filename);
+  void write_to_file(const std::string& filename, bool sort=true) const;
+
+  std::unordered_map<std::string,double>::const_iterator begin() const { return sum_grad_.begin(); }
+  std::unordered_map<std::string,double>::const_iterator end() const { return sum_grad_.end(); }
+
 private:
   double eta_;
   double lambda_;
@@ -30,6 +36,9 @@ public:
   void update(const std::string& fname, double& w, double grad);
   void regularize(const std::string& fname, double& w) const;
   void proceed_timestamp() { }
+
+  void read_from_file(const std::string& filename);
+  void write_to_file(const std::string& filename, bool sort) const;
 
 private:
   double eta_;
