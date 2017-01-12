@@ -6,7 +6,6 @@
 #include <string>
 #include <stdexcept>
 #include <ctime>
-#include "../config.h"
 #include "cmdline.h"
 #include "Config.hpp"
 #include "Utilities.hpp"
@@ -27,6 +26,7 @@ public:
 
   int run()
   {
+    //return count_features();
     if (validation_mode_)
       return validate();
     if (train_mode_)
@@ -39,6 +39,7 @@ private:
   int train();
   int predict();
   int validate();
+  int count_features();
   std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
   std::unordered_map<std::string,double> compute_gradients(const SStruct& s, const ParameterHash<double>* pm);
   
@@ -391,6 +392,49 @@ NGSfold::validate()
 
   return 0;
 }
+
+#if 0
+// for debug
+int
+NGSfold::count_features()
+{
+  // set parameters
+  ParameterHash<double> pm;
+  if (!param_file_.empty())
+    pm.ReadFromFile(param_file_);
+  else if (noncomplementary_)
+    pm.LoadFromHash(default_params_noncomplementary);
+  else
+    pm.LoadFromHash(default_params_complementary);
+  
+  std::unordered_map<std::string, double> cnt;
+  for (auto s : args_)
+  {
+    SStruct sstruct;
+    sstruct.Load(s);
+    SStruct solution(sstruct);
+    InferenceEngine<double> inference_engine(noncomplementary_, 
+                                             std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+    inference_engine.LoadValues(&pm);
+    inference_engine.LoadSequence(sstruct);
+    inference_engine.UseConstraints(sstruct.GetMapping());
+    inference_engine.ComputeViterbi();
+    auto corr = inference_engine.ComputeViterbiFeatureCounts();
+    for (auto e: corr)
+      if (e.second!=0.0)
+        cnt.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+  }
+
+  std::vector<std::string> keys;
+  for (auto e : cnt)
+    keys.emplace_back(e.first);
+  std::sort(keys.begin(), keys.end());
+  for (const auto& k : keys)
+    std::cout << k << " " << cnt.find(k)->second << std::endl;
+
+  return 0;
+}
+#endif
 
 int
 main(int argc, char* argv[])
