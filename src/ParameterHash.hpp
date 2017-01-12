@@ -14,8 +14,10 @@ public:
   //typedef typename ValueT ValueT;
 
 public:
-  ParameterHash() {}
+  ParameterHash();
   ~ParameterHash() {}
+
+  bool is_complementary(NUCL x, NUCL y) const;
 
   void LoadFromHash(std::unordered_map<std::string, ValueT> hash);
   void LoadDefaultComplementary();
@@ -222,9 +224,8 @@ public:
 #endif
 
 private:
-
-private:
   std::unordered_map<std::string, ValueT> param_;
+  std::array<std::array<bool, 256>, 256> is_complementary_;
 };
 
 #endif  // PARAMETERHASH_HPP

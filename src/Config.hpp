@@ -7,8 +7,6 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
-#include <string>
-
 //////////////////////////////////////////////////////////////////////
 // Options related to general inference
 //////////////////////////////////////////////////////////////////////
@@ -27,17 +25,6 @@
 
 // use caching algorithm for fast helix length scores
 #define FAST_HELIX_LENGTHS                         1
-
-//////////////////////////////////////////////////////////////////////
-// (A) Options related to max-margin training
-//////////////////////////////////////////////////////////////////////
-
-// the maximum loss DELTA(y,y') allocated to each training example; if
-// this symbol is undefined, then the DELTA(y,y') loss function is not
-// included
-//    -- for a straight CRF, this value should be undefined
-//    -- for a max-margin model, this value should be set to 1
-#define HAMMING_LOSS                               1
 
 //////////////////////////////////////////////////////////////////////
 // (E) Used parameter groups
