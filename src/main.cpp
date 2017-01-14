@@ -192,31 +192,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
 {
   double starting_time = GetSystemTime();
   std::unordered_map<std::string,double> grad;
-
-  // count the occurence of parameters in the predicted structure
-  InferenceEngine<double> inference_engine0(noncomplementary_);
-  inference_engine0.LoadValues(pm);
-  inference_engine0.LoadSequence(s);
-  if (s.GetType() == SStruct::NO_REACTIVITY)
-    inference_engine0.UseLossBasePair(s.GetMapping(), pos_w_, neg_w_);
-  else if (discretize_reactivity_)
-    inference_engine0.UseLossPosition(s.GetMapping(), pos_w_, neg_w_);
-  else
-    inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_, neg_w_);
-
-  inference_engine0.ComputeViterbi();
-  auto loss0 = inference_engine0.GetViterbiScore();
-  if (verbose_>1)
-  {
-    SStruct solution(s);
-    solution.SetMapping(inference_engine0.PredictPairingsViterbi());
-    std::cout << std::endl;
-    solution.WriteParens(std::cout);
-  }
-  auto pred = inference_engine0.ComputeViterbiFeatureCounts();
-  for (auto e : pred)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
-
+  int np=0;
 
   // count the occurence of parameters in the correct structure
   InferenceEngine<double> inference_engine1(noncomplementary_, 
@@ -224,28 +200,65 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   inference_engine1.LoadValues(pm);
   inference_engine1.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
+  {
     inference_engine1.UseConstraints(s.GetMapping());
+    for (auto m : s.GetMapping())
+      if (m != SStruct::UNKNOWN && m != SStruct::UNPAIRED) ++np;
+  }
   else
+  {
     inference_engine1.UseSoftConstraints(s.GetReactivityUnpair(), s.GetReactivityPair(), 
                                          threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
+    SStruct solution(s);
+    solution.SetMapping(inference_engine1.PredictPairingsViterbi());
+    for (auto m : solution.GetMapping())
+      if (m != SStruct::UNKNOWN && m != SStruct::UNPAIRED) ++np;
+  }
+  np = std::max(np, 1);
 
   inference_engine1.ComputeViterbi();
   auto loss1 = inference_engine1.GetViterbiScore();
-  if (verbose_>1)
-  {
-    SStruct solution(s);
-    solution.SetMapping(inference_engine1.PredictPairingsViterbi());
-    solution.WriteParens(std::cout);
-  }
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
   for (auto e : corr)
     grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+
+
+  // count the occurence of parameters in the predicted structure
+  InferenceEngine<double> inference_engine0(noncomplementary_);
+  inference_engine0.LoadValues(pm);
+  inference_engine0.LoadSequence(s);
+  if (s.GetType() == SStruct::NO_REACTIVITY)
+    inference_engine0.UseLossBasePair(s.GetMapping(), pos_w_/np, neg_w_/np);
+  else if (discretize_reactivity_)
+    inference_engine0.UseLossPosition(s.GetMapping(), pos_w_/np, neg_w_/np);
+  else
+    inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_/np, neg_w_/np);
+
+  inference_engine0.ComputeViterbi();
+  auto loss0 = inference_engine0.GetViterbiScore();
+  auto pred = inference_engine0.ComputeViterbiFeatureCounts();
+  for (auto e : pred)
+    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+
 
   if (verbose_>0)
   {
     std::cout << "Seq: " << s.GetNames()[0] << ", "
               << "Loss: " << loss0-loss1 << ", "
+              << "pos_w: " << pos_w_/np << ", " << "neg_w: " << neg_w_/np << ", "
               << "Time: " << GetSystemTime() - starting_time << "sec" << std::endl;
+  }
+  if (verbose_>1)
+  {
+    SStruct solution1(s);
+    solution1.SetMapping(inference_engine1.PredictPairingsViterbi());
+    solution1.WriteParens(std::cout);
+
+    SStruct solution0(s);
+    solution0.SetMapping(inference_engine0.PredictPairingsViterbi());
+    solution0.WriteParens(std::cout);
+
+    std::cout << std::endl;
   }
 
   return std::move(grad);
@@ -260,7 +273,6 @@ NGSfold::train()
   /*auto pos_unpaired =*/ read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
   auto pos_paired = read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
 
-  // set up the inference engine
   //AdaGradRDAUpdater optimizer(eta0_, lambda_);
   AdaGradFobosUpdater optimizer(eta0_, lambda_);
   ParameterHash<double> pm;
