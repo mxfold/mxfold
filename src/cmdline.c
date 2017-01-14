@@ -55,10 +55,10 @@ const char *gengetopt_args_info_full_help[] = {
   "      --structure=filename-list The lists of training data with full structures",
   "      --unpaired-reactivity=filename-list\n                                The lists of training data with unpaired\n                                  reactivity",
   "      --paired-reactivity=filename-list\n                                The lists of training data with paired\n                                  reactivity",
-  "  -e, --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`0.5')",
-  "  -w, --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`4')",
+  "      --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`1.0')",
+  "      --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`4')",
   "      --neg-w=FLOAT             The weight for negative base-pairs\n                                  (default=`1')",
-  "  -D, --lambda=FLOAT            The weight for the L1 regularization term\n                                  (default=`0.125')",
+  "      --lambda=FLOAT            The weight for the L1 regularization term\n                                  (default=`0.0001')",
   "      --scale-reactivity=FLOAT  The scale of reactivity  (default=`0.1')",
   "      --threshold-unpaired-reactivity=FLOAT\n                                The threshold of reactiviy for unpaired bases\n                                  (default=`0.7')",
   "      --threshold-paired-reactivity=FLOAT\n                                The threshold of reactiviy for paired bases\n                                  (default=`0.7')",
@@ -93,21 +93,20 @@ init_help_array(void)
   gengetopt_args_info_help[18] = gengetopt_args_info_full_help[18];
   gengetopt_args_info_help[19] = gengetopt_args_info_full_help[19];
   gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
-  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[21];
-  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[22];
-  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[23];
-  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[24];
-  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[25];
-  gengetopt_args_info_help[26] = gengetopt_args_info_full_help[26];
-  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[27];
-  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[28];
-  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[30];
-  gengetopt_args_info_help[30] = gengetopt_args_info_full_help[31];
-  gengetopt_args_info_help[31] = 0; 
+  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[22];
+  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[23];
+  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[24];
+  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[25];
+  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[26];
+  gengetopt_args_info_help[26] = gengetopt_args_info_full_help[27];
+  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[28];
+  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[30];
+  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[31];
+  gengetopt_args_info_help[30] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[32];
+const char *gengetopt_args_info_help[31];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -197,13 +196,13 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->unpaired_reactivity_orig = NULL;
   args_info->paired_reactivity_arg = NULL;
   args_info->paired_reactivity_orig = NULL;
-  args_info->eta_arg = 0.5;
+  args_info->eta_arg = 1.0;
   args_info->eta_orig = NULL;
   args_info->pos_w_arg = 4;
   args_info->pos_w_orig = NULL;
   args_info->neg_w_arg = 1;
   args_info->neg_w_orig = NULL;
-  args_info->lambda_arg = 0.125;
+  args_info->lambda_arg = 0.0001;
   args_info->lambda_orig = NULL;
   args_info->scale_reactivity_arg = 0.1;
   args_info->scale_reactivity_orig = NULL;
@@ -1138,10 +1137,10 @@ cmdline_parser_internal (
         { "structure",	1, NULL, 0 },
         { "unpaired-reactivity",	1, NULL, 0 },
         { "paired-reactivity",	1, NULL, 0 },
-        { "eta",	1, NULL, 'e' },
-        { "pos-w",	1, NULL, 'w' },
+        { "eta",	1, NULL, 0 },
+        { "pos-w",	1, NULL, 0 },
         { "neg-w",	1, NULL, 0 },
-        { "lambda",	1, NULL, 'D' },
+        { "lambda",	1, NULL, 0 },
         { "scale-reactivity",	1, NULL, 0 },
         { "threshold-unpaired-reactivity",	1, NULL, 0 },
         { "threshold-paired-reactivity",	1, NULL, 0 },
@@ -1151,7 +1150,7 @@ cmdline_parser_internal (
         { 0,  0, 0, 0 }
       };
 
-      c = getopt_long (argc, argv, "hVe:w:D:", long_options, &option_index);
+      c = getopt_long (argc, argv, "hV", long_options, &option_index);
 
       if (c == -1) break;	/* Exit from `while (1)' loop.  */
 
@@ -1167,42 +1166,6 @@ cmdline_parser_internal (
           cmdline_parser_free (&local_args_info);
           exit (EXIT_SUCCESS);
 
-        case 'e':	/* Initial step width for the subgradient optimization.  */
-        
-        
-          if (update_arg( (void *)&(args_info->eta_arg), 
-               &(args_info->eta_orig), &(args_info->eta_given),
-              &(local_args_info.eta_given), optarg, 0, "0.5", ARG_FLOAT,
-              check_ambiguity, override, 0, 0,
-              "eta", 'e',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'w':	/* The weight for positive base-pairs.  */
-        
-        
-          if (update_arg( (void *)&(args_info->pos_w_arg), 
-               &(args_info->pos_w_orig), &(args_info->pos_w_given),
-              &(local_args_info.pos_w_given), optarg, 0, "4", ARG_FLOAT,
-              check_ambiguity, override, 0, 0,
-              "pos-w", 'w',
-              additional_error))
-            goto failure;
-        
-          break;
-        case 'D':	/* The weight for the L1 regularization term.  */
-        
-        
-          if (update_arg( (void *)&(args_info->lambda_arg), 
-               &(args_info->lambda_orig), &(args_info->lambda_given),
-              &(local_args_info.lambda_given), optarg, 0, "0.125", ARG_FLOAT,
-              check_ambiguity, override, 0, 0,
-              "lambda", 'D',
-              additional_error))
-            goto failure;
-        
-          break;
 
         case 0:	/* Long option with no short option */
           if (strcmp (long_options[option_index].name, "full-help") == 0) {
@@ -1412,6 +1375,34 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* Initial step width for the subgradient optimization.  */
+          else if (strcmp (long_options[option_index].name, "eta") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->eta_arg), 
+                 &(args_info->eta_orig), &(args_info->eta_given),
+                &(local_args_info.eta_given), optarg, 0, "1.0", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "eta", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The weight for positive base-pairs.  */
+          else if (strcmp (long_options[option_index].name, "pos-w") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->pos_w_arg), 
+                 &(args_info->pos_w_orig), &(args_info->pos_w_given),
+                &(local_args_info.pos_w_given), optarg, 0, "4", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "pos-w", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* The weight for negative base-pairs.  */
           else if (strcmp (long_options[option_index].name, "neg-w") == 0)
           {
@@ -1422,6 +1413,20 @@ cmdline_parser_internal (
                 &(local_args_info.neg_w_given), optarg, 0, "1", ARG_FLOAT,
                 check_ambiguity, override, 0, 0,
                 "neg-w", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The weight for the L1 regularization term.  */
+          else if (strcmp (long_options[option_index].name, "lambda") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->lambda_arg), 
+                 &(args_info->lambda_orig), &(args_info->lambda_given),
+                &(local_args_info.lambda_given), optarg, 0, "0.0001", ARG_FLOAT,
+                check_ambiguity, override, 0, 0,
+                "lambda", '-',
                 additional_error))
               goto failure;
           

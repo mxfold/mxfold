@@ -94,7 +94,7 @@ struct gengetopt_args_info
   unsigned int paired_reactivity_min; /**< @brief The lists of training data with paired reactivity's minimum occurreces */
   unsigned int paired_reactivity_max; /**< @brief The lists of training data with paired reactivity's maximum occurreces */
   const char *paired_reactivity_help; /**< @brief The lists of training data with paired reactivity help description.  */
-  float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='0.5').  */
+  float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='1.0').  */
   char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
   float pos_w_arg;	/**< @brief The weight for positive base-pairs (default='4').  */
@@ -103,7 +103,7 @@ struct gengetopt_args_info
   float neg_w_arg;	/**< @brief The weight for negative base-pairs (default='1').  */
   char * neg_w_orig;	/**< @brief The weight for negative base-pairs original value given at command line.  */
   const char *neg_w_help; /**< @brief The weight for negative base-pairs help description.  */
-  float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.125').  */
+  float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.0001').  */
   char * lambda_orig;	/**< @brief The weight for the L1 regularization term original value given at command line.  */
   const char *lambda_help; /**< @brief The weight for the L1 regularization term help description.  */
   float scale_reactivity_arg;	/**< @brief The scale of reactivity (default='0.1').  */
