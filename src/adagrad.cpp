@@ -55,7 +55,7 @@ read_from_file(const std::string& filename)
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
-  is >> eta_ >> lambda_ >> eps_ >> t_;
+  is >> t_ >> eta_ >> lambda_ >> eps_;
 
   std::string fname;
   double p, s1, s2;
@@ -68,12 +68,12 @@ read_from_file(const std::string& filename)
 
 void
 AdaGradRDAUpdater::
-write_to_file(const std::string& filename, bool sort) const
+write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool sort) const
 {
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
-  os << eta_ << " " << lambda_ << " " << eps_ << " " << t_ << std::endl;
+  os << t_ << " " << eta_ << " " << lambda_ << " " << eps_ << std::endl;
 
   if (sort)
   {
@@ -124,4 +124,55 @@ AdaGradFobosUpdater::
 regularize(const std::string& fname, double& w) const
 {
   w = clip(w, lambda_);
+}
+
+void
+AdaGradFobosUpdater::
+read_from_file(const std::string& filename)
+{
+  sum_squared_grad_.clear();
+  std::ifstream is(filename.c_str());
+  if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+
+  uint t;
+  is >> t >> eta_ >> lambda_ >> eps_;
+
+  std::string fname;
+  double p, s1, s2;
+  while (is >> fname >> p >> s1 >> s2)
+  {
+    sum_squared_grad_[fname] = s2;
+  }
+}
+
+void
+AdaGradFobosUpdater::
+write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool sort) const
+{
+  std::ofstream os(filename.c_str());
+  if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+
+  os << 0 << " " << eta_ << " " << lambda_ << " " << eps_ << std::endl;
+
+  if (sort)
+  {
+    std::vector<std::string> keys;
+    for (const auto& e : sum_squared_grad_)
+      keys.emplace_back(e.first);
+    std::sort(keys.begin(), keys.end());
+    for (const auto& k : keys)
+    {
+      os << k << " " <<  pm->get_by_key(k) << " " 
+         << 0.0 << " " 
+         << sum_squared_grad_.find(k)->second << std::endl;
+    }
+  }
+  else
+  {
+    for (const auto& e : sum_squared_grad_)
+    {
+      os << e.first << " " << pm->get_by_key(e.first) << " " << 0.0 << " " 
+         << e.second << std::endl;
+    }
+  }
 }

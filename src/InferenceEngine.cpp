@@ -573,9 +573,7 @@ void InferenceEngine<RealT>::UseLoss(const std::vector<int> &true_mapping, RealT
         if (true_mapping[i] != SStruct::UNKNOWN && true_mapping[i] != SStruct::UNPAIRED)
             ++num_pairings;
 
-    //RealT per_position_loss = example_loss / RealT(num_pairings);
-    RealT per_position_loss = example_loss;
-    // RealT per_position_loss = 2*example_loss;
+    RealT per_position_loss = example_loss / RealT(num_pairings);
     
     // compute the penalty for each position that we declare to be unpaired
     for (int i = 0; i <= L; i++)

@@ -51,14 +51,14 @@ option "unpaired-reactivity"  - "The lists of training data with unpaired reacti
        			        string typestr="filename-list" optional multiple
 option "paired-reactivity"    - "The lists of training data with paired reactivity"
        			        string typestr="filename-list" optional multiple
-option "eta"		      e "Initial step width for the subgradient optimization"
-       			      	float default="0.5" optional
-option "pos-w"		      w "The weight for positive base-pairs"
+option "eta"		      - "Initial step width for the subgradient optimization"
+       			      	float default="1.0" optional hidden
+option "pos-w"		      - "The weight for positive base-pairs"
        			        float default="4" optional
 option "neg-w"		      - "The weight for negative base-pairs"
        			        float default="1" optional
-option "lambda"		      D "The weight for the L1 regularization term"
-       			      	float default="0.125" optional
+option "lambda"		      - "The weight for the L1 regularization term"
+       			      	float default="0.0001" optional
 option "scale-reactivity"     - "The scale of reactivity"
        			      	float default="0.1" optional
 option "threshold-unpaired-reactivity" - "The threshold of reactiviy for unpaired bases"

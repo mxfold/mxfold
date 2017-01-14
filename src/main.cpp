@@ -261,19 +261,13 @@ NGSfold::train()
   auto pos_paired = read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
 
   // set up the inference engine
-  AdaGradRDAUpdater optimizer(eta0_, lambda_);
-  //AdaGradFobosUpdater optimizer(eta0_, lambda_);
+  //AdaGradRDAUpdater optimizer(eta0_, lambda_);
+  AdaGradFobosUpdater optimizer(eta0_, lambda_);
   ParameterHash<double> pm;
   if (!param_file_.empty())
   {
-    //pm.ReadFromFile(param_file_);
+    pm.ReadFromFile(param_file_);
     optimizer.read_from_file(param_file_);
-    for (const auto& e : optimizer)
-    {
-      double w;
-      optimizer.regularize(e.first, w);
-      pm.get_by_key(e.first) = w;
-    }
   }
 
   // run max-margin training
@@ -310,13 +304,13 @@ NGSfold::train()
       if (!out_param_.empty())
       {
         //pm.WriteToFile(SPrintF("%s/%d.param", out_param_.c_str(), k++));
-        optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++));
+        optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), &pm);
       }
     }
   }
 
   //pm.WriteToFile(out_file_);
-  optimizer.write_to_file(out_file_);
+  optimizer.write_to_file(out_file_, &pm);
 
   return 0;
 }

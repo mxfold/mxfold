@@ -3,6 +3,7 @@
 
 #include <string>
 #include <unordered_map>
+#include "ParameterHash.hpp"
 
 class AdaGradRDAUpdater
 {
@@ -14,7 +15,7 @@ public:
   void proceed_timestamp() { ++t_; }
 
   void read_from_file(const std::string& filename);
-  void write_to_file(const std::string& filename, bool sort=true) const;
+  void write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool sort=true) const;
 
   std::unordered_map<std::string,double>::const_iterator begin() const { return sum_grad_.begin(); }
   std::unordered_map<std::string,double>::const_iterator end() const { return sum_grad_.end(); }
@@ -38,7 +39,7 @@ public:
   void proceed_timestamp() { }
 
   void read_from_file(const std::string& filename);
-  void write_to_file(const std::string& filename, bool sort) const;
+  void write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool sort=true) const;
 
 private:
   double eta_;
