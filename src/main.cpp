@@ -205,10 +205,13 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   int np=1;
 
   // count the occurence of parameters in the correct structure
-  InferenceEngine<double> inference_engine1(noncomplementary_, 
-                                            std::max<int>(s.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+  auto max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH;
+  if (s.GetType() == SStruct::NO_REACTIVITY)
+    max_single_length = std::max<int>(s.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH);
+  InferenceEngine<double> inference_engine1(noncomplementary_, max_single_length);
   inference_engine1.LoadValues(pm);
   inference_engine1.LoadSequence(s);
+  std::cout << s.GetNames()[0] << std::endl;
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
   {
     inference_engine1.UseConstraints(s.GetMapping());
