@@ -54,9 +54,11 @@ option "paired-reactivity"    - "The lists of training data with paired reactivi
 option "eta"		      - "Initial step width for the subgradient optimization"
        			      	float default="1.0" optional hidden
 option "pos-w"		      - "The weight for positive base-pairs"
-       			        float default="4" optional
+       			        float default="8" optional
 option "neg-w"		      - "The weight for negative base-pairs"
        			        float default="1" optional
+option "per-bp-loss"          - "Ajust the loss according to the number of base pairs"
+       			      	flag off hidden
 option "lambda"		      - "The weight for the L1 regularization term"
        			      	float default="0.0001" optional
 option "scale-reactivity"     - "The scale of reactivity"

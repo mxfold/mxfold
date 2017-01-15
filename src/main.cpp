@@ -61,6 +61,7 @@ private:
   float weight_weak_labeled_;
   float pos_w_;
   float neg_w_;
+  bool per_bp_loss_;
   float lambda_;
   float eta0_;
   float scale_reactivity_;
@@ -141,6 +142,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   scale_reactivity_ = args_info.scale_reactivity_arg;
   threshold_unpaired_reactivity_ = args_info.threshold_unpaired_reactivity_arg;
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
+  per_bp_loss_ = args_info.per_bp_loss_flag==1;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
   verbose_ = args_info.verbose_arg;
   use_constraints_ = args_info.constraints_flag==1;
@@ -192,7 +194,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
 {
   double starting_time = GetSystemTime();
   std::unordered_map<std::string,double> grad;
-  int np=0;
+  int np=1;
 
   // count the occurence of parameters in the correct structure
   InferenceEngine<double> inference_engine1(noncomplementary_, 
@@ -202,21 +204,25 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
   {
     inference_engine1.UseConstraints(s.GetMapping());
-    for (auto m : s.GetMapping())
-      if (m != SStruct::UNKNOWN && m != SStruct::UNPAIRED) ++np;
+    inference_engine1.ComputeViterbi();
+    if (per_bp_loss_)
+      for (auto m : s.GetMapping())
+        if (m != SStruct::UNKNOWN && m != SStruct::UNPAIRED) ++np;
   }
   else
   {
     inference_engine1.UseSoftConstraints(s.GetReactivityUnpair(), s.GetReactivityPair(), 
                                          threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
-    SStruct solution(s);
-    solution.SetMapping(inference_engine1.PredictPairingsViterbi());
-    for (auto m : solution.GetMapping())
-      if (m != SStruct::UNKNOWN && m != SStruct::UNPAIRED) ++np;
+    inference_engine1.ComputeViterbi();
+    if (per_bp_loss_)
+    {
+      SStruct solution(s);
+      solution.SetMapping(inference_engine1.PredictPairingsViterbi());
+      for (auto m : solution.GetMapping())
+        if (m != SStruct::UNKNOWN && m != SStruct::UNPAIRED) ++np;
+    }
   }
-  np = std::max(np, 1);
 
-  inference_engine1.ComputeViterbi();
   auto loss1 = inference_engine1.GetViterbiScore();
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
   for (auto e : corr)

@@ -97,12 +97,14 @@ struct gengetopt_args_info
   float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='1.0').  */
   char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
-  float pos_w_arg;	/**< @brief The weight for positive base-pairs (default='4').  */
+  float pos_w_arg;	/**< @brief The weight for positive base-pairs (default='8').  */
   char * pos_w_orig;	/**< @brief The weight for positive base-pairs original value given at command line.  */
   const char *pos_w_help; /**< @brief The weight for positive base-pairs help description.  */
   float neg_w_arg;	/**< @brief The weight for negative base-pairs (default='1').  */
   char * neg_w_orig;	/**< @brief The weight for negative base-pairs original value given at command line.  */
   const char *neg_w_help; /**< @brief The weight for negative base-pairs help description.  */
+  int per_bp_loss_flag;	/**< @brief Ajust the loss according to the number of base pairs (default=off).  */
+  const char *per_bp_loss_help; /**< @brief Ajust the loss according to the number of base pairs help description.  */
   float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.0001').  */
   char * lambda_orig;	/**< @brief The weight for the L1 regularization term original value given at command line.  */
   const char *lambda_help; /**< @brief The weight for the L1 regularization term help description.  */
@@ -145,6 +147,7 @@ struct gengetopt_args_info
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */
+  unsigned int per_bp_loss_given ;	/**< @brief Whether per-bp-loss was given.  */
   unsigned int lambda_given ;	/**< @brief Whether lambda was given.  */
   unsigned int scale_reactivity_given ;	/**< @brief Whether scale-reactivity was given.  */
   unsigned int threshold_unpaired_reactivity_given ;	/**< @brief Whether threshold-unpaired-reactivity was given.  */

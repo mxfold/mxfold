@@ -56,8 +56,9 @@ const char *gengetopt_args_info_full_help[] = {
   "      --unpaired-reactivity=filename-list\n                                The lists of training data with unpaired\n                                  reactivity",
   "      --paired-reactivity=filename-list\n                                The lists of training data with paired\n                                  reactivity",
   "      --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`1.0')",
-  "      --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`4')",
+  "      --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`8')",
   "      --neg-w=FLOAT             The weight for negative base-pairs\n                                  (default=`1')",
+  "      --per-bp-loss             Ajust the loss according to the number of base\n                                  pairs  (default=off)",
   "      --lambda=FLOAT            The weight for the L1 regularization term\n                                  (default=`0.0001')",
   "      --scale-reactivity=FLOAT  The scale of reactivity  (default=`0.1')",
   "      --threshold-unpaired-reactivity=FLOAT\n                                The threshold of reactiviy for unpaired bases\n                                  (default=`0.7')",
@@ -95,13 +96,13 @@ init_help_array(void)
   gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
   gengetopt_args_info_help[21] = gengetopt_args_info_full_help[22];
   gengetopt_args_info_help[22] = gengetopt_args_info_full_help[23];
-  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[24];
-  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[25];
-  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[26];
-  gengetopt_args_info_help[26] = gengetopt_args_info_full_help[27];
-  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[28];
-  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[30];
-  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[31];
+  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[25];
+  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[26];
+  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[27];
+  gengetopt_args_info_help[26] = gengetopt_args_info_full_help[28];
+  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[29];
+  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[31];
+  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[32];
   gengetopt_args_info_help[30] = 0; 
   
 }
@@ -155,6 +156,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->eta_given = 0 ;
   args_info->pos_w_given = 0 ;
   args_info->neg_w_given = 0 ;
+  args_info->per_bp_loss_given = 0 ;
   args_info->lambda_given = 0 ;
   args_info->scale_reactivity_given = 0 ;
   args_info->threshold_unpaired_reactivity_given = 0 ;
@@ -198,10 +200,11 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->paired_reactivity_orig = NULL;
   args_info->eta_arg = 1.0;
   args_info->eta_orig = NULL;
-  args_info->pos_w_arg = 4;
+  args_info->pos_w_arg = 8;
   args_info->pos_w_orig = NULL;
   args_info->neg_w_arg = 1;
   args_info->neg_w_orig = NULL;
+  args_info->per_bp_loss_flag = 0;
   args_info->lambda_arg = 0.0001;
   args_info->lambda_orig = NULL;
   args_info->scale_reactivity_arg = 0.1;
@@ -254,13 +257,14 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->eta_help = gengetopt_args_info_full_help[21] ;
   args_info->pos_w_help = gengetopt_args_info_full_help[22] ;
   args_info->neg_w_help = gengetopt_args_info_full_help[23] ;
-  args_info->lambda_help = gengetopt_args_info_full_help[24] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_full_help[25] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[26] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[27] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[28] ;
-  args_info->out_param_help = gengetopt_args_info_full_help[29] ;
-  args_info->validate_help = gengetopt_args_info_full_help[31] ;
+  args_info->per_bp_loss_help = gengetopt_args_info_full_help[24] ;
+  args_info->lambda_help = gengetopt_args_info_full_help[25] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_full_help[26] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[27] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[28] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[29] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[30] ;
+  args_info->validate_help = gengetopt_args_info_full_help[32] ;
   
 }
 
@@ -527,6 +531,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "pos-w", args_info->pos_w_orig, 0);
   if (args_info->neg_w_given)
     write_into_file(outfile, "neg-w", args_info->neg_w_orig, 0);
+  if (args_info->per_bp_loss_given)
+    write_into_file(outfile, "per-bp-loss", 0, 0 );
   if (args_info->lambda_given)
     write_into_file(outfile, "lambda", args_info->lambda_orig, 0);
   if (args_info->scale_reactivity_given)
@@ -1140,6 +1146,7 @@ cmdline_parser_internal (
         { "eta",	1, NULL, 0 },
         { "pos-w",	1, NULL, 0 },
         { "neg-w",	1, NULL, 0 },
+        { "per-bp-loss",	0, NULL, 0 },
         { "lambda",	1, NULL, 0 },
         { "scale-reactivity",	1, NULL, 0 },
         { "threshold-unpaired-reactivity",	1, NULL, 0 },
@@ -1396,7 +1403,7 @@ cmdline_parser_internal (
           
             if (update_arg( (void *)&(args_info->pos_w_arg), 
                  &(args_info->pos_w_orig), &(args_info->pos_w_given),
-                &(local_args_info.pos_w_given), optarg, 0, "4", ARG_FLOAT,
+                &(local_args_info.pos_w_given), optarg, 0, "8", ARG_FLOAT,
                 check_ambiguity, override, 0, 0,
                 "pos-w", '-',
                 additional_error))
@@ -1413,6 +1420,18 @@ cmdline_parser_internal (
                 &(local_args_info.neg_w_given), optarg, 0, "1", ARG_FLOAT,
                 check_ambiguity, override, 0, 0,
                 "neg-w", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Ajust the loss according to the number of base pairs.  */
+          else if (strcmp (long_options[option_index].name, "per-bp-loss") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->per_bp_loss_flag), 0, &(args_info->per_bp_loss_given),
+                &(local_args_info.per_bp_loss_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "per-bp-loss", '-',
                 additional_error))
               goto failure;
           
