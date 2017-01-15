@@ -51,6 +51,8 @@ option "unpaired-reactivity"  - "The lists of training data with unpaired reacti
        			        string typestr="filename-list" optional multiple
 option "paired-reactivity"    - "The lists of training data with paired reactivity"
        			        string typestr="filename-list" optional multiple
+option "both-reactivity"      - "The lists of training data with both of unpaired and paired  reactivity"
+       			        string typestr="filename-list" optional multiple
 option "eta"		      - "Initial step width for the subgradient optimization"
        			      	float default="1.0" optional hidden
 option "pos-w"		      - "The weight for positive base-pairs"

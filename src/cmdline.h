@@ -94,6 +94,11 @@ struct gengetopt_args_info
   unsigned int paired_reactivity_min; /**< @brief The lists of training data with paired reactivity's minimum occurreces */
   unsigned int paired_reactivity_max; /**< @brief The lists of training data with paired reactivity's maximum occurreces */
   const char *paired_reactivity_help; /**< @brief The lists of training data with paired reactivity help description.  */
+  char ** both_reactivity_arg;	/**< @brief The lists of training data with both of unpaired and paired  reactivity.  */
+  char ** both_reactivity_orig;	/**< @brief The lists of training data with both of unpaired and paired  reactivity original value given at command line.  */
+  unsigned int both_reactivity_min; /**< @brief The lists of training data with both of unpaired and paired  reactivity's minimum occurreces */
+  unsigned int both_reactivity_max; /**< @brief The lists of training data with both of unpaired and paired  reactivity's maximum occurreces */
+  const char *both_reactivity_help; /**< @brief The lists of training data with both of unpaired and paired  reactivity help description.  */
   float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='1.0').  */
   char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
@@ -144,6 +149,7 @@ struct gengetopt_args_info
   unsigned int structure_given ;	/**< @brief Whether structure was given.  */
   unsigned int unpaired_reactivity_given ;	/**< @brief Whether unpaired-reactivity was given.  */
   unsigned int paired_reactivity_given ;	/**< @brief Whether paired-reactivity was given.  */
+  unsigned int both_reactivity_given ;	/**< @brief Whether both-reactivity was given.  */
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */

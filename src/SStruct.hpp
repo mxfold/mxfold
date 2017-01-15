@@ -53,7 +53,7 @@ public:
     enum { UNPAIRED = 0, UNKNOWN = -1, PAIRED = -2 };
 
     // specify the type of the BPSEQ format that contains one of the following information
-    enum { NO_REACTIVITY, REACTIVITY_UNPAIRED, REACTIVITY_PAIRED };
+    enum { NO_REACTIVITY, REACTIVITY_UNPAIRED, REACTIVITY_PAIRED, REACTIVITY_BOTH };
 
     // constructor and destructor
     SStruct();

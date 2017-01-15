@@ -311,6 +311,20 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
               this->type = type;
               break;
           }
+          case REACTIVITY_BOTH:
+          {
+              float reactivity0=0, reactivity1=0;
+              if (!(data >> token)) Error("Expected real number after sequence letter: %s", filename.c_str());
+              if (!ConvertToNumber(token, reactivity0)) Error("Could not read reactivity row number: %s", filename.c_str());
+              if (!(data >> token)) Error("Expected real number after sequence letter: %s", filename.c_str());
+              if (!ConvertToNumber(token, reactivity1)) Error("Could not read reactivity row number: %s", filename.c_str());
+              sequences.back().push_back(ch);
+              reactivity_unpair.push_back(reactivity0);
+              reactivity_pair.push_back(reactivity1);
+              mapping.push_back(UNKNOWN);
+              this->type = type;
+              break;
+          }
           case NO_REACTIVITY:
           default:
           {

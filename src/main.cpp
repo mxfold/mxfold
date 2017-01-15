@@ -53,6 +53,7 @@ private:
   std::vector<std::string> data_str_list_;
   std::vector<std::string> data_unpaired_list_;
   std::vector<std::string> data_paired_list_;  
+  std::vector<std::string> data_both_list_;  
   bool mea_;
   bool gce_;
   std::vector<float> gamma_;
@@ -125,6 +126,13 @@ NGSfold::parse_options(int& argc, char**& argv)
     data_paired_list_.resize(args_info.paired_reactivity_given);
     for (uint i=0; i!=args_info.paired_reactivity_given; ++i)
       data_paired_list_[i] = args_info.paired_reactivity_arg[i];
+  }
+
+  if (args_info.both_reactivity_given)
+  {
+    data_both_list_.resize(args_info.both_reactivity_given);
+    for (uint i=0; i!=args_info.both_reactivity_given; ++i)
+      data_both_list_[i] = args_info.both_reactivity_arg[i];
   }
 
   if (args_info.out_param_given)
@@ -277,7 +285,8 @@ NGSfold::train()
   std::vector<SStruct> data;
   auto pos_str = read_data(data, data_str_list_, SStruct::NO_REACTIVITY);
   /*auto pos_unpaired =*/ read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
-  auto pos_paired = read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
+  /*auto pos_paired =*/ read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
+  auto pos_both = read_data(data, data_both_list_, SStruct::REACTIVITY_BOTH);
 
   //AdaGradRDAUpdater optimizer(eta0_, lambda_);
   AdaGradFobosUpdater optimizer(eta0_, lambda_);
@@ -294,7 +303,7 @@ NGSfold::train()
     if (verbose_>0)
       std::cout << std::endl << "=== Epoch " << t << " ===" << std::endl;
 
-    std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_paired.second);
+    std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_both.second);
     std::iota(idx.begin(), idx.end(), 0);
     std::random_shuffle(idx.begin(), idx.end());
 

@@ -55,6 +55,7 @@ const char *gengetopt_args_info_full_help[] = {
   "      --structure=filename-list The lists of training data with full structures",
   "      --unpaired-reactivity=filename-list\n                                The lists of training data with unpaired\n                                  reactivity",
   "      --paired-reactivity=filename-list\n                                The lists of training data with paired\n                                  reactivity",
+  "      --both-reactivity=filename-list\n                                The lists of training data with both of\n                                  unpaired and paired  reactivity",
   "      --eta=FLOAT               Initial step width for the subgradient\n                                  optimization  (default=`1.0')",
   "      --pos-w=FLOAT             The weight for positive base-pairs\n                                  (default=`8')",
   "      --neg-w=FLOAT             The weight for negative base-pairs\n                                  (default=`1')",
@@ -94,20 +95,21 @@ init_help_array(void)
   gengetopt_args_info_help[18] = gengetopt_args_info_full_help[18];
   gengetopt_args_info_help[19] = gengetopt_args_info_full_help[19];
   gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
-  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[22];
+  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[21];
   gengetopt_args_info_help[22] = gengetopt_args_info_full_help[23];
-  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[25];
+  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[24];
   gengetopt_args_info_help[24] = gengetopt_args_info_full_help[26];
   gengetopt_args_info_help[25] = gengetopt_args_info_full_help[27];
   gengetopt_args_info_help[26] = gengetopt_args_info_full_help[28];
   gengetopt_args_info_help[27] = gengetopt_args_info_full_help[29];
-  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[31];
+  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[30];
   gengetopt_args_info_help[29] = gengetopt_args_info_full_help[32];
-  gengetopt_args_info_help[30] = 0; 
+  gengetopt_args_info_help[30] = gengetopt_args_info_full_help[33];
+  gengetopt_args_info_help[31] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[31];
+const char *gengetopt_args_info_help[32];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -153,6 +155,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->structure_given = 0 ;
   args_info->unpaired_reactivity_given = 0 ;
   args_info->paired_reactivity_given = 0 ;
+  args_info->both_reactivity_given = 0 ;
   args_info->eta_given = 0 ;
   args_info->pos_w_given = 0 ;
   args_info->neg_w_given = 0 ;
@@ -198,6 +201,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->unpaired_reactivity_orig = NULL;
   args_info->paired_reactivity_arg = NULL;
   args_info->paired_reactivity_orig = NULL;
+  args_info->both_reactivity_arg = NULL;
+  args_info->both_reactivity_orig = NULL;
   args_info->eta_arg = 1.0;
   args_info->eta_orig = NULL;
   args_info->pos_w_arg = 8;
@@ -254,17 +259,20 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->paired_reactivity_help = gengetopt_args_info_full_help[20] ;
   args_info->paired_reactivity_min = 0;
   args_info->paired_reactivity_max = 0;
-  args_info->eta_help = gengetopt_args_info_full_help[21] ;
-  args_info->pos_w_help = gengetopt_args_info_full_help[22] ;
-  args_info->neg_w_help = gengetopt_args_info_full_help[23] ;
-  args_info->per_bp_loss_help = gengetopt_args_info_full_help[24] ;
-  args_info->lambda_help = gengetopt_args_info_full_help[25] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_full_help[26] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[27] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[28] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[29] ;
-  args_info->out_param_help = gengetopt_args_info_full_help[30] ;
-  args_info->validate_help = gengetopt_args_info_full_help[32] ;
+  args_info->both_reactivity_help = gengetopt_args_info_full_help[21] ;
+  args_info->both_reactivity_min = 0;
+  args_info->both_reactivity_max = 0;
+  args_info->eta_help = gengetopt_args_info_full_help[22] ;
+  args_info->pos_w_help = gengetopt_args_info_full_help[23] ;
+  args_info->neg_w_help = gengetopt_args_info_full_help[24] ;
+  args_info->per_bp_loss_help = gengetopt_args_info_full_help[25] ;
+  args_info->lambda_help = gengetopt_args_info_full_help[26] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_full_help[27] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[28] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[29] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[30] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[31] ;
+  args_info->validate_help = gengetopt_args_info_full_help[33] ;
   
 }
 
@@ -440,6 +448,7 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_multiple_string_field (args_info->structure_given, &(args_info->structure_arg), &(args_info->structure_orig));
   free_multiple_string_field (args_info->unpaired_reactivity_given, &(args_info->unpaired_reactivity_arg), &(args_info->unpaired_reactivity_orig));
   free_multiple_string_field (args_info->paired_reactivity_given, &(args_info->paired_reactivity_arg), &(args_info->paired_reactivity_orig));
+  free_multiple_string_field (args_info->both_reactivity_given, &(args_info->both_reactivity_arg), &(args_info->both_reactivity_orig));
   free_string_field (&(args_info->eta_orig));
   free_string_field (&(args_info->pos_w_orig));
   free_string_field (&(args_info->neg_w_orig));
@@ -525,6 +534,7 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
   write_multiple_into_file(outfile, args_info->structure_given, "structure", args_info->structure_orig, 0);
   write_multiple_into_file(outfile, args_info->unpaired_reactivity_given, "unpaired-reactivity", args_info->unpaired_reactivity_orig, 0);
   write_multiple_into_file(outfile, args_info->paired_reactivity_given, "paired-reactivity", args_info->paired_reactivity_orig, 0);
+  write_multiple_into_file(outfile, args_info->both_reactivity_given, "both-reactivity", args_info->both_reactivity_orig, 0);
   if (args_info->eta_given)
     write_into_file(outfile, "eta", args_info->eta_orig, 0);
   if (args_info->pos_w_given)
@@ -813,6 +823,9 @@ cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *pro
   if (check_multiple_option_occurrences(prog_name, args_info->paired_reactivity_given, args_info->paired_reactivity_min, args_info->paired_reactivity_max, "'--paired-reactivity'"))
      error_occurred = 1;
   
+  if (check_multiple_option_occurrences(prog_name, args_info->both_reactivity_given, args_info->both_reactivity_min, args_info->both_reactivity_max, "'--both-reactivity'"))
+     error_occurred = 1;
+  
   
   /* checks for dependences among options */
 
@@ -1094,6 +1107,7 @@ cmdline_parser_internal (
   struct generic_list * structure_list = NULL;
   struct generic_list * unpaired_reactivity_list = NULL;
   struct generic_list * paired_reactivity_list = NULL;
+  struct generic_list * both_reactivity_list = NULL;
   int error_occurred = 0;
   struct gengetopt_args_info local_args_info;
   
@@ -1143,6 +1157,7 @@ cmdline_parser_internal (
         { "structure",	1, NULL, 0 },
         { "unpaired-reactivity",	1, NULL, 0 },
         { "paired-reactivity",	1, NULL, 0 },
+        { "both-reactivity",	1, NULL, 0 },
         { "eta",	1, NULL, 0 },
         { "pos-w",	1, NULL, 0 },
         { "neg-w",	1, NULL, 0 },
@@ -1382,6 +1397,17 @@ cmdline_parser_internal (
               goto failure;
           
           }
+          /* The lists of training data with both of unpaired and paired  reactivity.  */
+          else if (strcmp (long_options[option_index].name, "both-reactivity") == 0)
+          {
+          
+            if (update_multiple_arg_temp(&both_reactivity_list, 
+                &(local_args_info.both_reactivity_given), optarg, 0, 0, ARG_STRING,
+                "both-reactivity", '-',
+                additional_error))
+              goto failure;
+          
+          }
           /* Initial step width for the subgradient optimization.  */
           else if (strcmp (long_options[option_index].name, "eta") == 0)
           {
@@ -1565,6 +1591,10 @@ cmdline_parser_internal (
     &(args_info->paired_reactivity_orig), args_info->paired_reactivity_given,
     local_args_info.paired_reactivity_given, 0,
     ARG_STRING, paired_reactivity_list);
+  update_multiple_arg((void *)&(args_info->both_reactivity_arg),
+    &(args_info->both_reactivity_orig), args_info->both_reactivity_given,
+    local_args_info.both_reactivity_given, 0,
+    ARG_STRING, both_reactivity_list);
 
   args_info->mea_given += local_args_info.mea_given;
   local_args_info.mea_given = 0;
@@ -1576,6 +1606,8 @@ cmdline_parser_internal (
   local_args_info.unpaired_reactivity_given = 0;
   args_info->paired_reactivity_given += local_args_info.paired_reactivity_given;
   local_args_info.paired_reactivity_given = 0;
+  args_info->both_reactivity_given += local_args_info.both_reactivity_given;
+  local_args_info.both_reactivity_given = 0;
   
   if (check_required)
     {
@@ -1619,6 +1651,7 @@ failure:
   free_list (structure_list, 1 );
   free_list (unpaired_reactivity_list, 1 );
   free_list (paired_reactivity_list, 1 );
+  free_list (both_reactivity_list, 1 );
   
   cmdline_parser_release (&local_args_info);
   return (EXIT_FAILURE);
