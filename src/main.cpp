@@ -57,6 +57,7 @@ private:
   bool mea_;
   bool gce_;
   std::vector<float> gamma_;
+  int max_span_;
   uint t_max_;
   uint t_burn_in_;
   float weight_weak_labeled_;
@@ -140,6 +141,7 @@ NGSfold::parse_options(int& argc, char**& argv)
 
   noncomplementary_ = args_info.noncomplementary_flag==1;
   output_bpseq_ = args_info.bpseq_flag==1;
+  max_span_ = args_info.max_span_arg;
   t_max_ = args_info.max_iter_arg;
   t_burn_in_ = args_info.burn_in_arg;
   weight_weak_labeled_ = args_info.weight_weak_label_arg;
@@ -206,12 +208,14 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
 
   // count the occurence of parameters in the correct structure
   auto max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH;
+  auto max_span = -1;
   if (s.GetType() == SStruct::NO_REACTIVITY)
     max_single_length = std::max<int>(s.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH);
-  InferenceEngine<double> inference_engine1(noncomplementary_, max_single_length);
+  else
+    max_span = max_span_;
+  InferenceEngine<double> inference_engine1(noncomplementary_, max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
   inference_engine1.LoadValues(pm);
   inference_engine1.LoadSequence(s);
-  std::cout << s.GetNames()[0] << std::endl;
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
   {
     inference_engine1.UseConstraints(s.GetMapping());
@@ -241,7 +245,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
 
 
   // count the occurence of parameters in the predicted structure
-  InferenceEngine<double> inference_engine0(noncomplementary_);
+  InferenceEngine<double> inference_engine0(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine0.LoadValues(pm);
   inference_engine0.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY)
@@ -359,7 +363,7 @@ NGSfold::predict()
     pm.LoadFromHash(default_params_complementary);
   
   // predict ss
-  InferenceEngine<double> inference_engine(noncomplementary_);
+  InferenceEngine<double> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine.LoadValues(&pm);
   for (auto s : args_)
   {

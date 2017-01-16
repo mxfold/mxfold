@@ -122,10 +122,12 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 template<class RealT>
 InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, 
                                         int max_single_length /*= DEFAULT_C_MAX_SINGLE_LENGTH*/, 
-                                        int min_hairpin_length /*= DEFAULT_C_MIN_HAIRPIN_LENGTH*/) :
+                                        int min_hairpin_length /*= DEFAULT_C_MIN_HAIRPIN_LENGTH*/,
+                                        int max_span /*= -1*/) :
     allow_noncomplementary(allow_noncomplementary),
     C_MAX_SINGLE_LENGTH(max_single_length),
     C_MIN_HAIRPIN_LENGTH(min_hairpin_length),
+    C_MAX_SPAN(max_span),
     cache_initialized(false),
     L(0),
     SIZE(0),
@@ -233,6 +235,18 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
             for (int j = i+1; j <= L; j++)
             {
                 if (!IsComplementary(i,j))
+                    allow_paired[offset[i]+j] = 0;
+            }
+        }
+    }
+
+    if (C_MAX_SPAN>=0)
+    {
+        for (int i = 1; i <= L; i++)
+        {
+            for (int j = i+1; j <= L; j++)
+            {
+                if (j-i>C_MAX_SPAN)
                     allow_paired[offset[i]+j] = 0;
             }
         }

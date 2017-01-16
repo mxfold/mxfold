@@ -33,6 +33,11 @@ ParameterHash()
   is_complementary_['A']['U'] = is_complementary_['U']['A'] = true;
   is_complementary_['G']['U'] = is_complementary_['U']['G'] = true;
   is_complementary_['C']['G'] = is_complementary_['G']['C'] = true;
+  // Pseudouridine
+  is_complementary_['A']['P'] = is_complementary_['P']['A'] = true;
+  is_complementary_['C']['P'] = is_complementary_['P']['C'] = true;
+  is_complementary_['G']['P'] = is_complementary_['P']['G'] = true;
+  is_complementary_['U']['P'] = is_complementary_['P']['U'] = true;
 }
 
 template < class ValueT >

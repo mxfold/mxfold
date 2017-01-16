@@ -40,6 +40,7 @@ const char *gengetopt_args_info_full_help[] = {
   "      --noncomplementary        Allow non-canonical base pairs  (default=off)",
   "      --param=parameter-file    Load parameters from parameter-file",
   "      --random-seed=INT         Specify the seed of the random number generator\n                                  (default=`-1')",
+  "      --max-span=INT            The maximum distance between bases of base\n                                  pairs  (default=`-1')",
   "      --verbose=INT             Verbose output  (default=`0')",
   "\nPrediction mode:",
   "      --predict                 Prediction mode  (default=on)",
@@ -96,20 +97,21 @@ init_help_array(void)
   gengetopt_args_info_help[19] = gengetopt_args_info_full_help[19];
   gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
   gengetopt_args_info_help[21] = gengetopt_args_info_full_help[21];
-  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[23];
+  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[22];
   gengetopt_args_info_help[23] = gengetopt_args_info_full_help[24];
-  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[26];
+  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[25];
   gengetopt_args_info_help[25] = gengetopt_args_info_full_help[27];
   gengetopt_args_info_help[26] = gengetopt_args_info_full_help[28];
   gengetopt_args_info_help[27] = gengetopt_args_info_full_help[29];
   gengetopt_args_info_help[28] = gengetopt_args_info_full_help[30];
-  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[32];
+  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[31];
   gengetopt_args_info_help[30] = gengetopt_args_info_full_help[33];
-  gengetopt_args_info_help[31] = 0; 
+  gengetopt_args_info_help[31] = gengetopt_args_info_full_help[34];
+  gengetopt_args_info_help[32] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[32];
+const char *gengetopt_args_info_help[33];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -142,6 +144,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->noncomplementary_given = 0 ;
   args_info->param_given = 0 ;
   args_info->random_seed_given = 0 ;
+  args_info->max_span_given = 0 ;
   args_info->verbose_given = 0 ;
   args_info->predict_given = 0 ;
   args_info->mea_given = 0 ;
@@ -178,6 +181,8 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->param_orig = NULL;
   args_info->random_seed_arg = -1;
   args_info->random_seed_orig = NULL;
+  args_info->max_span_arg = -1;
+  args_info->max_span_orig = NULL;
   args_info->verbose_arg = 0;
   args_info->verbose_orig = NULL;
   args_info->predict_flag = 1;
@@ -236,43 +241,44 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->noncomplementary_help = gengetopt_args_info_full_help[3] ;
   args_info->param_help = gengetopt_args_info_full_help[4] ;
   args_info->random_seed_help = gengetopt_args_info_full_help[5] ;
-  args_info->verbose_help = gengetopt_args_info_full_help[6] ;
-  args_info->predict_help = gengetopt_args_info_full_help[8] ;
-  args_info->mea_help = gengetopt_args_info_full_help[9] ;
+  args_info->max_span_help = gengetopt_args_info_full_help[6] ;
+  args_info->verbose_help = gengetopt_args_info_full_help[7] ;
+  args_info->predict_help = gengetopt_args_info_full_help[9] ;
+  args_info->mea_help = gengetopt_args_info_full_help[10] ;
   args_info->mea_min = 0;
   args_info->mea_max = 0;
-  args_info->gce_help = gengetopt_args_info_full_help[10] ;
+  args_info->gce_help = gengetopt_args_info_full_help[11] ;
   args_info->gce_min = 0;
   args_info->gce_max = 0;
-  args_info->bpseq_help = gengetopt_args_info_full_help[11] ;
-  args_info->constraints_help = gengetopt_args_info_full_help[12] ;
-  args_info->train_help = gengetopt_args_info_full_help[14] ;
-  args_info->max_iter_help = gengetopt_args_info_full_help[15] ;
-  args_info->burn_in_help = gengetopt_args_info_full_help[16] ;
-  args_info->weight_weak_label_help = gengetopt_args_info_full_help[17] ;
-  args_info->structure_help = gengetopt_args_info_full_help[18] ;
+  args_info->bpseq_help = gengetopt_args_info_full_help[12] ;
+  args_info->constraints_help = gengetopt_args_info_full_help[13] ;
+  args_info->train_help = gengetopt_args_info_full_help[15] ;
+  args_info->max_iter_help = gengetopt_args_info_full_help[16] ;
+  args_info->burn_in_help = gengetopt_args_info_full_help[17] ;
+  args_info->weight_weak_label_help = gengetopt_args_info_full_help[18] ;
+  args_info->structure_help = gengetopt_args_info_full_help[19] ;
   args_info->structure_min = 0;
   args_info->structure_max = 0;
-  args_info->unpaired_reactivity_help = gengetopt_args_info_full_help[19] ;
+  args_info->unpaired_reactivity_help = gengetopt_args_info_full_help[20] ;
   args_info->unpaired_reactivity_min = 0;
   args_info->unpaired_reactivity_max = 0;
-  args_info->paired_reactivity_help = gengetopt_args_info_full_help[20] ;
+  args_info->paired_reactivity_help = gengetopt_args_info_full_help[21] ;
   args_info->paired_reactivity_min = 0;
   args_info->paired_reactivity_max = 0;
-  args_info->both_reactivity_help = gengetopt_args_info_full_help[21] ;
+  args_info->both_reactivity_help = gengetopt_args_info_full_help[22] ;
   args_info->both_reactivity_min = 0;
   args_info->both_reactivity_max = 0;
-  args_info->eta_help = gengetopt_args_info_full_help[22] ;
-  args_info->pos_w_help = gengetopt_args_info_full_help[23] ;
-  args_info->neg_w_help = gengetopt_args_info_full_help[24] ;
-  args_info->per_bp_loss_help = gengetopt_args_info_full_help[25] ;
-  args_info->lambda_help = gengetopt_args_info_full_help[26] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_full_help[27] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[28] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[29] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[30] ;
-  args_info->out_param_help = gengetopt_args_info_full_help[31] ;
-  args_info->validate_help = gengetopt_args_info_full_help[33] ;
+  args_info->eta_help = gengetopt_args_info_full_help[23] ;
+  args_info->pos_w_help = gengetopt_args_info_full_help[24] ;
+  args_info->neg_w_help = gengetopt_args_info_full_help[25] ;
+  args_info->per_bp_loss_help = gengetopt_args_info_full_help[26] ;
+  args_info->lambda_help = gengetopt_args_info_full_help[27] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_full_help[28] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[29] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[30] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[31] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[32] ;
+  args_info->validate_help = gengetopt_args_info_full_help[34] ;
   
 }
 
@@ -435,6 +441,7 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->param_arg));
   free_string_field (&(args_info->param_orig));
   free_string_field (&(args_info->random_seed_orig));
+  free_string_field (&(args_info->max_span_orig));
   free_string_field (&(args_info->verbose_orig));
   free_multiple_field (args_info->mea_given, (void *)(args_info->mea_arg), &(args_info->mea_orig));
   args_info->mea_arg = 0;
@@ -513,6 +520,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "param", args_info->param_orig, 0);
   if (args_info->random_seed_given)
     write_into_file(outfile, "random-seed", args_info->random_seed_orig, 0);
+  if (args_info->max_span_given)
+    write_into_file(outfile, "max-span", args_info->max_span_orig, 0);
   if (args_info->verbose_given)
     write_into_file(outfile, "verbose", args_info->verbose_orig, 0);
   if (args_info->predict_given)
@@ -1144,6 +1153,7 @@ cmdline_parser_internal (
         { "noncomplementary",	0, NULL, 0 },
         { "param",	1, NULL, 0 },
         { "random-seed",	1, NULL, 0 },
+        { "max-span",	1, NULL, 0 },
         { "verbose",	1, NULL, 0 },
         { "predict",	0, NULL, 0 },
         { "mea",	1, NULL, 0 },
@@ -1232,6 +1242,20 @@ cmdline_parser_internal (
                 &(local_args_info.random_seed_given), optarg, 0, "-1", ARG_INT,
                 check_ambiguity, override, 0, 0,
                 "random-seed", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* The maximum distance between bases of base pairs.  */
+          else if (strcmp (long_options[option_index].name, "max-span") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->max_span_arg), 
+                 &(args_info->max_span_orig), &(args_info->max_span_given),
+                &(local_args_info.max_span_given), optarg, 0, "-1", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "max-span", '-',
                 additional_error))
               goto failure;
           

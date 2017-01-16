@@ -26,6 +26,7 @@ private:
     const bool allow_noncomplementary;
     const int C_MAX_SINGLE_LENGTH;
     const int C_MIN_HAIRPIN_LENGTH;
+    const int C_MAX_SPAN;
     bool cache_initialized;
     const ParameterHash<RealT>* parameter_manager;
     ParameterHash<RealT>* parameter_count;
@@ -154,7 +155,8 @@ public:
     // constructor and destructor
     InferenceEngine(bool allow_noncomplementary, 
                     int max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH,
-                    int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH);
+                    int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH,
+                    int max_span = -1);
     ~InferenceEngine();
 
     // load sequence

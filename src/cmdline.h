@@ -48,6 +48,9 @@ struct gengetopt_args_info
   int random_seed_arg;	/**< @brief Specify the seed of the random number generator (default='-1').  */
   char * random_seed_orig;	/**< @brief Specify the seed of the random number generator original value given at command line.  */
   const char *random_seed_help; /**< @brief Specify the seed of the random number generator help description.  */
+  int max_span_arg;	/**< @brief The maximum distance between bases of base pairs (default='-1').  */
+  char * max_span_orig;	/**< @brief The maximum distance between bases of base pairs original value given at command line.  */
+  const char *max_span_help; /**< @brief The maximum distance between bases of base pairs help description.  */
   int verbose_arg;	/**< @brief Verbose output (default='0').  */
   char * verbose_orig;	/**< @brief Verbose output original value given at command line.  */
   const char *verbose_help; /**< @brief Verbose output help description.  */
@@ -136,6 +139,7 @@ struct gengetopt_args_info
   unsigned int noncomplementary_given ;	/**< @brief Whether noncomplementary was given.  */
   unsigned int param_given ;	/**< @brief Whether param was given.  */
   unsigned int random_seed_given ;	/**< @brief Whether random-seed was given.  */
+  unsigned int max_span_given ;	/**< @brief Whether max-span was given.  */
   unsigned int verbose_given ;	/**< @brief Whether verbose was given.  */
   unsigned int predict_given ;	/**< @brief Whether predict was given.  */
   unsigned int mea_given ;	/**< @brief Whether mea was given.  */
