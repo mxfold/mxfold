@@ -408,7 +408,7 @@ std::string SStruct::FilterSequence(std::string sequence) const
         {
             case '.': c = '-'; break;
             case 't': c = 'u'; break;
-            case '-': case 'a': case 'c': case 'g': case 'u': break;
+            case '-': case 'a': case 'c': case 'g': case 'u': case 'p': break;
             default:
                 if (isalpha(c))
                     c = 'n';

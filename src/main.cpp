@@ -316,6 +316,21 @@ NGSfold::train()
 
     for (auto i : idx)
     {
+      if (/*restart_ &&*/ !out_param_.empty())
+      {
+        std::ifstream is1(SPrintF("%s/%d.param", out_param_.c_str(), k));
+        std::ifstream is2(SPrintF("%s/%d.param", out_param_.c_str(), k+1));
+        if (is1 && is2) { k++; continue; }
+        if (is1 && !is2)
+        {
+          is1.close();
+          pm.ReadFromFile(SPrintF("%s/%d.param", out_param_.c_str(), k));
+          optimizer.read_from_file(SPrintF("%s/%d.param", out_param_.c_str(), k));
+          k++;
+          continue;
+        }
+      }
+
       // weight for this instance
       auto w = i<pos_str.second ? 1.0 : weight_weak_labeled_;
       // gradient
