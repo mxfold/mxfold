@@ -383,7 +383,7 @@ NGSfold::predict()
   for (auto s : args_)
   {
     SStruct sstruct;
-    sstruct.Load(s);
+    sstruct.Load(s /*, SStruct::REACTIVITY_BOTH*/);
     SStruct solution(sstruct);
     inference_engine.LoadSequence(sstruct);
     //sstruct.WriteParens(std::cout); // for debug

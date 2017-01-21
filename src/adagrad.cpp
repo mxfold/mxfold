@@ -8,6 +8,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cctype>
+#include <cassert>
 #include "adagrad.hpp"
 
 inline
@@ -123,7 +124,9 @@ void
 AdaGradFobosUpdater::
 regularize(const std::string& fname, double& w) const
 {
-  w = clip(w, lambda_);
+  auto g = sum_squared_grad_.find(fname);
+  assert(g!=sum_squared_grad_.end());
+  w = clip(w, eta_ / std::sqrt(g->second) * lambda_);
 }
 
 void

@@ -775,8 +775,13 @@ void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reacti
     // determine whether we allow each position to be unpaired
     for (int i = 1; i <= L; i++)
     { 
+#if 0
         auto ru = reactivity_unpair[i] >= threshold_unpaired_reactivity ? reactivity_unpair[i] : 0.0;
         auto rp = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
+#else
+        auto ru = std::max(0.0, reactivity_unpair[i]-threshold_unpaired_reactivity);
+        auto rp = std::max(0.0, reactivity_pair[i]-threshold_paired_reactivity);
+#endif        
         reactivity_unpaired_position[i] = scale_reactivity * (ru - rp);
     }
 
