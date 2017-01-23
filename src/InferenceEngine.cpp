@@ -660,32 +660,34 @@ void InferenceEngine<RealT>::UseLossPosition(const std::vector<int> &true_mappin
 {
     Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
-    
-    // compute the penalty for each position that we declare to be unpaired
-    loss_unpaired_position[0] = 0;
-    for (int i = 1; i <= L; i++)
-    {
-        if (true_mapping[i] == SStruct::UNKNOWN)
-            loss_unpaired_position[i] = 0;
-        else if (true_mapping[i] == SStruct::UNPAIRED)
-        {
-            loss_unpaired_position[i] = -neg_w;
-            loss_const += neg_w;
-        }
-        else if (true_mapping[i] == SStruct::PAIRED || true_mapping[i] > 0)
-            loss_unpaired_position[i] = pos_w;
-    }
 
-    // now, compute the penalty for declaring ranges of positions to be unpaired;
-    // also, compute the penalty for matching positions s[i] and s[j].
     for (int i = 0; i <= L; i++)
     {
-        loss_unpaired[offset[i]+i] = RealT(0);
+        loss_paired[offset[i]+i] = RealT(NEG_INF);
         for (int j = i+1; j <= L; j++)
         {
-            loss_unpaired[offset[i]+j] = 
-                loss_unpaired[offset[i]+j-1] +
-                loss_unpaired_position[j];
+            loss_paired[offset[i]+j] = 0;
+            if (i==0) continue;
+
+            if (true_mapping[i] == SStruct::PAIRED || true_mapping[i] > 0)
+            {
+                loss_paired[offset[i]+j] += -pos_w/2;
+                loss_const += pos_w/2;
+            }
+            else if (true_mapping[i] == SStruct::UNPAIRED)
+            {
+                loss_paired[offset[i]+j] += neg_w/2;
+            }
+
+            if (true_mapping[j] == SStruct::PAIRED || true_mapping[j] > 0)
+            {
+                loss_paired[offset[i]+j] += -pos_w/2;
+                loss_const += pos_w/2;
+            }
+            else if (true_mapping[j] == SStruct::UNPAIRED)
+            {
+                loss_paired[offset[i]+j] += neg_w/2;
+            }
         }
     }
 }
@@ -695,25 +697,19 @@ void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactiv
 {
     Assert(int(reactivity_unpair.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
-    
-    // compute the penalty for each position that we declare to be unpaired
-    loss_unpaired_position[0] = 0;
-    for (int i = 1; i <= L; i++)
-    {
-        loss_unpaired_position[i] = pos_w * reactivity_pair[i] - neg_w * reactivity_unpair[i];
-        loss_const += neg_w * reactivity_unpair[i];
-    }
 
-    // now, compute the penalty for declaring ranges of positions to be unpaired;
-    // also, compute the penalty for matching positions s[i] and s[j].
     for (int i = 0; i <= L; i++)
     {
-        loss_unpaired[offset[i]+i] = RealT(0);
+        loss_paired[offset[i]+i] = RealT(NEG_INF);
         for (int j = i+1; j <= L; j++)
         {
-            loss_unpaired[offset[i]+j] = 
-                loss_unpaired[offset[i]+j-1] +
-                loss_unpaired_position[j];
+            loss_paired[offset[i]+j] = 0;
+            if (i==0) continue;
+
+            loss_paired[offset[i]+j] += 
+                - pos_w/2 * (reactivity_pair[i] + reactivity_pair[j]) 
+                + neg_w/2 * (reactivity_unpair[i] + reactivity_unpair[j]); 
+            loss_const += pos_w/2 * (reactivity_pair[i] + reactivity_pair[j]);
         }
     }
 }
@@ -777,12 +773,10 @@ void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reacti
     { 
 #if 0
         auto ru = reactivity_unpair[i] >= threshold_unpaired_reactivity ? reactivity_unpair[i] : 0.0;
-        auto rp = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
 #else
         auto ru = std::max(0.0, reactivity_unpair[i]-threshold_unpaired_reactivity);
-        auto rp = std::max(0.0, reactivity_pair[i]-threshold_paired_reactivity);
 #endif        
-        reactivity_unpaired_position[i] = scale_reactivity * (ru - rp);
+        reactivity_unpaired_position[i] = scale_reactivity * ru;
     }
 
     // determine whether we allow ranges of positions to be unpaired;
@@ -791,12 +785,22 @@ void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reacti
     {
         reactivity_unpaired[offset[i]+i] = RealT(0);
         reactivity_paired[offset[i]+i] = RealT(NEG_INF);
+#if 0
+        auto rp_i = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
+#else
+        auto rp_i = std::max(0.0, reactivity_pair[i]-threshold_paired_reactivity);
+#endif
         for (int j = i+1; j <= L; j++)
         {
             reactivity_unpaired[offset[i]+j] = 
                 reactivity_unpaired[offset[i]+j-1] +
                 reactivity_unpaired_position[j];
-            reactivity_paired[offset[i]+j] = 0; 
+#if 0
+            auto rp_j = reactivity_pair[j] >= threshold_paired_reactivity ? reactivity_pair[j] : 0.0;
+#else
+            auto rp_j = std::max(0.0, reactivity_pair[j]-threshold_paired_reactivity);
+#endif
+            reactivity_paired[offset[i]+j] = scale_reactivity * (rp_i + rp_j); 
         }
     }
 }

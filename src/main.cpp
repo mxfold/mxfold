@@ -161,7 +161,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
   if ((!train_mode_ && args_info.inputs_num==0) ||
-      (train_mode_ && data_str_list_.empty() && data_unpaired_list_.empty() && data_paired_list_.empty() && args_info.inputs_num==0)) 
+      (train_mode_ && data_str_list_.empty() && data_unpaired_list_.empty() && data_paired_list_.empty() && data_both_list_.empty() && args_info.inputs_num==0)) 
   {
     cmdline_parser_print_help();
     cmdline_parser_free(&args_info);

@@ -125,8 +125,8 @@ AdaGradFobosUpdater::
 regularize(const std::string& fname, double& w) const
 {
   auto g = sum_squared_grad_.find(fname);
-  assert(g!=sum_squared_grad_.end());
-  w = clip(w, eta_ / std::sqrt(g->second) * lambda_);
+  if (g!=sum_squared_grad_.end() && g->second>0.0) 
+    w = clip(w, eta_ / std::sqrt(g->second) * lambda_);
 }
 
 void
@@ -137,14 +137,22 @@ read_from_file(const std::string& filename)
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
-  uint t;
-  is >> t >> eta_ >> lambda_ >> eps_;
-
-  std::string fname;
-  double p, s1, s2;
-  while (is >> fname >> p >> s1 >> s2)
+  if (std::isdigit(is.peek())) 
   {
-    sum_squared_grad_[fname] = s2;
+    uint t;
+    is >> t >> eta_ >> lambda_ >> eps_;
+
+    std::string fname;
+    double p, s1, s2;
+    while (is >> fname >> p >> s1 >> s2)
+      sum_squared_grad_[fname] = s2;
+  }
+  else
+  {
+    std::string fname;
+    double p;
+    while (is >> fname >> p)
+      sum_squared_grad_[fname] = 0.0;
   }
 }
 
