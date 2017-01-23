@@ -113,20 +113,22 @@ AdaGradFobosUpdater(double eta, double lambda, double eps)
 
 void
 AdaGradFobosUpdater::
-update(const std::string& fname, double& w, double grad)
+update(const std::string& fname, double& w, double grad, double weight)
 {
   auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
   g.first->second += grad*grad;
-  w -= eta_ / std::sqrt(g.first->second) * grad;
+  //std::cout << "  " << fname << ": w=" << w << ", g=" << grad << ", g2s=" << g.first->second;
+  w -= weight * eta_ / std::sqrt(g.first->second) * grad;
+  //std::cout << ", update=" << eta_ / std::sqrt(g.first->second) * grad << ", w_new=" << w << std::endl;
 }
 
 void
 AdaGradFobosUpdater::
-regularize(const std::string& fname, double& w) const
+regularize(const std::string& fname, double& w, double weight) const
 {
   auto g = sum_squared_grad_.find(fname);
   if (g!=sum_squared_grad_.end() && g->second>0.0) 
-    w = clip(w, eta_ / std::sqrt(g->second) * lambda_);
+    w = clip(w, weight * eta_ / std::sqrt(g->second) * lambda_);
 }
 
 void
@@ -145,14 +147,16 @@ read_from_file(const std::string& filename)
     std::string fname;
     double p, s1, s2;
     while (is >> fname >> p >> s1 >> s2)
-      sum_squared_grad_[fname] = s2;
+      if (p!=0.0 || s1!=0.0 || s2!=0.0)
+        sum_squared_grad_[fname] = s2;
   }
   else
   {
     std::string fname;
     double p;
     while (is >> fname >> p)
-      sum_squared_grad_[fname] = 0.0;
+      if (p!=0.0)
+        sum_squared_grad_[fname] = 0.0;
   }
 }
 

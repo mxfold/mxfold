@@ -316,7 +316,6 @@ void InferenceEngine<RealT>::InitializeCache()
 #endif
     
     // precompute score for single-branch loops of length l1 and l2
-    //長さl1とl2の内部ループスコア
     for (int l1 = 0; l1 <= C_MAX_SINGLE_LENGTH; l1++)
     {
         for (int l2 = 0; l1+l2 <= C_MAX_SINGLE_LENGTH; l2++)
@@ -1199,7 +1198,6 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
         + (j - i == 4 ? pm.hairpin_4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) : RealT(0))
 #endif
-      //自作パラメータ
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
       + (j - i == 5 ? pm.hairpin_5_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) : RealT(0))
 #endif
@@ -1209,7 +1207,6 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
       + (j - i == 7 ? pm.hairpin_7_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
 #endif
-      //自作終了
       ;
 }
 
@@ -1230,7 +1227,6 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
     if (j - i == 4) pc.hairpin_4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) += value;
 #endif
-    //自作パラメータ
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
     if (j - i == 5) pc.hairpin_5_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) += value;
 #endif
@@ -1240,7 +1236,6 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
     if (j - i == 7) score_hairpin_7_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]][s[i+7]].second += value;
 #endif
-    //自作終了
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1385,7 +1380,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         + (l1 == 0 && l2 == 3 ? pm.bulge_0x3_nucleotides(s[j-2], s[j-1], s[j]) : RealT(0))
         + (l1 == 3 && l2 == 0 ? pm.bulge_3x0_nucleotides(s[i+1], s[i+2], s[i+3]) : RealT(0))
 #endif
-      //自作パラメータ
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
       + (l1 == 0 && l2 == 4 ? pm.bulge_0x4_nucleotides(s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
       + (l1 == 4 && l2 == 0 ? pm.bulge_4x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) : RealT(0))
@@ -1402,7 +1396,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 0 && l2 == 7 ? pm.bulge_0x7_nucleotides(s[j-6], s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
       + (l1 == 7 && l2 == 0 ? pm.bulge_7x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
 #endif
-      //自作終了
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
         + (l1 == 1 && l2 == 1 ? pm.internal_1x1_nucleotides(s[i+1], s[j]) : RealT(0))
 #endif
@@ -1413,7 +1406,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
         + (l1 == 2 && l2 == 2 ? pm.internal_2x2_nucleotides(s[i+1], s[i+2], s[j-1], s[j]) : RealT(0))
 #endif
-      //自作パラメータ
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
       + (l1 == 1 && l2 == 3 ? pm.internal_1x3_nucleotides(s[i+1], s[j-2], s[j-1], s[j]) : RealT(0))
       + (l1 == 3 && l2 == 1 ? pm.internal_3x1_nucleotides(s[i+1], s[i+2], s[i+3], s[j]) : RealT(0))
@@ -1440,7 +1432,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
       + (l1 == 4 && l2 == 4 ? pm.internal_4x4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
 #endif      
-      //自作終了
       ;
 }
 
@@ -1471,7 +1462,6 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 3) pc.bulge_0x3_nucleotides(s[j-2], s[j-1], s[j]) += value;
     if (l1 == 3 && l2 == 0) pc.bulge_3x0_nucleotides(s[i+1], s[i+2], s[i+3]) += value;
 #endif
-    //自作パラメータ
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
     if (l1 == 0 && l2 == 4) pc.bulge_0x4_nucleotides(s[j-3], s[j-2], s[j-1], s[j]) += value;
     if (l1 == 4 && l2 == 0) pc.bulge_4x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) += value;
@@ -1484,7 +1474,6 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     if (l1 == 0 && l2 == 6) pc.bulge_0x6_nucleotides(s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) += value;
     if (l1 == 6 && l2 == 0) pc.bulge_6x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) += value;
 #endif
-    //自作終了
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
     if (l1 == 1 && l2 == 1) pc.internal_1x1_nucleotides(s[i+1], s[j]) += value;
 #endif
@@ -1495,7 +1484,6 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
     if (l1 == 2 && l2 == 2) pc.internal_2x2_nucleotides(s[i+1], s[i+2], s[j-1], s[j]) += value;
 #endif
-    //自作パラメータ
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
     if (l1 == 1 && l2 == 3) pc.internal_1x3_nucleotides(s[i+1], s[j-2], s[j-1], s[j]) += value;
     if (l1 == 3 && l2 == 1) pc.internal_3x1_nucleotides(s[i+1], s[i+2], s[i+3], s[j]) += value;

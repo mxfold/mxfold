@@ -34,8 +34,8 @@ class AdaGradFobosUpdater
 public:
   AdaGradFobosUpdater(double eta,  double lambda, double eps=1e-8);
 
-  void update(const std::string& fname, double& w, double grad);
-  void regularize(const std::string& fname, double& w) const;
+  void update(const std::string& fname, double& w, double grad, double weight);
+  void regularize(const std::string& fname, double& w, double weight) const;
   void proceed_timestamp() { }
 
   void read_from_file(const std::string& filename);

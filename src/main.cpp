@@ -338,11 +338,11 @@ NGSfold::train()
       // update
       for (auto g : grad)
         if (g.second!=0.0)
-          optimizer.update(g.first, pm.get_by_key(g.first), g.second*w);
+          optimizer.update(g.first, pm.get_by_key(g.first), g.second, w);
       // regularize
       for (auto p=pm.begin(); p!=pm.end(); )
       {
-        optimizer.regularize(p->first, p->second);
+        optimizer.regularize(p->first, p->second, w);
         if (p->second==0.0)
           p = pm.erase(p);
         else
