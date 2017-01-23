@@ -1319,6 +1319,56 @@ external_paired()
 }
 #endif
 
+template <class ValueT>
+inline
+bool
+ParameterHash<ValueT>::
+is_basepair_feature(const std::string& f) const
+{
+  static const char* bp_features[] = {
+#if PARAMS_BASE_PAIR
+    format_base_pair,
+#endif  
+#if PARAMS_BASE_PAIR_DIST
+    format_base_pair_dist_at_least,
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+    format_terminal_mismatch,
+#endif
+#if PARAMS_HELIX_LENGTH
+    format_helix_length_at_least,
+#endif
+#if PARAMS_ISOLATED_BASE_PAIR
+    format_isolated_base_pair,
+#endif
+#if PARAMS_HELIX_STACKING
+    format_helix_stacking,
+#endif
+#if PARAMS_HELIX_CLOSING
+    format_helix_closing,
+#endif
+#if PARAMS_DANGLE
+    format_dangle_left, 
+    format_dangle_right,
+#endif
+#if PARAMS_MULTI_LENGTH
+    format_multi_paired,
+#endif
+#if PARAMS_EXTERNAL_LENGTH
+    format_external_paired,
+#endif
+    NULL
+  };
+
+  for (uint i=0; bp_features[i]!=NULL; ++i)
+  {
+    auto m = std::mismatch(f.begin(), f.end(), bp_features[i]);
+    if (*m.second == 0 || *m.second == '%')
+      return true;
+  }
+  return false;
+}
+
 template
 class ParameterHash<double>;
 

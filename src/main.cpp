@@ -332,16 +332,23 @@ NGSfold::train()
       }
 
       // weight for this instance
-      auto w = i<pos_str.second ? 1.0 : weight_weak_labeled_;
+      bool is_weak_label = i>=pos_str.second;
+      auto w = is_weak_label ? weight_weak_labeled_ : 1.0;
       // gradient
       auto grad = compute_gradients(data[i], &pm);
       // update
       for (auto g : grad)
-        if (g.second!=0.0)
+        if (g.second!=0.0 && !(is_weak_label && pm.is_basepair_feature(g.first)))
           optimizer.update(g.first, pm.get_by_key(g.first), g.second, w);
       // regularize
       for (auto p=pm.begin(); p!=pm.end(); )
       {
+        if (is_weak_label && pm.is_basepair_feature(p->first))
+        {
+          ++p;
+          continue;
+        }
+
         optimizer.regularize(p->first, p->second, w);
         if (p->second==0.0)
           p = pm.erase(p);

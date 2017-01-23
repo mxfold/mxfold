@@ -28,6 +28,8 @@ public:
   ValueT  get_by_key(const std::string& key) const;
   ValueT& get_by_key(const std::string& key);
 
+  bool is_basepair_feature(const std::string& f) const;
+
   typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
   typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
   typename std::unordered_map<std::string, ValueT>::iterator end() { return param_.end(); }
