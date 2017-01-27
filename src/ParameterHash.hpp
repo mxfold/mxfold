@@ -18,6 +18,7 @@ public:
   ~ParameterHash() {}
 
   bool is_complementary(NUCL x, NUCL y) const;
+  bool is_base(NUCL x) const;
 
   void LoadFromHash(std::unordered_map<std::string, ValueT> hash);
   void LoadDefaultComplementary();
@@ -29,6 +30,8 @@ public:
   ValueT& get_by_key(const std::string& key);
 
   bool is_basepair_feature(const std::string& f) const;
+  bool is_context_feature(const std::string& f) const;
+  bool is_basepair_context_feature(const std::string& f) const;
 
   typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
   typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
@@ -228,6 +231,7 @@ public:
 private:
   std::unordered_map<std::string, ValueT> param_;
   std::array<std::array<int, 256>, 256> is_complementary_;
+  std::array<int, 256> is_base_;
 };
 
 #endif  // PARAMETERHASH_HPP

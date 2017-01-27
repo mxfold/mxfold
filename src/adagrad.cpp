@@ -29,22 +29,22 @@ AdaGradRDAUpdater(double eta, double lambda, double eps)
 
 void
 AdaGradRDAUpdater::
-update(const std::string& fname, double& w, double grad)
+update(const std::string& fname, double& w, double grad, double weight)
 {
   auto u = sum_grad_.insert(std::make_pair(fname, 0.0));
   u.first->second += grad;
   auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
   g.first->second += grad*grad;
-  if (!u.second) regularize(fname, w);
+  if (!u.second) regularize(fname, w, weight);
 }
 
 void
 AdaGradRDAUpdater::
-regularize(const std::string& fname, double& w) const
+regularize(const std::string& fname, double& w, double weight) const
 {
   auto u = sum_grad_.find(fname);
   auto g = sum_squared_grad_.find(fname);
-  w = - eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, lambda_);
+  w = - weight * eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, lambda_);
 }
 
 void
@@ -84,9 +84,7 @@ write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool
     std::sort(keys.begin(), keys.end());
     for (const auto& k : keys)
     {
-      double w;
-      regularize(k, w);
-      os << k << " " <<  w << " " 
+      os << k << " " <<  pm->get_by_key(k) << " " 
          << sum_grad_.find(k)->second << " " 
          << sum_squared_grad_.find(k)->second << std::endl;
     }
@@ -95,9 +93,7 @@ write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool
   {
     for (const auto& e : sum_grad_)
     {
-      double w;
-      regularize(e.first, w);
-      os << e.first << " " << w << " " << e.second << " " 
+      os << e.first << " " << pm->get_by_key(e.first)  << " " << e.second << " " 
          << sum_squared_grad_.find(e.first)->second << std::endl;
     }
   }
@@ -117,9 +113,9 @@ update(const std::string& fname, double& w, double grad, double weight)
 {
   auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
   g.first->second += grad*grad;
-  //std::cout << "  " << fname << ": w=" << w << ", g=" << grad << ", g2s=" << g.first->second;
+  std::cout << "  " << fname << ": w=" << w << ", g=" << grad << ", g2s=" << g.first->second;
   w -= weight * eta_ / std::sqrt(g.first->second) * grad;
-  //std::cout << ", update=" << eta_ / std::sqrt(g.first->second) * grad << ", w_new=" << w << std::endl;
+  std::cout << ", update=" << weight * eta_ / std::sqrt(g.first->second) * grad << ", w_new=" << w << std::endl;
 }
 
 void

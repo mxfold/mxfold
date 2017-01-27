@@ -26,6 +26,9 @@ template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
 {
+  std::fill(std::begin(is_base_), std::end(is_base_), false);
+  is_base_['A'] = is_base_['C'] = is_base_['G'] = is_base_['U'] = is_base_['P'] = true;
+
   // precompute complementary pairings
   for (auto e : is_complementary_)
     std::fill(std::begin(e), std::end(e), false);
@@ -46,6 +49,14 @@ ParameterHash<ValueT>::
 is_complementary(NUCL x, NUCL y) const
 {
   return is_complementary_[x][y];
+}
+
+template < class ValueT >
+bool
+ParameterHash<ValueT>::
+is_base(NUCL x) const
+{
+  return is_base_[x];
 }
 
 
@@ -1364,6 +1375,60 @@ is_basepair_feature(const std::string& f) const
   {
     auto m = std::mismatch(f.begin(), f.end(), bp_features[i]);
     if (*m.second == 0 || *m.second == '%')
+      return true;
+  }
+  return false;
+}
+
+template <class ValueT>
+inline
+bool
+ParameterHash<ValueT>::
+is_basepair_context_feature(const std::string& f) const
+{
+  static const char* bp_features[] = {
+#if PARAMS_BASE_PAIR
+    format_base_pair,
+#endif  
+#if PARAMS_TERMINAL_MISMATCH
+    format_terminal_mismatch,
+#endif
+#if PARAMS_HELIX_STACKING
+    format_helix_stacking,
+#endif
+#if PARAMS_HELIX_CLOSING
+    format_helix_closing,
+#endif
+#if PARAMS_DANGLE
+    format_dangle_left, 
+    format_dangle_right,
+#endif
+    NULL
+  };
+
+  for (uint i=0; bp_features[i]!=NULL; ++i)
+  {
+    auto m = std::mismatch(f.begin(), f.end(), bp_features[i]);
+    if (is_base(*m.first) && *m.second == '%')
+      return true;
+  }
+  return false;
+}
+
+template <class ValueT>
+inline
+bool
+ParameterHash<ValueT>::
+is_context_feature(const std::string& f) const
+{
+  static const char* context_features[] = {
+    "hairpin_", "bulge_", "internal_", NULL
+  };
+
+  for (uint i=0; context_features[i]!=NULL; ++i)
+  {
+    auto m = std::mismatch(f.begin(), f.end(), context_features[i]);
+    if (isdigit(*m.first))
       return true;
   }
   return false;

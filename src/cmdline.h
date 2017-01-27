@@ -102,31 +102,42 @@ struct gengetopt_args_info
   unsigned int both_reactivity_min; /**< @brief The lists of training data with both of unpaired and paired  reactivity's minimum occurreces */
   unsigned int both_reactivity_max; /**< @brief The lists of training data with both of unpaired and paired  reactivity's maximum occurreces */
   const char *both_reactivity_help; /**< @brief The lists of training data with both of unpaired and paired  reactivity help description.  */
-  float eta_arg;	/**< @brief Initial step width for the subgradient optimization (default='1.0').  */
-  char * eta_orig;	/**< @brief Initial step width for the subgradient optimization original value given at command line.  */
-  const char *eta_help; /**< @brief Initial step width for the subgradient optimization help description.  */
+  float eta_arg;	/**< @brief Initial step width of the subgradient optimization (default='1.0').  */
+  char * eta_orig;	/**< @brief Initial step width of the subgradient optimization original value given at command line.  */
+  const char *eta_help; /**< @brief Initial step width of the subgradient optimization help description.  */
+  float eta_weak_label_arg;	/**< @brief Initial step width of the subgradient optimization for weak labeled data (default='0.1').  */
+  char * eta_weak_label_orig;	/**< @brief Initial step width of the subgradient optimization for weak labeled data original value given at command line.  */
+  const char *eta_weak_label_help; /**< @brief Initial step width of the subgradient optimization for weak labeled data help description.  */
   float pos_w_arg;	/**< @brief The weight for positive base-pairs (default='8').  */
   char * pos_w_orig;	/**< @brief The weight for positive base-pairs original value given at command line.  */
   const char *pos_w_help; /**< @brief The weight for positive base-pairs help description.  */
   float neg_w_arg;	/**< @brief The weight for negative base-pairs (default='1').  */
   char * neg_w_orig;	/**< @brief The weight for negative base-pairs original value given at command line.  */
   const char *neg_w_help; /**< @brief The weight for negative base-pairs help description.  */
+  float pos_w_unpaired_arg;	/**< @brief The weight for positive base-pairs for training from unpaired reactivity data (default='0').  */
+  char * pos_w_unpaired_orig;	/**< @brief The weight for positive base-pairs for training from unpaired reactivity data original value given at command line.  */
+  const char *pos_w_unpaired_help; /**< @brief The weight for positive base-pairs for training from unpaired reactivity data help description.  */
+  float neg_w_unpaired_arg;	/**< @brief The weight for negative base-pairs for training from unpaired reactivity data (default='0').  */
+  char * neg_w_unpaired_orig;	/**< @brief The weight for negative base-pairs for training from unpaired reactivity data original value given at command line.  */
+  const char *neg_w_unpaired_help; /**< @brief The weight for negative base-pairs for training from unpaired reactivity data help description.  */
   int per_bp_loss_flag;	/**< @brief Ajust the loss according to the number of base pairs (default=off).  */
   const char *per_bp_loss_help; /**< @brief Ajust the loss according to the number of base pairs help description.  */
   float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.0001').  */
   char * lambda_orig;	/**< @brief The weight for the L1 regularization term original value given at command line.  */
   const char *lambda_help; /**< @brief The weight for the L1 regularization term help description.  */
-  float scale_reactivity_arg;	/**< @brief The scale of reactivity (default='0.1').  */
+  float scale_reactivity_arg;	/**< @brief The scale of reactivity (default='1.0').  */
   char * scale_reactivity_orig;	/**< @brief The scale of reactivity original value given at command line.  */
   const char *scale_reactivity_help; /**< @brief The scale of reactivity help description.  */
-  float threshold_unpaired_reactivity_arg;	/**< @brief The threshold of reactiviy for unpaired bases (default='0.7').  */
+  float threshold_unpaired_reactivity_arg;	/**< @brief The threshold of reactiviy for unpaired bases (default='0.0').  */
   char * threshold_unpaired_reactivity_orig;	/**< @brief The threshold of reactiviy for unpaired bases original value given at command line.  */
   const char *threshold_unpaired_reactivity_help; /**< @brief The threshold of reactiviy for unpaired bases help description.  */
-  float threshold_paired_reactivity_arg;	/**< @brief The threshold of reactiviy for paired bases (default='0.7').  */
+  float threshold_paired_reactivity_arg;	/**< @brief The threshold of reactiviy for paired bases (default='0.0').  */
   char * threshold_paired_reactivity_orig;	/**< @brief The threshold of reactiviy for paired bases original value given at command line.  */
   const char *threshold_paired_reactivity_help; /**< @brief The threshold of reactiviy for paired bases help description.  */
   int discretize_reactivity_flag;	/**< @brief Discretize reactivity with reactivity thresholds (default=off).  */
   const char *discretize_reactivity_help; /**< @brief Discretize reactivity with reactivity thresholds help description.  */
+  int bp_context_flag;	/**< @brief Train the features for base-pair contexts in weak label traing  (default=off).  */
+  const char *bp_context_help; /**< @brief Train the features for base-pair contexts in weak label traing  help description.  */
   char * out_param_arg;	/**< @brief Output parameter sets for each step.  */
   char * out_param_orig;	/**< @brief Output parameter sets for each step original value given at command line.  */
   const char *out_param_help; /**< @brief Output parameter sets for each step help description.  */
@@ -155,14 +166,18 @@ struct gengetopt_args_info
   unsigned int paired_reactivity_given ;	/**< @brief Whether paired-reactivity was given.  */
   unsigned int both_reactivity_given ;	/**< @brief Whether both-reactivity was given.  */
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
+  unsigned int eta_weak_label_given ;	/**< @brief Whether eta-weak-label was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */
+  unsigned int pos_w_unpaired_given ;	/**< @brief Whether pos-w-unpaired was given.  */
+  unsigned int neg_w_unpaired_given ;	/**< @brief Whether neg-w-unpaired was given.  */
   unsigned int per_bp_loss_given ;	/**< @brief Whether per-bp-loss was given.  */
   unsigned int lambda_given ;	/**< @brief Whether lambda was given.  */
   unsigned int scale_reactivity_given ;	/**< @brief Whether scale-reactivity was given.  */
   unsigned int threshold_unpaired_reactivity_given ;	/**< @brief Whether threshold-unpaired-reactivity was given.  */
   unsigned int threshold_paired_reactivity_given ;	/**< @brief Whether threshold-paired-reactivity was given.  */
   unsigned int discretize_reactivity_given ;	/**< @brief Whether discretize-reactivity was given.  */
+  unsigned int bp_context_given ;	/**< @brief Whether bp-context was given.  */
   unsigned int out_param_given ;	/**< @brief Whether out-param was given.  */
   unsigned int validate_given ;	/**< @brief Whether validate was given.  */
 

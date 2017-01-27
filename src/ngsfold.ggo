@@ -10,13 +10,13 @@ usage "ngsfold [OPTIONS]"
 
 option "noncomplementary"     - "Allow non-canonical base pairs"
        			      	flag off
-option "param"                - "Load parameters from parameter-file"
+option "param"                p "Load parameters from parameter-file"
        			      	string typestr="parameter-file" optional
 option "random-seed"	      - "Specify the seed of the random number generator"
        			      	int default="-1" optional
 option "max-span"	      - "The maximum distance between bases of base pairs"
        			      	int default="-1" optional
-option "verbose"	      - "Verbose output"
+option "verbose"	      v "Verbose output"
        			        int default="0" optional
 
 ################################
@@ -27,7 +27,7 @@ option "predict"              - "Prediction mode"
        			      	flag on
 option "mea"		      - "MEA decoding with gamma"
        			        float default="6.0" typestr="gamma" optional multiple
-option "gce"		      - "Generalized centroid decoding with gamma"
+option "gce"		      g "Generalized centroid decoding with gamma"
        			        float default="4.0" typestr="gamma" optional multiple
 option "bpseq"                - "Output predicted results as the BPSEQ format"
        			      	flag off
@@ -41,40 +41,48 @@ section "Training mode"
 
 option "train"                - "Trainining mode (write the trained parameters into output-file)"
        			      	string typestr="output-file" optional
-option "max-iter"	      - "The maximum number of iterations for training"
+option "max-iter"	      i "The maximum number of iterations for training"
        			      	int default="100" optional
-option "burn-in"	      - "The number of iterations for initial training from labeled data"
+option "burn-in"	      b "The number of iterations for initial training from labeled data"
        			        int default="10" optional
 option "weight-weak-label"    - "The weight for weak labeled data"
        			        float default="0.1" optional
-option "structure"	      - "The lists of training data with full structures"
+option "structure"	      T "The lists of training data with full structures"
        			        string typestr="filename-list" optional multiple
-option "unpaired-reactivity"  - "The lists of training data with unpaired reactivity"
+option "unpaired-reactivity"  U "The lists of training data with unpaired reactivity"
        			        string typestr="filename-list" optional multiple
-option "paired-reactivity"    - "The lists of training data with paired reactivity"
+option "paired-reactivity"    P "The lists of training data with paired reactivity"
        			        string typestr="filename-list" optional multiple
-option "both-reactivity"      - "The lists of training data with both of unpaired and paired  reactivity"
+option "both-reactivity"      B "The lists of training data with both of unpaired and paired  reactivity"
        			        string typestr="filename-list" optional multiple
-option "eta"		      - "Initial step width for the subgradient optimization"
+option "eta"		      - "Initial step width of the subgradient optimization"
        			      	float default="1.0" optional hidden
+option "eta-weak-label"	      - "Initial step width of the subgradient optimization for weak labeled data"
+       			      	float default="0.1" optional hidden
 option "pos-w"		      - "The weight for positive base-pairs"
        			        float default="8" optional
 option "neg-w"		      - "The weight for negative base-pairs"
        			        float default="1" optional
+option "pos-w-unpaired"	      - "The weight for positive base-pairs for training from unpaired reactivity data"
+       			        float default="0" optional hidden
+option "neg-w-unpaired"	      - "The weight for negative base-pairs for training from unpaired reactivity data"
+       			        float default="0" optional hidden
 option "per-bp-loss"          - "Ajust the loss according to the number of base pairs"
        			      	flag off hidden
 option "lambda"		      - "The weight for the L1 regularization term"
        			      	float default="0.0001" optional
 option "scale-reactivity"     - "The scale of reactivity"
-       			      	float default="0.1" optional
+       			      	float default="1.0" optional
 option "threshold-unpaired-reactivity" - "The threshold of reactiviy for unpaired bases"
-       				float default="0.7" optional
+       				float default="0.0" optional
 option "threshold-paired-reactivity" - "The threshold of reactiviy for paired bases"
-       				float default="0.7" optional
+       				float default="0.0" optional
 option "discretize-reactivity" - "Discretize reactivity with reactivity thresholds"
        				flag off
-option "out-param"	       - "Output parameter sets for each step"
-       			       	 string typestr="dirname" optional hidden
+option "bp-context"           - "Train the features for base-pair contexts in weak label traing "
+       			        flag off hidden
+option "out-param"	      - "Output parameter sets for each step"
+       			        string typestr="dirname" optional hidden
 
 ################################
 

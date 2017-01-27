@@ -26,9 +26,8 @@ public:
 
   int run()
   {
-    //return count_features();
     if (validation_mode_)
-      return validate();
+      return verbose_==0 ? validate() : count_features();
     if (train_mode_)
       return train();
     else
@@ -63,13 +62,17 @@ private:
   float weight_weak_labeled_;
   float pos_w_;
   float neg_w_;
+  float pos_w_unpaired_;
+  float neg_w_unpaired_;
   bool per_bp_loss_;
   float lambda_;
   float eta0_;
+  float eta0_weak_labeled_;
   float scale_reactivity_;
   float threshold_unpaired_reactivity_;
   float threshold_paired_reactivity_;
   bool discretize_reactivity_;
+  bool use_bp_context_;
   int verbose_;
   std::string out_param_;
   bool validation_mode_;
@@ -147,13 +150,17 @@ NGSfold::parse_options(int& argc, char**& argv)
   weight_weak_labeled_ = args_info.weight_weak_label_arg;
   pos_w_ = args_info.pos_w_arg;
   neg_w_ = args_info.neg_w_arg;
+  pos_w_unpaired_ = args_info.pos_w_unpaired_arg;
+  neg_w_unpaired_ = args_info.neg_w_unpaired_arg;
   lambda_ = args_info.lambda_arg;
   eta0_ = args_info.eta_arg;
+  eta0_weak_labeled_ = args_info.eta_weak_label_arg;
   scale_reactivity_ = args_info.scale_reactivity_arg;
   threshold_unpaired_reactivity_ = args_info.threshold_unpaired_reactivity_arg;
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
   per_bp_loss_ = args_info.per_bp_loss_flag==1;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
+  use_bp_context_ = args_info.bp_context_flag==1;
   verbose_ = args_info.verbose_arg;
   use_constraints_ = args_info.constraints_flag==1;
   validation_mode_ = args_info.validate_flag==1;
@@ -248,12 +255,26 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   InferenceEngine<double> inference_engine0(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine0.LoadValues(pm);
   inference_engine0.LoadSequence(s);
-  if (s.GetType() == SStruct::NO_REACTIVITY)
-    inference_engine0.UseLossBasePair(s.GetMapping(), pos_w_/np, neg_w_/np);
-  else if (discretize_reactivity_)
-    inference_engine0.UseLossPosition(s.GetMapping(), pos_w_/np, neg_w_/np);
-  else
-    inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_/np, neg_w_/np);
+  switch (s.GetType())
+  {
+    case SStruct::NO_REACTIVITY:
+    default:
+      inference_engine0.UseLossBasePair(s.GetMapping(), pos_w_/np, neg_w_/np);
+      break;
+    case SStruct::REACTIVITY_UNPAIRED:
+      if (discretize_reactivity_)
+        inference_engine0.UseLossPosition(s.GetMapping(), pos_w_unpaired_/np, neg_w_unpaired_/np);
+      else
+        inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_unpaired_/np, neg_w_unpaired_/np);
+      break;
+    case SStruct::REACTIVITY_PAIRED:
+    case SStruct::REACTIVITY_BOTH:
+      if (discretize_reactivity_)
+        inference_engine0.UseLossPosition(s.GetMapping(), pos_w_/np, neg_w_/np);
+      else
+        inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_/np, neg_w_/np);
+      break;
+  }
 
   inference_engine0.ComputeViterbi();
   auto loss0 = inference_engine0.GetViterbiScore();
@@ -316,6 +337,7 @@ NGSfold::train()
 
     for (auto i : idx)
     {
+      // restart if calculated results exist
       if (/*restart_ &&*/ !out_param_.empty())
       {
         std::ifstream is1(SPrintF("%s/%d.param", out_param_.c_str(), k));
@@ -334,24 +356,30 @@ NGSfold::train()
       // weight for this instance
       bool is_weak_label = i>=pos_str.second;
       auto w = is_weak_label ? weight_weak_labeled_ : 1.0;
+      auto eta_w = is_weak_label ? eta0_weak_labeled_/eta0_ : 1.0;
+
       // gradient
       auto grad = compute_gradients(data[i], &pm);
+
       // update
       for (auto g : grad)
-        if (g.second!=0.0 && !(is_weak_label && pm.is_basepair_feature(g.first)))
-          optimizer.update(g.first, pm.get_by_key(g.first), g.second, w);
+        if (g.second!=0.0)
+          if (true /*!is_weak_label || pm.is_context_feature(g.first) ||
+                     (use_bp_context_ && pm.is_basepair_context_feature(g.first)) */)
+            optimizer.update(g.first, pm.get_by_key(g.first), g.second*w, eta_w);
+
       // regularize
       for (auto p=pm.begin(); p!=pm.end(); )
       {
-        if (is_weak_label && pm.is_basepair_feature(p->first))
+        if (true /*!is_weak_label || pm.is_context_feature(p->first) ||
+                   (use_bp_context_ && pm.is_basepair_context_feature(p->first)) */)
         {
-          ++p;
-          continue;
+          optimizer.regularize(p->first, p->second, eta_w);
+          if (p->second==0.0)
+            p = pm.erase(p);
+          else
+            ++p;
         }
-
-        optimizer.regularize(p->first, p->second, w);
-        if (p->second==0.0)
-          p = pm.erase(p);
         else
           ++p;
       }
@@ -457,7 +485,6 @@ NGSfold::validate()
   return 0;
 }
 
-#if 0
 // for debug
 int
 NGSfold::count_features()
@@ -498,7 +525,6 @@ NGSfold::count_features()
 
   return 0;
 }
-#endif
 
 int
 main(int argc, char* argv[])
