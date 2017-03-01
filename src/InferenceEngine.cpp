@@ -692,7 +692,7 @@ void InferenceEngine<RealT>::UseLossPosition(const std::vector<int> &true_mappin
 }
 
 template<class RealT>
-void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w)
+void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactivity_unpair, RealT pos_w, RealT neg_w)
 {
     Assert(int(reactivity_unpair.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
@@ -706,9 +706,9 @@ void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactiv
             if (i==0) continue;
 
             loss_paired[offset[i]+j] += 
-                - pos_w/2 * (reactivity_pair[i] + reactivity_pair[j]) 
+                - pos_w/2 * (1.0-reactivity_unpair[i] + 1.0-reactivity_unpair[j]) 
                 + neg_w/2 * (reactivity_unpair[i] + reactivity_unpair[j]); 
-            loss_const += pos_w/2 * (reactivity_pair[i] + reactivity_pair[j]);
+            loss_const += pos_w/2 * (1.0-reactivity_unpair[i] + 1.0-reactivity_unpair[j]);
         }
     }
 }
@@ -762,44 +762,17 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, 
-                                                RealT threshold_unpaired_reactivity /*=0.7*/, RealT threshold_paired_reactivity /*=0.7*/, RealT scale_reactivity /*=0.1*/)
+void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reactivity_unpair, RealT scale_reactivity /*=1.0*/)
 {
     cache_initialized = false;
     
-    // determine whether we allow each position to be unpaired
-    for (int i = 1; i <= L; i++)
-    { 
-#if 0
-        auto ru = reactivity_unpair[i] >= threshold_unpaired_reactivity ? reactivity_unpair[i] : 0.0;
-#else
-        auto ru = std::max(0.0, reactivity_unpair[i]-threshold_unpaired_reactivity);
-#endif        
-        reactivity_unpaired_position[i] = scale_reactivity * ru;
-    }
-
-    // determine whether we allow ranges of positions to be unpaired;
-    // also determine which base-pairings we allow
     for (int i = 0; i <= L; i++)
     {
-        reactivity_unpaired[offset[i]+i] = RealT(0);
-        reactivity_paired[offset[i]+i] = RealT(NEG_INF);
-#if 0
-        auto rp_i = reactivity_pair[i] >= threshold_paired_reactivity ? reactivity_pair[i] : 0.0;
-#else
-        auto rp_i = std::max(0.0, reactivity_pair[i]-threshold_paired_reactivity);
-#endif
+        auto p_i = log((1.0-reactivity_unpair[i]+0.01)/(reactivity_unpair[i]+0.01));
         for (int j = i+1; j <= L; j++)
         {
-            reactivity_unpaired[offset[i]+j] = 
-                reactivity_unpaired[offset[i]+j-1] +
-                reactivity_unpaired_position[j];
-#if 0
-            auto rp_j = reactivity_pair[j] >= threshold_paired_reactivity ? reactivity_pair[j] : 0.0;
-#else
-            auto rp_j = std::max(0.0, reactivity_pair[j]-threshold_paired_reactivity);
-#endif
-            reactivity_paired[offset[i]+j] = scale_reactivity * (rp_i + rp_j); 
+            auto p_j = log((1.0-reactivity_unpair[j]+0.01)/(reactivity_unpair[j]+0.01));
+            reactivity_paired[offset[i]+j] = scale_reactivity * (p_i + p_j); 
         }
     }
 }

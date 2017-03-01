@@ -712,9 +712,9 @@ void SStruct::DiscretizeReactivity(double threshold_unpaired, double threshold_p
 {
     for (size_t i=0; i!=mapping.size(); ++i)
     {
-        if (reactivity_unpair[i]>=threshold_unpaired && reactivity_pair[i]<threshold_paired)
+        if (reactivity_unpair[i]>=threshold_unpaired)
             mapping[i] = UNPAIRED;
-        else if (reactivity_unpair[i]<threshold_unpaired && reactivity_pair[i]>=threshold_paired)
+        else if (1.0-reactivity_pair[i]>=threshold_paired)
             mapping[i] = PAIRED;
         else
             mapping[i] = UNKNOWN;

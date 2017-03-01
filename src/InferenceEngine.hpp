@@ -169,12 +169,11 @@ public:
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);
     void UseLossBasePair(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w);
     void UseLossPosition(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w);
-    void UseLossReactivity(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w);
+    void UseLossReactivity(const std::vector<float> &reactivity_unpair, RealT pos_w, RealT neg_w);
 
     // use constraints
     void UseConstraints(const std::vector<int> &true_mapping);
-    void UseSoftConstraints(const std::vector<float> &reactivity_unpair, const std::vector<float> &reactivity_pair, 
-                            RealT threshold_unpaired_reactivity=0.7, RealT threshold_paired_reactivity=0.7, RealT scale_reactivity=0.1);
+    void UseSoftConstraints(const std::vector<float> &reactivity_unpair, RealT scale_reactivity=1.0);
 
     // Viterbi inference
     void ComputeViterbi();

@@ -105,7 +105,7 @@ public:
     int GetNumSequences() const { return int(sequences.size()); }
     //get reactivity
     const std::vector<float> &GetReactivityUnpair() const { return reactivity_unpair; }
-    const std::vector<float> &GetReactivityPair() const { return reactivity_pair; }
+    //const std::vector<float> &GetReactivityPair() const { return reactivity_pair; }
     int GetType() const { return this->type; }
 };
 

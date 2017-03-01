@@ -49,10 +49,8 @@ private:
   bool output_bpseq_;
   std::string out_file_;
   std::string param_file_;
-  std::vector<std::string> data_str_list_;
-  std::vector<std::string> data_unpaired_list_;
-  std::vector<std::string> data_paired_list_;  
-  std::vector<std::string> data_both_list_;  
+  std::vector<std::string> data_list_;
+  std::vector<std::string> data_weak_list_;
   bool mea_;
   bool gce_;
   std::vector<float> gamma_;
@@ -62,8 +60,8 @@ private:
   float weight_weak_labeled_;
   float pos_w_;
   float neg_w_;
-  float pos_w_unpaired_;
-  float neg_w_unpaired_;
+  float pos_w_weak_;
+  float neg_w_weak_;
   bool per_bp_loss_;
   float lambda_;
   float eta0_;
@@ -113,30 +111,16 @@ NGSfold::parse_options(int& argc, char**& argv)
 
   if (args_info.structure_given)
   {
-    data_str_list_.resize(args_info.structure_given);
+    data_list_.resize(args_info.structure_given);
     for (uint i=0; i!=args_info.structure_given; ++i)
-      data_str_list_[i] = args_info.structure_arg[i];
+      data_list_[i] = args_info.structure_arg[i];
   }
 
-  if (args_info.unpaired_reactivity_given)
+  if (args_info.reactivity_given)
   {
-    data_unpaired_list_.resize(args_info.unpaired_reactivity_given);
-    for (uint i=0; i!=args_info.unpaired_reactivity_given; ++i)
-      data_unpaired_list_[i] = args_info.unpaired_reactivity_arg[i];
-  }
-
-  if (args_info.paired_reactivity_given)
-  {
-    data_paired_list_.resize(args_info.paired_reactivity_given);
-    for (uint i=0; i!=args_info.paired_reactivity_given; ++i)
-      data_paired_list_[i] = args_info.paired_reactivity_arg[i];
-  }
-
-  if (args_info.both_reactivity_given)
-  {
-    data_both_list_.resize(args_info.both_reactivity_given);
-    for (uint i=0; i!=args_info.both_reactivity_given; ++i)
-      data_both_list_[i] = args_info.both_reactivity_arg[i];
+    data_weak_list_.resize(args_info.reactivity_given);
+    for (uint i=0; i!=args_info.reactivity_given; ++i)
+      data_weak_list_[i] = args_info.reactivity_arg[i];
   }
 
   if (args_info.out_param_given)
@@ -150,8 +134,8 @@ NGSfold::parse_options(int& argc, char**& argv)
   weight_weak_labeled_ = args_info.weight_weak_label_arg;
   pos_w_ = args_info.pos_w_arg;
   neg_w_ = args_info.neg_w_arg;
-  pos_w_unpaired_ = args_info.pos_w_unpaired_arg;
-  neg_w_unpaired_ = args_info.neg_w_unpaired_arg;
+  pos_w_weak_ = args_info.pos_w_reactivity_arg;
+  neg_w_weak_ = args_info.neg_w_reactivity_arg;
   lambda_ = args_info.lambda_arg;
   eta0_ = args_info.eta_arg;
   eta0_weak_labeled_ = args_info.eta_weak_label_arg;
@@ -160,7 +144,6 @@ NGSfold::parse_options(int& argc, char**& argv)
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
   per_bp_loss_ = args_info.per_bp_loss_flag==1;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
-  use_bp_context_ = args_info.bp_context_flag==1;
   verbose_ = args_info.verbose_arg;
   use_constraints_ = args_info.constraints_flag==1;
   validation_mode_ = args_info.validate_flag==1;
@@ -168,7 +151,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
 
   if ((!train_mode_ && args_info.inputs_num==0) ||
-      (train_mode_ && data_str_list_.empty() && data_unpaired_list_.empty() && data_paired_list_.empty() && data_both_list_.empty() && args_info.inputs_num==0)) 
+      (train_mode_ && data_list_.empty() && data_weak_list_.empty() && args_info.inputs_num==0)) 
   {
     cmdline_parser_print_help();
     cmdline_parser_free(&args_info);
@@ -233,8 +216,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   }
   else
   {
-    inference_engine1.UseSoftConstraints(s.GetReactivityUnpair(), s.GetReactivityPair(), 
-                                         threshold_unpaired_reactivity_, threshold_paired_reactivity_, scale_reactivity_);
+    inference_engine1.UseSoftConstraints(s.GetReactivityUnpair(), scale_reactivity_);
     inference_engine1.ComputeViterbi();
     if (per_bp_loss_)
     {
@@ -263,16 +245,9 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
       break;
     case SStruct::REACTIVITY_UNPAIRED:
       if (discretize_reactivity_)
-        inference_engine0.UseLossPosition(s.GetMapping(), pos_w_unpaired_/np, neg_w_unpaired_/np);
+        inference_engine0.UseLossPosition(s.GetMapping(), pos_w_weak_/np, neg_w_weak_/np);
       else
-        inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_unpaired_/np, neg_w_unpaired_/np);
-      break;
-    case SStruct::REACTIVITY_PAIRED:
-    case SStruct::REACTIVITY_BOTH:
-      if (discretize_reactivity_)
-        inference_engine0.UseLossPosition(s.GetMapping(), pos_w_/np, neg_w_/np);
-      else
-        inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), s.GetReactivityPair(), pos_w_/np, neg_w_/np);
+        inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), pos_w_weak_/np, neg_w_weak_/np);
       break;
   }
 
@@ -311,10 +286,8 @@ NGSfold::train()
 {
   // read traing data
   std::vector<SStruct> data;
-  auto pos_str = read_data(data, data_str_list_, SStruct::NO_REACTIVITY);
-  /*auto pos_unpaired =*/ read_data(data, data_unpaired_list_, SStruct::REACTIVITY_UNPAIRED);
-  /*auto pos_paired =*/ read_data(data, data_paired_list_, SStruct::REACTIVITY_PAIRED);
-  auto pos_both = read_data(data, data_both_list_, SStruct::REACTIVITY_BOTH);
+  auto pos_str = read_data(data, data_list_, SStruct::NO_REACTIVITY);
+  auto pos_weak = read_data(data, data_weak_list_, SStruct::REACTIVITY_UNPAIRED);
 
   //AdaGradRDAUpdater optimizer(eta0_, lambda_);
   AdaGradFobosUpdater optimizer(eta0_, lambda_);
@@ -331,7 +304,7 @@ NGSfold::train()
     if (verbose_>0)
       std::cout << std::endl << "=== Epoch " << t << " ===" << std::endl;
 
-    std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_both.second);
+    std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_weak.second);
     std::iota(idx.begin(), idx.end(), 0);
     std::random_shuffle(idx.begin(), idx.end());
 

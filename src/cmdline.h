@@ -87,21 +87,11 @@ struct gengetopt_args_info
   unsigned int structure_min; /**< @brief The lists of training data with full structures's minimum occurreces */
   unsigned int structure_max; /**< @brief The lists of training data with full structures's maximum occurreces */
   const char *structure_help; /**< @brief The lists of training data with full structures help description.  */
-  char ** unpaired_reactivity_arg;	/**< @brief The lists of training data with unpaired reactivity.  */
-  char ** unpaired_reactivity_orig;	/**< @brief The lists of training data with unpaired reactivity original value given at command line.  */
-  unsigned int unpaired_reactivity_min; /**< @brief The lists of training data with unpaired reactivity's minimum occurreces */
-  unsigned int unpaired_reactivity_max; /**< @brief The lists of training data with unpaired reactivity's maximum occurreces */
-  const char *unpaired_reactivity_help; /**< @brief The lists of training data with unpaired reactivity help description.  */
-  char ** paired_reactivity_arg;	/**< @brief The lists of training data with paired reactivity.  */
-  char ** paired_reactivity_orig;	/**< @brief The lists of training data with paired reactivity original value given at command line.  */
-  unsigned int paired_reactivity_min; /**< @brief The lists of training data with paired reactivity's minimum occurreces */
-  unsigned int paired_reactivity_max; /**< @brief The lists of training data with paired reactivity's maximum occurreces */
-  const char *paired_reactivity_help; /**< @brief The lists of training data with paired reactivity help description.  */
-  char ** both_reactivity_arg;	/**< @brief The lists of training data with both of unpaired and paired  reactivity.  */
-  char ** both_reactivity_orig;	/**< @brief The lists of training data with both of unpaired and paired  reactivity original value given at command line.  */
-  unsigned int both_reactivity_min; /**< @brief The lists of training data with both of unpaired and paired  reactivity's minimum occurreces */
-  unsigned int both_reactivity_max; /**< @brief The lists of training data with both of unpaired and paired  reactivity's maximum occurreces */
-  const char *both_reactivity_help; /**< @brief The lists of training data with both of unpaired and paired  reactivity help description.  */
+  char ** reactivity_arg;	/**< @brief The lists of training data with reactivity, i.e. weak labeled data.  */
+  char ** reactivity_orig;	/**< @brief The lists of training data with reactivity, i.e. weak labeled data original value given at command line.  */
+  unsigned int reactivity_min; /**< @brief The lists of training data with reactivity, i.e. weak labeled data's minimum occurreces */
+  unsigned int reactivity_max; /**< @brief The lists of training data with reactivity, i.e. weak labeled data's maximum occurreces */
+  const char *reactivity_help; /**< @brief The lists of training data with reactivity, i.e. weak labeled data help description.  */
   float eta_arg;	/**< @brief Initial step width of the subgradient optimization (default='1.0').  */
   char * eta_orig;	/**< @brief Initial step width of the subgradient optimization original value given at command line.  */
   const char *eta_help; /**< @brief Initial step width of the subgradient optimization help description.  */
@@ -114,12 +104,12 @@ struct gengetopt_args_info
   float neg_w_arg;	/**< @brief The weight for negative base-pairs (default='1').  */
   char * neg_w_orig;	/**< @brief The weight for negative base-pairs original value given at command line.  */
   const char *neg_w_help; /**< @brief The weight for negative base-pairs help description.  */
-  float pos_w_unpaired_arg;	/**< @brief The weight for positive base-pairs for training from unpaired reactivity data (default='0').  */
-  char * pos_w_unpaired_orig;	/**< @brief The weight for positive base-pairs for training from unpaired reactivity data original value given at command line.  */
-  const char *pos_w_unpaired_help; /**< @brief The weight for positive base-pairs for training from unpaired reactivity data help description.  */
-  float neg_w_unpaired_arg;	/**< @brief The weight for negative base-pairs for training from unpaired reactivity data (default='0').  */
-  char * neg_w_unpaired_orig;	/**< @brief The weight for negative base-pairs for training from unpaired reactivity data original value given at command line.  */
-  const char *neg_w_unpaired_help; /**< @brief The weight for negative base-pairs for training from unpaired reactivity data help description.  */
+  float pos_w_reactivity_arg;	/**< @brief The weight for positive base-pairs for training from unpaired reactivity data (default='0').  */
+  char * pos_w_reactivity_orig;	/**< @brief The weight for positive base-pairs for training from unpaired reactivity data original value given at command line.  */
+  const char *pos_w_reactivity_help; /**< @brief The weight for positive base-pairs for training from unpaired reactivity data help description.  */
+  float neg_w_reactivity_arg;	/**< @brief The weight for negative base-pairs for training from unpaired reactivity data (default='0').  */
+  char * neg_w_reactivity_orig;	/**< @brief The weight for negative base-pairs for training from unpaired reactivity data original value given at command line.  */
+  const char *neg_w_reactivity_help; /**< @brief The weight for negative base-pairs for training from unpaired reactivity data help description.  */
   int per_bp_loss_flag;	/**< @brief Ajust the loss according to the number of base pairs (default=off).  */
   const char *per_bp_loss_help; /**< @brief Ajust the loss according to the number of base pairs help description.  */
   float lambda_arg;	/**< @brief The weight for the L1 regularization term (default='0.0001').  */
@@ -136,8 +126,6 @@ struct gengetopt_args_info
   const char *threshold_paired_reactivity_help; /**< @brief The threshold of reactiviy for paired bases help description.  */
   int discretize_reactivity_flag;	/**< @brief Discretize reactivity with reactivity thresholds (default=off).  */
   const char *discretize_reactivity_help; /**< @brief Discretize reactivity with reactivity thresholds help description.  */
-  int bp_context_flag;	/**< @brief Train the features for base-pair contexts in weak label traing  (default=off).  */
-  const char *bp_context_help; /**< @brief Train the features for base-pair contexts in weak label traing  help description.  */
   char * out_param_arg;	/**< @brief Output parameter sets for each step.  */
   char * out_param_orig;	/**< @brief Output parameter sets for each step original value given at command line.  */
   const char *out_param_help; /**< @brief Output parameter sets for each step help description.  */
@@ -162,22 +150,19 @@ struct gengetopt_args_info
   unsigned int burn_in_given ;	/**< @brief Whether burn-in was given.  */
   unsigned int weight_weak_label_given ;	/**< @brief Whether weight-weak-label was given.  */
   unsigned int structure_given ;	/**< @brief Whether structure was given.  */
-  unsigned int unpaired_reactivity_given ;	/**< @brief Whether unpaired-reactivity was given.  */
-  unsigned int paired_reactivity_given ;	/**< @brief Whether paired-reactivity was given.  */
-  unsigned int both_reactivity_given ;	/**< @brief Whether both-reactivity was given.  */
+  unsigned int reactivity_given ;	/**< @brief Whether reactivity was given.  */
   unsigned int eta_given ;	/**< @brief Whether eta was given.  */
   unsigned int eta_weak_label_given ;	/**< @brief Whether eta-weak-label was given.  */
   unsigned int pos_w_given ;	/**< @brief Whether pos-w was given.  */
   unsigned int neg_w_given ;	/**< @brief Whether neg-w was given.  */
-  unsigned int pos_w_unpaired_given ;	/**< @brief Whether pos-w-unpaired was given.  */
-  unsigned int neg_w_unpaired_given ;	/**< @brief Whether neg-w-unpaired was given.  */
+  unsigned int pos_w_reactivity_given ;	/**< @brief Whether pos-w-reactivity was given.  */
+  unsigned int neg_w_reactivity_given ;	/**< @brief Whether neg-w-reactivity was given.  */
   unsigned int per_bp_loss_given ;	/**< @brief Whether per-bp-loss was given.  */
   unsigned int lambda_given ;	/**< @brief Whether lambda was given.  */
   unsigned int scale_reactivity_given ;	/**< @brief Whether scale-reactivity was given.  */
   unsigned int threshold_unpaired_reactivity_given ;	/**< @brief Whether threshold-unpaired-reactivity was given.  */
   unsigned int threshold_paired_reactivity_given ;	/**< @brief Whether threshold-paired-reactivity was given.  */
   unsigned int discretize_reactivity_given ;	/**< @brief Whether discretize-reactivity was given.  */
-  unsigned int bp_context_given ;	/**< @brief Whether bp-context was given.  */
   unsigned int out_param_given ;	/**< @brief Whether out-param was given.  */
   unsigned int validate_given ;	/**< @brief Whether validate was given.  */
 
