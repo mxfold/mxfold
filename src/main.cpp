@@ -70,7 +70,7 @@ private:
   float threshold_unpaired_reactivity_;
   float threshold_paired_reactivity_;
   bool discretize_reactivity_;
-  bool use_bp_context_;
+  //bool use_bp_context_;
   int verbose_;
   std::string out_param_;
   bool validation_mode_;
@@ -216,7 +216,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   }
   else
   {
-    inference_engine1.UseSoftConstraints(s.GetReactivityUnpair(), scale_reactivity_);
+    inference_engine1.UseSoftConstraints(s.GetReactivityPair(), scale_reactivity_);
     inference_engine1.ComputeViterbi();
     if (per_bp_loss_)
     {
@@ -287,7 +287,7 @@ NGSfold::train()
   // read traing data
   std::vector<SStruct> data;
   auto pos_str = read_data(data, data_list_, SStruct::NO_REACTIVITY);
-  auto pos_weak = read_data(data, data_weak_list_, SStruct::REACTIVITY_UNPAIRED);
+  auto pos_weak = read_data(data, data_weak_list_, SStruct::REACTIVITY_PAIRED);
 
   //AdaGradRDAUpdater optimizer(eta0_, lambda_);
   AdaGradFobosUpdater optimizer(eta0_, lambda_);

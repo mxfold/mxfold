@@ -173,7 +173,7 @@ public:
 
     // use constraints
     void UseConstraints(const std::vector<int> &true_mapping);
-    void UseSoftConstraints(const std::vector<float> &reactivity_unpair, RealT scale_reactivity=1.0);
+    void UseSoftConstraints(const std::vector<float> &reactivity_pair, RealT scale_reactivity=1.0);
 
     // Viterbi inference
     void ComputeViterbi();

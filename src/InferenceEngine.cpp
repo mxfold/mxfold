@@ -762,19 +762,17 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reactivity_unpair, RealT scale_reactivity /*=1.0*/)
+void InferenceEngine<RealT>::UseSoftConstraints(const std::vector<float> &reactivity_pair, RealT scale_reactivity /*=1.0*/)
 {
     cache_initialized = false;
-    
+
+    std::vector<float> pe(L+1);
     for (int i = 0; i <= L; i++)
-    {
-        auto p_i = log((1.0-reactivity_unpair[i]+0.01)/(reactivity_unpair[i]+0.01));
+        pe[i] = log((reactivity_pair[i]+0.01)/(1.0-reactivity_pair[i]+0.01));
+
+    for (int i = 0; i <= L; i++)
         for (int j = i+1; j <= L; j++)
-        {
-            auto p_j = log((1.0-reactivity_unpair[j]+0.01)/(reactivity_unpair[j]+0.01));
-            reactivity_paired[offset[i]+j] = scale_reactivity * (p_i + p_j); 
-        }
-    }
+            reactivity_paired[offset[i]+j] = scale_reactivity * (pe[i] + pe[j]); 
 }
 
 
