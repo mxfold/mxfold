@@ -247,7 +247,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
       if (discretize_reactivity_)
         inference_engine0.UseLossPosition(s.GetMapping(), pos_w_weak_/np, neg_w_weak_/np);
       else
-        inference_engine0.UseLossReactivity(s.GetReactivityUnpair(), pos_w_weak_/np, neg_w_weak_/np);
+        inference_engine0.UseLossReactivity(s.GetReactivityPair(), pos_w_weak_/np, neg_w_weak_/np);
       break;
   }
 

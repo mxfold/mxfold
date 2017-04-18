@@ -169,7 +169,7 @@ public:
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);
     void UseLossBasePair(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w);
     void UseLossPosition(const std::vector<int> &true_mapping, RealT pos_w, RealT neg_w);
-    void UseLossReactivity(const std::vector<float> &reactivity_unpair, RealT pos_w, RealT neg_w);
+    void UseLossReactivity(const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w);
 
     // use constraints
     void UseConstraints(const std::vector<int> &true_mapping);

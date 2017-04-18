@@ -692,9 +692,9 @@ void InferenceEngine<RealT>::UseLossPosition(const std::vector<int> &true_mappin
 }
 
 template<class RealT>
-void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactivity_unpair, RealT pos_w, RealT neg_w)
+void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactivity_pair, RealT pos_w, RealT neg_w)
 {
-    Assert(int(reactivity_unpair.size()) == L+1, "Mapping of incorrect length!");
+    Assert(int(reactivity_pair.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
 
     for (int i = 0; i <= L; i++)
@@ -706,9 +706,9 @@ void InferenceEngine<RealT>::UseLossReactivity(const std::vector<float> &reactiv
             if (i==0) continue;
 
             loss_paired[offset[i]+j] += 
-                - pos_w/2 * (1.0-reactivity_unpair[i] + 1.0-reactivity_unpair[j]) 
-                + neg_w/2 * (reactivity_unpair[i] + reactivity_unpair[j]); 
-            loss_const += pos_w/2 * (1.0-reactivity_unpair[i] + 1.0-reactivity_unpair[j]);
+                - pos_w/2 * (reactivity_pair[i] + reactivity_pair[j]) 
+                + neg_w/2 * (1.0-reactivity_pair[i] + 1.0-reactivity_pair[j]); 
+            loss_const += pos_w/2 * (reactivity_pair[i] + reactivity_pair[j]);
         }
     }
 }
