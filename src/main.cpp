@@ -5,6 +5,7 @@
 #include <utility>
 #include <string>
 #include <stdexcept>
+#include <cassert>
 #include <ctime>
 #include "cmdline.h"
 #include "Config.hpp"
@@ -240,14 +241,16 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   switch (s.GetType())
   {
     case SStruct::NO_REACTIVITY:
-    default:
       inference_engine0.UseLossBasePair(s.GetMapping(), pos_w_/np, neg_w_/np);
       break;
-    case SStruct::REACTIVITY_UNPAIRED:
+    case SStruct::REACTIVITY_PAIRED:
       if (discretize_reactivity_)
         inference_engine0.UseLossPosition(s.GetMapping(), pos_w_weak_/np, neg_w_weak_/np);
       else
         inference_engine0.UseLossReactivity(s.GetReactivityPair(), pos_w_weak_/np, neg_w_weak_/np);
+      break;
+    default:
+      assert(!"unreachable");
       break;
   }
 
