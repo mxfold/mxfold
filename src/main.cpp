@@ -76,6 +76,7 @@ private:
   std::string out_param_;
   bool validation_mode_;
   bool use_constraints_;
+  bool use_soft_constraints_;
   std::vector<std::string> args_;
 };
 
@@ -147,6 +148,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
   verbose_ = args_info.verbose_arg;
   use_constraints_ = args_info.constraints_flag==1;
+  use_soft_constraints_ = args_info.soft_constraints_flag==1;
   validation_mode_ = args_info.validate_flag==1;
 
   srand(args_info.random_seed_arg<0 ? time(0) : args_info.random_seed_arg);
@@ -394,13 +396,14 @@ NGSfold::predict()
   for (auto s : args_)
   {
     SStruct sstruct;
-    sstruct.Load(s /*, SStruct::REACTIVITY_BOTH*/);
-    SStruct solution(sstruct);
+    sstruct.Load(s, use_soft_constraints_ ? SStruct::REACTIVITY_PAIRED : SStruct::NO_REACTIVITY);
     inference_engine.LoadSequence(sstruct);
-    //sstruct.WriteParens(std::cout); // for debug
-    //std::cout << std::endl;
     if (use_constraints_)
       inference_engine.UseConstraints(sstruct.GetMapping());
+    if (use_soft_constraints_)
+      inference_engine.UseSoftConstraints(sstruct.GetReactivityPair(), scale_reactivity_);
+
+    SStruct solution(sstruct);
     if (!mea_ && !gce_)
     {
       inference_engine.ComputeViterbi();
@@ -416,6 +419,7 @@ NGSfold::predict()
       else
         solution.SetMapping(inference_engine.PredictPairingsPosterior<1>(gamma_[0]));
     }
+
     if (output_bpseq_)
       solution.WriteBPSEQ(std::cout);
     else

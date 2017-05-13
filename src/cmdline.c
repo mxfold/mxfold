@@ -48,6 +48,7 @@ const char *gengetopt_args_info_full_help[] = {
   "  -g, --gce=gamma               Generalized centroid decoding with gamma\n                                  (default=`4.0')",
   "      --bpseq                   Output predicted results as the BPSEQ format\n                                  (default=off)",
   "      --constraints             Use contraints  (default=off)",
+  "      --soft-constraints        Use soft contraints  (default=off)",
   "\nTraining mode:",
   "      --train=output-file       Trainining mode (write the trained parameters\n                                  into output-file)",
   "  -i, --max-iter=INT            The maximum number of iterations for training\n                                  (default=`100')",
@@ -97,17 +98,18 @@ init_help_array(void)
   gengetopt_args_info_help[18] = gengetopt_args_info_full_help[18];
   gengetopt_args_info_help[19] = gengetopt_args_info_full_help[19];
   gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
-  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[23];
+  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[21];
   gengetopt_args_info_help[22] = gengetopt_args_info_full_help[24];
-  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[28];
+  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[25];
   gengetopt_args_info_help[24] = gengetopt_args_info_full_help[29];
-  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[34];
+  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[30];
   gengetopt_args_info_help[26] = gengetopt_args_info_full_help[35];
-  gengetopt_args_info_help[27] = 0; 
+  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[36];
+  gengetopt_args_info_help[28] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[28];
+const char *gengetopt_args_info_help[29];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -147,6 +149,7 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->gce_given = 0 ;
   args_info->bpseq_given = 0 ;
   args_info->constraints_given = 0 ;
+  args_info->soft_constraints_given = 0 ;
   args_info->train_given = 0 ;
   args_info->max_iter_given = 0 ;
   args_info->burn_in_given = 0 ;
@@ -189,6 +192,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->gce_orig = NULL;
   args_info->bpseq_flag = 0;
   args_info->constraints_flag = 0;
+  args_info->soft_constraints_flag = 0;
   args_info->train_arg = NULL;
   args_info->train_orig = NULL;
   args_info->max_iter_arg = 100;
@@ -251,30 +255,31 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->gce_max = 0;
   args_info->bpseq_help = gengetopt_args_info_full_help[12] ;
   args_info->constraints_help = gengetopt_args_info_full_help[13] ;
-  args_info->train_help = gengetopt_args_info_full_help[15] ;
-  args_info->max_iter_help = gengetopt_args_info_full_help[16] ;
-  args_info->burn_in_help = gengetopt_args_info_full_help[17] ;
-  args_info->weight_weak_label_help = gengetopt_args_info_full_help[18] ;
-  args_info->structure_help = gengetopt_args_info_full_help[19] ;
+  args_info->soft_constraints_help = gengetopt_args_info_full_help[14] ;
+  args_info->train_help = gengetopt_args_info_full_help[16] ;
+  args_info->max_iter_help = gengetopt_args_info_full_help[17] ;
+  args_info->burn_in_help = gengetopt_args_info_full_help[18] ;
+  args_info->weight_weak_label_help = gengetopt_args_info_full_help[19] ;
+  args_info->structure_help = gengetopt_args_info_full_help[20] ;
   args_info->structure_min = 0;
   args_info->structure_max = 0;
-  args_info->reactivity_help = gengetopt_args_info_full_help[20] ;
+  args_info->reactivity_help = gengetopt_args_info_full_help[21] ;
   args_info->reactivity_min = 0;
   args_info->reactivity_max = 0;
-  args_info->eta_help = gengetopt_args_info_full_help[21] ;
-  args_info->eta_weak_label_help = gengetopt_args_info_full_help[22] ;
-  args_info->pos_w_help = gengetopt_args_info_full_help[23] ;
-  args_info->neg_w_help = gengetopt_args_info_full_help[24] ;
-  args_info->pos_w_reactivity_help = gengetopt_args_info_full_help[25] ;
-  args_info->neg_w_reactivity_help = gengetopt_args_info_full_help[26] ;
-  args_info->per_bp_loss_help = gengetopt_args_info_full_help[27] ;
-  args_info->lambda_help = gengetopt_args_info_full_help[28] ;
-  args_info->scale_reactivity_help = gengetopt_args_info_full_help[29] ;
-  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[30] ;
-  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[31] ;
-  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[32] ;
-  args_info->out_param_help = gengetopt_args_info_full_help[33] ;
-  args_info->validate_help = gengetopt_args_info_full_help[35] ;
+  args_info->eta_help = gengetopt_args_info_full_help[22] ;
+  args_info->eta_weak_label_help = gengetopt_args_info_full_help[23] ;
+  args_info->pos_w_help = gengetopt_args_info_full_help[24] ;
+  args_info->neg_w_help = gengetopt_args_info_full_help[25] ;
+  args_info->pos_w_reactivity_help = gengetopt_args_info_full_help[26] ;
+  args_info->neg_w_reactivity_help = gengetopt_args_info_full_help[27] ;
+  args_info->per_bp_loss_help = gengetopt_args_info_full_help[28] ;
+  args_info->lambda_help = gengetopt_args_info_full_help[29] ;
+  args_info->scale_reactivity_help = gengetopt_args_info_full_help[30] ;
+  args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[31] ;
+  args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[32] ;
+  args_info->discretize_reactivity_help = gengetopt_args_info_full_help[33] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[34] ;
+  args_info->validate_help = gengetopt_args_info_full_help[36] ;
   
 }
 
@@ -529,6 +534,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "bpseq", 0, 0 );
   if (args_info->constraints_given)
     write_into_file(outfile, "constraints", 0, 0 );
+  if (args_info->soft_constraints_given)
+    write_into_file(outfile, "soft-constraints", 0, 0 );
   if (args_info->train_given)
     write_into_file(outfile, "train", args_info->train_orig, 0);
   if (args_info->max_iter_given)
@@ -1153,6 +1160,7 @@ cmdline_parser_internal (
         { "gce",	1, NULL, 'g' },
         { "bpseq",	0, NULL, 0 },
         { "constraints",	0, NULL, 0 },
+        { "soft-constraints",	0, NULL, 0 },
         { "train",	1, NULL, 0 },
         { "max-iter",	1, NULL, 'i' },
         { "burn-in",	1, NULL, 'b' },
@@ -1358,6 +1366,18 @@ cmdline_parser_internal (
             if (update_arg((void *)&(args_info->constraints_flag), 0, &(args_info->constraints_given),
                 &(local_args_info.constraints_given), optarg, 0, 0, ARG_FLAG,
                 check_ambiguity, override, 1, 0, "constraints", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* Use soft contraints.  */
+          else if (strcmp (long_options[option_index].name, "soft-constraints") == 0)
+          {
+          
+          
+            if (update_arg((void *)&(args_info->soft_constraints_flag), 0, &(args_info->soft_constraints_given),
+                &(local_args_info.soft_constraints_given), optarg, 0, 0, ARG_FLAG,
+                check_ambiguity, override, 1, 0, "soft-constraints", '-',
                 additional_error))
               goto failure;
           

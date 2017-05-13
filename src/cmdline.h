@@ -70,6 +70,8 @@ struct gengetopt_args_info
   const char *bpseq_help; /**< @brief Output predicted results as the BPSEQ format help description.  */
   int constraints_flag;	/**< @brief Use contraints (default=off).  */
   const char *constraints_help; /**< @brief Use contraints help description.  */
+  int soft_constraints_flag;	/**< @brief Use soft contraints (default=off).  */
+  const char *soft_constraints_help; /**< @brief Use soft contraints help description.  */
   char * train_arg;	/**< @brief Trainining mode (write the trained parameters into output-file).  */
   char * train_orig;	/**< @brief Trainining mode (write the trained parameters into output-file) original value given at command line.  */
   const char *train_help; /**< @brief Trainining mode (write the trained parameters into output-file) help description.  */
@@ -145,6 +147,7 @@ struct gengetopt_args_info
   unsigned int gce_given ;	/**< @brief Whether gce was given.  */
   unsigned int bpseq_given ;	/**< @brief Whether bpseq was given.  */
   unsigned int constraints_given ;	/**< @brief Whether constraints was given.  */
+  unsigned int soft_constraints_given ;	/**< @brief Whether soft-constraints was given.  */
   unsigned int train_given ;	/**< @brief Whether train was given.  */
   unsigned int max_iter_given ;	/**< @brief Whether max-iter was given.  */
   unsigned int burn_in_given ;	/**< @brief Whether burn-in was given.  */
