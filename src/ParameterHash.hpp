@@ -5,6 +5,7 @@
 #include "Utilities.hpp"
 #include <string>
 #include <unordered_map>
+#include <iterator>
 #include <array>
 #include "cedar.h"
 
@@ -13,6 +14,7 @@ class ParameterHash
 {
 public:
   //typedef typename ValueT ValueT;
+  typedef cedar::da<ValueT> trie_t;
 
 public:
   ParameterHash() { initialize(); }
@@ -26,7 +28,8 @@ public:
 
   ParameterHash& operator=(ParameterHash&& other)
   {
-    param_ = other.param_;
+    param_ = std::move(other.param_);
+    return *this;
   }
 
   void initialize();
@@ -47,11 +50,98 @@ public:
   bool is_context_feature(const std::string& f) const;
   bool is_basepair_context_feature(const std::string& f) const;
 
-  typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
-  typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
-  typename std::unordered_map<std::string, ValueT>::iterator end() { return param_.end(); }
-  typename std::unordered_map<std::string, ValueT>::const_iterator end() const { return param_.end(); }
-  typename std::unordered_map<std::string, ValueT>::iterator erase(typename std::unordered_map<std::string, ValueT>::const_iterator pos) { return param_.erase(pos); }
+  // read-only iterator
+  class const_iterator : public std::iterator<std::forward_iterator_tag, std::pair<std::string, ValueT> >
+  {
+  public:
+    const_iterator(const trie_t* trie, size_t from=0, size_t len=0)
+      : trie_(trie), from_(from), len_(len) 
+    { }
+
+    void begin()
+    {
+      b_.i = const_cast<trie_t*>(trie_)->begin(from_, len_);
+      dereference();
+    }
+
+    void end()
+    {
+      b_.i = trie_t::CEDAR_NO_PATH;
+      from_ = -1u;
+      len_ = 0;
+    }
+
+    void dereference()
+    {
+      char key[1024];
+      trie_->suffix(key, len_, from_);
+      v_.first = std::string(key);
+      v_.second = b_.x;
+    }
+
+    const std::pair<std::string, ValueT>& operator*() const
+    {
+      return v_;
+    }
+
+    const std::pair<std::string, ValueT>* operator->() const
+    {
+      return &v_;
+    }
+
+    const_iterator& operator++()
+    {
+      b_.i = const_cast<trie_t*>(trie_)->next(from_, len_);
+      if (b_.i==trie_t::CEDAR_NO_PATH) end();
+      return *this;
+    }
+
+    const_iterator operator++(int)
+    {
+      const_iterator temp = *this;
+      b_.i = const_cast<trie_t*>(trie_)->next(from_, len_);
+      if (b_.i==trie_t::CEDAR_NO_PATH) end();
+      return temp;
+    }
+
+    bool operator!=(const const_iterator& x) const
+    {
+      return from_!=x.from_ || len_!=x.len_;
+    }
+
+    bool operator==(const const_iterator& x) const
+    {
+      return from_==x.from_ && len_==x.len_;
+    }
+
+  private:
+    const trie_t* trie_;
+    size_t from_;
+    size_t len_;
+    union { int i; typename trie_t::result_type x; } b_;
+    std::pair<std::string, ValueT> v_;
+  };
+
+
+  const_iterator begin() const
+  {
+    const_iterator itr(&param_);
+    itr.begin();
+    return itr;
+  }
+
+  const_iterator end() const
+  {
+    const_iterator itr(&param_);
+    itr.end();
+    return itr;
+  }
+
+  //typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
+  //typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
+  //typename std::unordered_map<std::string, ValueT>::iterator end() { return param_.end(); }
+  //typename std::unordered_map<std::string, ValueT>::const_iterator end() const { return param_.end(); }
+  //typename std::unordered_map<std::string, ValueT>::iterator erase(typename std::unordered_map<std::string, ValueT>::const_iterator pos) { return param_.erase(pos); }
 
   // access to parameters
 #if PARAMS_BASE_PAIR
@@ -244,7 +334,7 @@ public:
 
 private:
   //std::unordered_map<std::string, ValueT> param_;
-  cedar::da<ValueT> param_;
+  trie_t param_;
   std::array<std::array<int, 256>, 256> is_complementary_;
   std::array<int, 256> is_base_;
 };

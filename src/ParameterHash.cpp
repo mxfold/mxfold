@@ -65,7 +65,7 @@ void
 ParameterHash<ValueT>::
 LoadFromHash(std::unordered_map<std::string, ValueT> hash)
 {
-  param_ = std::move(hash);
+  param_ = hash;
 }
 
 template < class ValueT >
@@ -138,7 +138,7 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  return param_.update(key.c_str());
+  return param_.update(key.c_str(), key.size());
 }
 
 #if PARAMS_BASE_PAIR

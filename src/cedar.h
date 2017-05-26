@@ -108,6 +108,7 @@ namespace cedar {
       other._ninfo = nullptr;
       other._block = nullptr;
       other._bheadF = other._bheadC = other._bheadO = other._capacity = other._size = 0;
+      return *this;
     }
 #endif
     size_t capacity   () const { return static_cast <size_t> (_capacity); }
