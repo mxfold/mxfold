@@ -132,7 +132,7 @@ ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
   auto r = param_.template exactMatchSearch<ValueT>(key.c_str());
-  return r!=cedar::da<ValueT>::CEDAR_NO_PATH ? static_cast<ValueT>(0) : r;
+  return r==cedar::da<ValueT>::CEDAR_NO_PATH ? static_cast<ValueT>(0) : r;
 }
 
 template < class ValueT >

@@ -78,7 +78,7 @@ public:
 
     std::string key() const
     {
-      std::string s(len_+1, ' ');
+      std::string s(len_, '\0');
       trie_->suffix(&s[0], len_, from_);
       return s;
     }
