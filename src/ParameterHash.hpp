@@ -6,6 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <array>
+#include "cedar.h"
 
 template < class ValueT >
 class ParameterHash
@@ -14,8 +15,21 @@ public:
   //typedef typename ValueT ValueT;
 
 public:
-  ParameterHash();
-  ~ParameterHash() {}
+  ParameterHash() { initialize(); }
+  ~ParameterHash();
+
+  ParameterHash(ParameterHash&& other)
+    : param_(std::move(other.param_))
+  {
+    initialize();
+  }
+
+  ParameterHash& operator=(ParameterHash&& other)
+  {
+    param_ = other.param_;
+  }
+
+  void initialize();
 
   bool is_complementary(NUCL x, NUCL y) const;
   bool is_base(NUCL x) const;
@@ -229,7 +243,8 @@ public:
 #endif
 
 private:
-  std::unordered_map<std::string, ValueT> param_;
+  //std::unordered_map<std::string, ValueT> param_;
+  cedar::da<ValueT> param_;
   std::array<std::array<int, 256>, 256> is_complementary_;
   std::array<int, 256> is_base_;
 };

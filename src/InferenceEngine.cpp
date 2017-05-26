@@ -4014,13 +4014,13 @@ RealT *InferenceEngine<RealT>::GetPosterior(const RealT posterior_cutoff) const
 }
 
 template 
-class InferenceEngine<double>;
+class InferenceEngine<param_value_type>;
 
 template
-std::vector<int> InferenceEngine<double>::PredictPairingsPosterior<0>(const double gamma) const;
+std::vector<int> InferenceEngine<param_value_type>::PredictPairingsPosterior<0>(const float gamma) const;
 
 template
-std::vector<int> InferenceEngine<double>::PredictPairingsPosterior<1>(const double gamma) const;
+std::vector<int> InferenceEngine<param_value_type>::PredictPairingsPosterior<1>(const float gamma) const;
 
 // Local Variables:
 // mode: C++

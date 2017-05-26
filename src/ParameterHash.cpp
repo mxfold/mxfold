@@ -21,10 +21,10 @@ string_format( const std::string& format, Args ... args )
   return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
-    
 template < class ValueT >
+void
 ParameterHash<ValueT>::
-ParameterHash()
+initialize()
 {
   std::fill(std::begin(is_base_), std::end(is_base_), false);
   is_base_['A'] = is_base_['C'] = is_base_['G'] = is_base_['U'] = is_base_['P'] = true;
@@ -128,8 +128,8 @@ ValueT
 ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
-  auto itr = param_.find(key);
-  return itr==param_.end() ? static_cast<ValueT>(0) : itr->second;
+  auto r = param_.template exactMatchSearch<ValueT>(key.c_str());
+  return r!=cedar::da<ValueT>::CEDAR_NO_PATH ? static_cast<ValueT>(0) : r;
 }
 
 template < class ValueT >
@@ -138,7 +138,7 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  return param_.insert(std::make_pair(key, static_cast<ValueT>(0))).first->second;
+  return param_.update(key.c_str());
 }
 
 #if PARAMS_BASE_PAIR
@@ -1435,7 +1435,7 @@ is_context_feature(const std::string& f) const
 }
 
 template
-class ParameterHash<double>;
+class ParameterHash<param_value_type>;
 
-template
-class ParameterHash<uint>;
+//template
+//class ParameterHash<uint>;
