@@ -229,8 +229,8 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
 
   auto loss1 = inference_engine1.GetViterbiScore();
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
-  for (auto e : corr)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+  for (auto p=corr.begin(); p!=corr.end(); ++p)
+    grad.insert(std::make_pair(p.key(), 0.0)).first->second -= *p;
 
 
   // count the occurence of parameters in the predicted structure
@@ -254,8 +254,8 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   inference_engine0.ComputeViterbi();
   auto loss0 = inference_engine0.GetViterbiScore();
   auto pred = inference_engine0.ComputeViterbiFeatureCounts();
-  for (auto e : pred)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+  for (auto p=pred.begin(); p!=pred.end(); ++p)
+    grad.insert(std::make_pair(p.key(), 0.0)).first->second += *p;
 
 
   if (verbose_>0)
@@ -342,16 +342,18 @@ NGSfold::train()
             optimizer.update(g.first, pm.get_by_key(g.first), g.second*w, eta_w);
 
       // regularize
-      for (auto p=pm.begin(); p!=pm.end(); )
+      for (auto p=pm.begin(); p!=pm.end(); ++p)
       {
         if (true /*!is_weak_label || pm.is_context_feature(p->first) ||
                    (use_bp_context_ && pm.is_basepair_context_feature(p->first)) */)
         {
-          optimizer.regularize(p->first, p->second, eta_w);
-          if (p->second==0.0)
+          optimizer.regularize(p.key(), *p, eta_w);
+#if 0
+          if (*p==0.0)
             p = pm.erase(p);
           else
             ++p;
+#endif
         }
         else
           ++p;
@@ -484,9 +486,9 @@ NGSfold::count_features()
     inference_engine.UseConstraints(sstruct.GetMapping());
     inference_engine.ComputeViterbi();
     auto corr = inference_engine.ComputeViterbiFeatureCounts();
-    for (auto e: corr)
-      if (e.second!=0.0)
-        cnt.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+    for (auto p=corr.begin(); p!=corr.end(); ++p)
+      if (*p!=0.0)
+        cnt.insert(std::make_pair(p.key(), 0.0)).first->second += *p;
   }
 
   std::vector<std::string> keys;

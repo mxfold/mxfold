@@ -63,9 +63,12 @@ is_base(NUCL x) const
 template < class ValueT >
 void
 ParameterHash<ValueT>::
-LoadFromHash(std::unordered_map<std::string, ValueT> hash)
+LoadFromHash(const std::unordered_map<std::string, ValueT>& hash)
 {
-  param_ = hash;
+  for (auto e: hash)
+  {
+    get_by_key(e.first) = e.second;
+  }
 }
 
 template < class ValueT >
@@ -83,7 +86,7 @@ ReadFromFile(const std::string& filename)
   {
     while (is >> k >> v)
       if (v!=0.0)
-        param_.insert(std::make_pair(k, v));
+        get_by_key(k) = v;
   }
   else
   {
@@ -92,7 +95,7 @@ ReadFromFile(const std::string& filename)
     is >> eta >> lambda >> eps >> t;
     while (is >> k >> v >> s1 >> s2)
       if (v!=0.0)
-        param_.insert(std::make_pair(k, v));
+        get_by_key(k) = v;
   }
 }
 
@@ -107,18 +110,18 @@ WriteToFile(const std::string& filename, bool sort) const
   if (sort)
   {
     std::vector<std::string> keys;
-    for (const auto& e : param_)
-      if (e.second!=0.0)
-        keys.emplace_back(e.first);
+    for (auto p=this->cbegin(); p!=this->cend(); ++p)
+      if (*p!=0.0)
+        keys.emplace_back(p.key());
     std::sort(keys.begin(), keys.end());
     for (const auto& k : keys)
-      os << k << " " << param_.find(k)->second << std::endl;
+      os << k << " " << get_by_key(k) << std::endl;
   }
   else
   {
-    for (const auto& e : param_)
-      if (e.second!=0.0)
-        os << e.first << " " << e.second << std::endl;
+    for (auto p=this->cbegin(); p!=this->cend(); ++p)
+      if (*p!=0.0)
+        os << p.key() << " " << *p << std::endl;
   }
 }
 
@@ -138,7 +141,7 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  return param_.update(key.c_str(), key.size());
+  return param_.update(key.c_str());
 }
 
 #if PARAMS_BASE_PAIR

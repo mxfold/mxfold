@@ -18,7 +18,7 @@ public:
 
 public:
   ParameterHash() { initialize(); }
-  ~ParameterHash();
+  ~ParameterHash() { }
 
   ParameterHash(ParameterHash&& other)
     : param_(std::move(other.param_))
@@ -37,7 +37,7 @@ public:
   bool is_complementary(NUCL x, NUCL y) const;
   bool is_base(NUCL x) const;
 
-  void LoadFromHash(std::unordered_map<std::string, ValueT> hash);
+  void LoadFromHash(const std::unordered_map<std::string, ValueT>& hash);
   void LoadDefaultComplementary();
   void LoadDefaultNonComplementary();
   void ReadFromFile(const std::string& filename);
@@ -51,90 +51,99 @@ public:
   bool is_basepair_context_feature(const std::string& f) const;
 
   // read-only iterator
-  class const_iterator : public std::iterator<std::forward_iterator_tag, std::pair<std::string, ValueT> >
+  class iterator : public std::iterator<std::forward_iterator_tag, ValueT >
   {
   public:
-    const_iterator(const trie_t* trie, size_t from=0, size_t len=0)
-      : trie_(trie), from_(from), len_(len) 
+    iterator(trie_t* trie, size_t from=0, size_t len=0)
+      : trie_(trie), from_(from), len_(len)
     { }
 
-    void begin()
+    iterator(const trie_t* trie, size_t from=0, size_t len=0)
+      : trie_(const_cast<trie_t*>(trie)), from_(from), len_(len)
+    { }
+
+    iterator& begin()
     {
-      b_.i = const_cast<trie_t*>(trie_)->begin(from_, len_);
-      dereference();
+      b_.i = trie_->begin(from_, len_);
+      return *this;
     }
 
-    void end()
+    iterator& end()
     {
       b_.i = trie_t::CEDAR_NO_PATH;
       from_ = -1u;
       len_ = 0;
+      return *this;
     }
 
-    void dereference()
+    std::string key() const
     {
-      char key[1024];
-      trie_->suffix(key, len_, from_);
-      v_.first = std::string(key);
-      v_.second = b_.x;
+      std::string s(len_+1, ' ');
+      trie_->suffix(&s[0], len_, from_);
+      return s;
     }
 
-    const std::pair<std::string, ValueT>& operator*() const
+    ValueT operator*() const
     {
-      return v_;
+      return b_.x;
     }
 
-    const std::pair<std::string, ValueT>* operator->() const
+    ValueT& operator*()
     {
-      return &v_;
+      return trie_->update(key().c_str(), from_, len_, len_);
     }
 
-    const_iterator& operator++()
+    iterator& operator++()
     {
-      b_.i = const_cast<trie_t*>(trie_)->next(from_, len_);
+      b_.i = trie_->next(from_, len_);
       if (b_.i==trie_t::CEDAR_NO_PATH) end();
       return *this;
     }
 
-    const_iterator operator++(int)
+    iterator operator++(int)
     {
-      const_iterator temp = *this;
-      b_.i = const_cast<trie_t*>(trie_)->next(from_, len_);
+      iterator temp = *this;
+      b_.i = trie_->next(from_, len_);
       if (b_.i==trie_t::CEDAR_NO_PATH) end();
       return temp;
     }
 
-    bool operator!=(const const_iterator& x) const
+    bool operator!=(const iterator& x) const
     {
       return from_!=x.from_ || len_!=x.len_;
     }
 
-    bool operator==(const const_iterator& x) const
+    bool operator==(const iterator& x) const
     {
       return from_==x.from_ && len_==x.len_;
     }
 
   private:
-    const trie_t* trie_;
+    trie_t* trie_;
     size_t from_;
     size_t len_;
     union { int i; typename trie_t::result_type x; } b_;
-    std::pair<std::string, ValueT> v_;
   };
 
 
-  const_iterator begin() const
+  iterator begin()
   {
-    const_iterator itr(&param_);
-    itr.begin();
-    return itr;
+    return iterator(&param_).begin();
   }
 
-  const_iterator end() const
+  iterator end()
   {
-    const_iterator itr(&param_);
-    itr.end();
-    return itr;
+    return iterator(&param_).end();
+  }
+
+  iterator cbegin() const
+  {
+    return iterator(&param_).begin();
+  }
+
+  iterator cend() const
+  {
+    return iterator(&param_).end();
   }
 
   //typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
