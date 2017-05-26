@@ -131,8 +131,9 @@ ValueT
 ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
-  auto r = param_.template exactMatchSearch<ValueT>(key.c_str());
-  return r==cedar::da<ValueT>::CEDAR_NO_PATH ? static_cast<ValueT>(0) : r;
+  union { int i; ValueT x; } b;
+  b.x = param_.template exactMatchSearch<ValueT>(key.c_str());
+  return b.i==trie_t::CEDAR_NO_VALUE ? static_cast<ValueT>(0) : b.x;
 }
 
 template < class ValueT >

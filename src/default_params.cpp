@@ -1,9 +1,10 @@
 #include "../config.h"
 #include <unordered_map>
 #include <string>
+#include "Config.hpp"
 
 // imported from "contrafold.params.complementary" in CONTRafold v2.02
-std::unordered_map<std::string, float> default_params_complementary(
+std::unordered_map<std::string, param_value_type> default_params_complementary(
   {
     { "base_pair_AU", 0.59791199 },
     { "base_pair_CG", 1.544290641 },
@@ -344,7 +345,7 @@ std::unordered_map<std::string, float> default_params_complementary(
   });
 
 // imported from "contrafold.params.noncomplementary" in CONTRafold v2.02
-std::unordered_map<std::string, float> default_params_noncomplementary(
+std::unordered_map<std::string, param_value_type> default_params_noncomplementary(
   {
     { "base_pair_AA", -1.455381052 },
     { "base_pair_AC", -1.681172954 },
