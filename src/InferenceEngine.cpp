@@ -1163,19 +1163,19 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
-        + (j - i == 3 ? pm.hairpin_3_nucleotides(s[i+1], s[i+2], s[i+3]) : RealT(0))
+        + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
-        + (j - i == 4 ? pm.hairpin_4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) : RealT(0))
+        + (j - i == 4 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
-      + (j - i == 5 ? pm.hairpin_5_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) : RealT(0))
+        + (j - i == 5 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
-      + (j - i == 6 ? pm.hairpin_6_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) : RealT(0))
+        + (j - i == 6 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
-      + (j - i == 7 ? pm.hairpin_7_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
+        + (j - i == 7 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #endif
       ;
 }
@@ -1192,19 +1192,19 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
     cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
 #endif
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
-    if (j - i == 3) pc.hairpin_3_nucleotides(s[i+1], s[i+2], s[i+3]) += value;
+    if (j - i == 3) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #endif
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
-    if (j - i == 4) pc.hairpin_4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) += value;
+    if (j - i == 4) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #endif
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
-    if (j - i == 5) pc.hairpin_5_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) += value;
+    if (j - i == 5) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
-    if (j - i == 6) pc.hairpin_6_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) += value;
+    if (j - i == 6) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
-    if (j - i == 7) score_hairpin_7_nucleotides[s[i+1]][s[i+2]][s[i+3]][s[i+4]][s[i+5]][s[i+6]][s[i+7]].second += value;
+    if (j - i == 7) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #endif
 }
 

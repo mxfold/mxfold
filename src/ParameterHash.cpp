@@ -132,7 +132,6 @@ ValueT
 ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
-  
   auto i = trie_.template exactMatchSearch<int>(key.c_str());
   return i==trie_t::CEDAR_NO_VALUE ? static_cast<ValueT>(0) : values_[i];
 }
@@ -244,113 +243,29 @@ hairpin_length_at_least(uint l)
 }
 #endif
 
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-static const char* format_hairpin_3_nucleotides = "hairpin_3_nucleotides_%c%c%c";
+#if PARAMS_HAIRPIN_NUCLEOTIDES
+static const char* format_hairpin_nucleotides = "hairpin_%u_nucleotides_%s";
 
 template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_3_nucleotides(NUCL i1, NUCL i2, NUCL i3) const
+hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
 {
-  return get_by_key(string_format(format_hairpin_3_nucleotides, i1, i2, i3));
+  std::string h(l+1, '\0');
+  std::copy(&s[i], &s[i]+l, h.begin());
+  return get_by_key(string_format(format_hairpin_nucleotides, l, h.c_str()));
 }
 
 template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_3_nucleotides(NUCL i1, NUCL i2, NUCL i3)
+hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
 {
-  return get_by_key(string_format(format_hairpin_3_nucleotides, i1, i2, i3));
-}
-#endif
-
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-static const char* format_hairpin_4_nucleotides = "hairpin_4_nucleotides_%c%c%c%c";
-
-template <class ValueT>
-inline
-ValueT
-ParameterHash<ValueT>::
-hairpin_4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const
-{
-  return get_by_key(string_format(format_hairpin_4_nucleotides, i1, i2, i3, i4));
-}
-
-template <class ValueT>
-inline
-ValueT&
-ParameterHash<ValueT>::
-hairpin_4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4)
-{
-  return get_by_key(string_format(format_hairpin_4_nucleotides, i1, i2, i3, i4));
-}
-#endif
-
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-static const char* format_hairpin_5_nucleotides = "hairpin_5_nucleotides_%c%c%c%c%c";
-
-template <class ValueT>
-inline
-ValueT
-ParameterHash<ValueT>::
-hairpin_5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const
-{
-  return get_by_key(string_format(format_hairpin_5_nucleotides, i1, i2, i3, i4, i5));
-}
-
-template <class ValueT>
-inline
-ValueT&
-ParameterHash<ValueT>::
-hairpin_5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5)
-{
-  return get_by_key(string_format(format_hairpin_5_nucleotides, i1, i2, i3, i4, i5));
-}
-#endif
-
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-static const char* format_hairpin_6_nucleotides = "hairpin_6_nucleotides_%c%c%c%c%c%c";
-
-template <class ValueT>
-inline
-ValueT
-ParameterHash<ValueT>::
-hairpin_6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const
-{
-  return get_by_key(string_format(format_hairpin_6_nucleotides, i1, i2, i3, i4, i5, i6));
-}
-
-template <class ValueT>
-inline
-ValueT&
-ParameterHash<ValueT>::
-hairpin_6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6)
-{
-  return get_by_key(string_format(format_hairpin_6_nucleotides, i1, i2, i3, i4, i5, i6));
-}
-#endif
-
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-static const char* format_hairpin_7_nucleotides = "hairpin_7_nucleotides_%c%c%c%c%c%c%c";
-
-template <class ValueT>
-inline
-ValueT
-ParameterHash<ValueT>::
-hairpin_7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const
-{
-  return get_by_key(string_format(format_hairpin_7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
-}
-
-template <class ValueT>
-inline
-ValueT&
-ParameterHash<ValueT>::
-hairpin_7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7)
-{
-  return get_by_key(string_format(format_hairpin_7_nucleotides, i1, i2, i3, i4, i5, i6, i7));
+  std::string h(l+1, '\0');
+  std::copy(&s[i], &s[i]+l, h.begin());
+  return get_by_key(string_format(format_hairpin_nucleotides, l, h.c_str()));
 }
 #endif
 

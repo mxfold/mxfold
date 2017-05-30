@@ -105,6 +105,7 @@ typedef float param_value_type;
 #define PARAMS_INTERNAL_3x4_NUCLEOTIDES            1
 #define PARAMS_INTERNAL_4x4_NUCLEOTIDES            1
 
+#define PARAMS_HAIRPIN_NUCLEOTIDES                 1
 #endif  // CONTRAFOLD_MODEL
 
 /*

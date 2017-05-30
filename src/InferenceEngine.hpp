@@ -37,7 +37,7 @@ private:
     int L, SIZE;
 
     // sequence data
-    std::vector<char> s;
+    std::vector<NUCL> s;
     std::vector<int> offset;
     std::vector<int> allow_unpaired_position;
     std::vector<int> allow_unpaired, allow_paired;

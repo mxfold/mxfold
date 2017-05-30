@@ -166,25 +166,9 @@ public:
   ValueT  hairpin_length_at_least(uint l) const;
   ValueT& hairpin_length_at_least(uint l);
 #endif
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-  ValueT  hairpin_3_nucleotides(NUCL i1, NUCL i2, NUCL i3) const;
-  ValueT& hairpin_3_nucleotides(NUCL i1, NUCL i2, NUCL i3);  
-#endif
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-  ValueT  hairpin_4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const;
-  ValueT& hairpin_4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4);  
-#endif
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-  ValueT  hairpin_5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& hairpin_5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);  
-#endif
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-  ValueT  hairpin_6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const;
-  ValueT& hairpin_6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6);  
-#endif
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-  ValueT  hairpin_7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const;
-  ValueT& hairpin_7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7);  
+#if PARAMS_HAIRPIN_NUCLEOTIDES
+  ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
+  ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
 #endif
 #if PARAMS_HELIX_LENGTH
   ValueT  helix_length_at_least(uint l) const;
