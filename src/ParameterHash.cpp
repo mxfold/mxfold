@@ -244,7 +244,7 @@ hairpin_length_at_least(uint l)
 #endif
 
 #if PARAMS_HAIRPIN_NUCLEOTIDES
-static const char* format_hairpin_nucleotides = "hairpin_%u_nucleotides_%s";
+static const std::string format_hairpin_nucleotides("hairpin_nucleotides_");
 
 template <class ValueT>
 inline
@@ -254,7 +254,7 @@ hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
 {
   std::string h(l+1, '\0');
   std::copy(&s[i], &s[i]+l, h.begin());
-  return get_by_key(string_format(format_hairpin_nucleotides, l, h.c_str()));
+  return get_by_key(format_hairpin_nucleotides + h);
 }
 
 template <class ValueT>
@@ -265,7 +265,45 @@ hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
 {
   std::string h(l+1, '\0');
   std::copy(&s[i], &s[i]+l, h.begin());
-  return get_by_key(string_format(format_hairpin_nucleotides, l, h.c_str()));
+  return get_by_key(format_hairpin_nucleotides + h);
+}
+
+template <class ValueT>
+inline
+std::vector<int>
+ParameterHash<ValueT>::
+hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const
+{
+  std::vector<int> v(max_l, trie_t::CEDAR_NO_VALUE);
+  size_t node_pos=0, key_pos=0;
+  auto r = trie_.traverse(format_hairpin_nucleotides.c_str(), node_pos, key_pos, 
+                          format_hairpin_nucleotides.size());
+  if (r == trie_t::CEDAR_NO_PATH) return v;
+
+  for (size_t j=0; j!=max_l; ++j)
+  {
+    v[j] = trie_.traverse(&s[i], node_pos, key_pos, j+1);
+    if (v[j]==trie_t::CEDAR_NO_PATH) break;
+  }
+  return v;
+}
+
+template <class ValueT>
+inline
+ValueT
+ParameterHash<ValueT>::
+hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos) const
+{
+  return pos[l]>=0 ? values_[pos[l]] : static_cast<ValueT>(0);
+}
+
+template <class ValueT>
+inline
+ValueT&
+ParameterHash<ValueT>::
+hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos)
+{
+  return pos[l]>=0 ? values_[pos[l]] : hairpin_nucleotides(s, i, l);
 }
 #endif
 

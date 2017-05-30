@@ -1181,6 +1181,40 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 }
 
 template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j, const std::vector<int>& pos) const
+{
+    // The constraints i > 0 && j < L ensure that s[i] and s[j+1] refer to
+    // nucleotides which could base-pair.  The remaining constraint ensures
+    // that only valid hairpins are considered.
+    
+    Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
+    const auto& pm = *parameter_manager;
+    
+    return 
+        ScoreUnpaired(i,j)
+        + ScoreJunctionB(i,j)
+#if PARAMS_HAIRPIN_LENGTH
+        + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
+#endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+        + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+        + (j - i == 4 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
+#endif
+#if PARAMS_HAIRPIN_5_NUCLEOTIDES
+        + (j - i == 5 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
+#endif
+#if PARAMS_HAIRPIN_6_NUCLEOTIDES
+        + (j - i == 6 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
+#endif
+#if PARAMS_HAIRPIN_7_NUCLEOTIDES
+        + (j - i == 7 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
+#endif
+      ;
+}
+
+template<class RealT>
 inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 {
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
@@ -1612,7 +1646,8 @@ void InferenceEngine<RealT>::ComputeViterbi()
 #if CANDIDATE_LIST
         candidates.clear();
 #endif
-        
+        auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
+
         for (int j = i; j <= L; j++)
         {
             // FM2[i,j] = MAX (i<k<j : FM1[i,k] + FM[k,j])
@@ -1678,7 +1713,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j), EncodeTraceback(TB_FN_HAIRPIN,0));
+                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j,hairpin_pos), EncodeTraceback(TB_FN_HAIRPIN,0));
                 
                 // compute MAX (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
@@ -1839,7 +1874,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j), EncodeTraceback(TB_FC_HAIRPIN,0));
+                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j,hairpin_pos), EncodeTraceback(TB_FC_HAIRPIN,0));
                 
                 // compute MAX (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 

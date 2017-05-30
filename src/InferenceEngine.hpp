@@ -121,6 +121,7 @@ private:
     RealT ScoreJunctionB(int i, int j) const;
     RealT ScoreBasePair(int i, int j) const;
     RealT ScoreHairpin(int i, int j) const;
+    RealT ScoreHairpin(int i, int j, const std::vector<int>& pos) const;
     RealT ScoreHelix(int i, int j, int m) const;
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;

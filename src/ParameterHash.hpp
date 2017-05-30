@@ -169,6 +169,9 @@ public:
 #if PARAMS_HAIRPIN_NUCLEOTIDES
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
+  std::vector<int> hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const;
+  ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos) const;
+  ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos);
 #endif
 #if PARAMS_HELIX_LENGTH
   ValueT  helix_length_at_least(uint l) const;
