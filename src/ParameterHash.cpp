@@ -144,7 +144,7 @@ ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
   auto i = trie_.template exactMatchSearch<int>(key.c_str());
-  if (i==trie_t::CEDAR_NO_VALUE)
+  if (i!=trie_t::CEDAR_NO_VALUE)
     return values_[i];
 
   trie_.update(key.c_str()) = values_.size();
