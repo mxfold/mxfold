@@ -14,21 +14,23 @@ class ParameterHash
 {
 public:
   //typedef typename ValueT ValueT;
-  typedef cedar::da<ValueT> trie_t;
+  typedef cedar::da<int> trie_t;
 
 public:
   ParameterHash() { initialize(); }
   ~ParameterHash() { }
 
   ParameterHash(ParameterHash&& other)
-    : param_(std::move(other.param_))
+    : trie_(std::move(other.trie_)),
+      values_(std::move(other.values_))
   {
     initialize();
   }
 
   ParameterHash& operator=(ParameterHash&& other)
   {
-    param_ = std::move(other.param_);
+    trie_ = std::move(other.trie_);
+    values_ = std::move(other.values_);
     return *this;
   }
 
@@ -54,23 +56,23 @@ public:
   class iterator : public std::iterator<std::forward_iterator_tag, ValueT >
   {
   public:
-    iterator(trie_t* trie, size_t from=0, size_t len=0)
-      : trie_(trie), from_(from), len_(len)
+    iterator(const trie_t* trie, const std::vector<ValueT>* values, size_t from=0, size_t len=0)
+      : trie_(const_cast<trie_t*>(trie)), values_(const_cast<std::vector<ValueT>*>(values)), from_(from), len_(len)
     { }
 
-    iterator(const trie_t* trie, size_t from=0, size_t len=0)
-      : trie_(const_cast<trie_t*>(trie)), from_(from), len_(len)
+    iterator(trie_t* trie, std::vector<ValueT>* values, size_t from=0, size_t len=0)
+      : trie_(trie), values_(values), from_(from), len_(len)
     { }
 
     iterator& begin()
     {
-      b_.i = trie_->begin(from_, len_);
+      i_ = trie_->begin(from_, len_);
       return *this;
     }
 
     iterator& end()
     {
-      b_.i = trie_t::CEDAR_NO_PATH;
+      i_ = trie_t::CEDAR_NO_PATH;
       from_ = -1u;
       len_ = 0;
       return *this;
@@ -78,33 +80,33 @@ public:
 
     std::string key() const
     {
-      std::string s(len_, '\0');
+      std::string s(len_, ' ');
       trie_->suffix(&s[0], len_, from_);
       return s;
     }
 
     ValueT operator*() const
     {
-      return b_.x;
+      return (*values_)[i_];
     }
 
     ValueT& operator*()
     {
-      return trie_->update(key().c_str(), from_, len_, len_);
+      return (*values_)[i_];
     }
 
     iterator& operator++()
     {
-      b_.i = trie_->next(from_, len_);
-      if (b_.i==trie_t::CEDAR_NO_PATH) end();
+      i_ = trie_->next(from_, len_);
+      if (i_==trie_t::CEDAR_NO_PATH) end();
       return *this;
     }
 
     iterator operator++(int)
     {
       iterator temp = *this;
-      b_.i = trie_->next(from_, len_);
-      if (b_.i==trie_t::CEDAR_NO_PATH) end();
+      i_ = trie_->next(from_, len_);
+      if (i_==trie_t::CEDAR_NO_PATH) end();
       return temp;
     }
 
@@ -120,37 +122,32 @@ public:
 
   private:
     trie_t* trie_;
+    std::vector<ValueT>* values_;
     size_t from_;
     size_t len_;
-    union { int i; typename trie_t::result_type x; } b_;
+    int i_;
   };
 
 
   iterator begin()
   {
-    return iterator(&param_).begin();
+    return iterator(&trie_, &values_).begin();
   }
 
   iterator end()
   {
-    return iterator(&param_).end();
+    return iterator(&trie_, &values_).end();
   }
 
   iterator cbegin() const
   {
-    return iterator(&param_).begin();
+    return iterator(&trie_, &values_).begin();
   }
 
   iterator cend() const
   {
-    return iterator(&param_).end();
+    return iterator(&trie_, &values_).end();
   }
-
-  //typename std::unordered_map<std::string, ValueT>::iterator begin() { return param_.begin(); }
-  //typename std::unordered_map<std::string, ValueT>::const_iterator begin() const { return param_.begin(); }
-  //typename std::unordered_map<std::string, ValueT>::iterator end() { return param_.end(); }
-  //typename std::unordered_map<std::string, ValueT>::const_iterator end() const { return param_.end(); }
-  //typename std::unordered_map<std::string, ValueT>::iterator erase(typename std::unordered_map<std::string, ValueT>::const_iterator pos) { return param_.erase(pos); }
 
   // access to parameters
 #if PARAMS_BASE_PAIR
@@ -343,7 +340,8 @@ public:
 
 private:
   //std::unordered_map<std::string, ValueT> param_;
-  trie_t param_;
+  trie_t trie_;
+  std::vector<ValueT> values_;
   std::array<std::array<int, 256>, 256> is_complementary_;
   std::array<int, 256> is_base_;
 };

@@ -76,7 +76,8 @@ void
 ParameterHash<ValueT>::
 ReadFromFile(const std::string& filename)
 {
-  param_.clear();
+  trie_.clear();
+  values_.clear();
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
@@ -131,9 +132,9 @@ ValueT
 ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
-  union { int i; ValueT x; } b;
-  b.x = param_.template exactMatchSearch<ValueT>(key.c_str());
-  return b.i==trie_t::CEDAR_NO_VALUE ? static_cast<ValueT>(0) : b.x;
+  
+  auto i = trie_.template exactMatchSearch<int>(key.c_str());
+  return i==trie_t::CEDAR_NO_VALUE ? static_cast<ValueT>(0) : values_[i];
 }
 
 template < class ValueT >
@@ -142,7 +143,13 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  return param_.update(key.c_str());
+  auto i = trie_.template exactMatchSearch<int>(key.c_str());
+  if (i==trie_t::CEDAR_NO_VALUE)
+    return values_[i];
+
+  trie_.update(key.c_str()) = values_.size();
+  values_.push_back(static_cast<ValueT>(0.0));
+  return values_.back();
 }
 
 #if PARAMS_BASE_PAIR

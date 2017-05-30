@@ -1059,7 +1059,6 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionB(int i, int j) const
     // the main difference being that symmetric junctions are not allowed
     // for the exterior loop.  For this reason, i and j are bounded away
     // from the edges of the sequence (i.e., i < L && j > 0).
-    //外部ループアリ
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
     const auto& pm = *parameter_manager;
     
