@@ -1162,6 +1162,9 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #if PARAMS_HAIRPIN_LENGTH
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
+#if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
+        + pm.hairpin_nucleotides(s, i+1, j-i)
+#else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
         + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #endif
@@ -1176,6 +1179,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
         + (j - i == 7 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+#endif
 #endif
       ;
 }
@@ -1196,6 +1200,9 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j, const std::vecto
 #if PARAMS_HAIRPIN_LENGTH
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
+#if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
+        + pm.hairpin_nucleotides(s, i+1, j-i, pos)
+#else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
         + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
 #endif
@@ -1211,6 +1218,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j, const std::vecto
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
         + (j - i == 7 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
 #endif
+#endif
       ;
 }
 
@@ -1225,6 +1233,9 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #if PARAMS_HAIRPIN_LENGTH
     cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
 #endif
+#if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
+    pc.hairpin_nucleotides(s, i+1, j-i) += value;
+#else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
     if (j - i == 3) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #endif
@@ -1239,6 +1250,7 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
     if (j - i == 7) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+#endif
 #endif
 }
 
@@ -1372,71 +1384,74 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
     return 
         ScoreUnpaired(i,p)
         + ScoreUnpaired(q,j)
+#if PARAMS_INTERNAL_ANY_NUCLEOTIDES
+        + pm.internal_nucleotides(s, i+1, l1, j, l2)
+#else
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
-        + (l1 == 0 && l2 == 1 ? pm.bulge_0x1_nucleotides(s[j]) : RealT(0))
-        + (l1 == 1 && l2 == 0 ? pm.bulge_1x0_nucleotides(s[i+1]) : RealT(0))
+        + (l1 == 0 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 1 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x2_NUCLEOTIDES
-        + (l1 == 0 && l2 == 2 ? pm.bulge_0x2_nucleotides(s[j-1], s[j]) : RealT(0))
-        + (l1 == 2 && l2 == 0 ? pm.bulge_2x0_nucleotides(s[i+1], s[i+2]): RealT(0))
+        + (l1 == 0 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 2 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x3_NUCLEOTIDES
-        + (l1 == 0 && l2 == 3 ? pm.bulge_0x3_nucleotides(s[j-2], s[j-1], s[j]) : RealT(0))
-        + (l1 == 3 && l2 == 0 ? pm.bulge_3x0_nucleotides(s[i+1], s[i+2], s[i+3]) : RealT(0))
+        + (l1 == 0 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 3 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
-      + (l1 == 0 && l2 == 4 ? pm.bulge_0x4_nucleotides(s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 4 && l2 == 0 ? pm.bulge_4x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) : RealT(0))
+        + (l1 == 0 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 4 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
-      + (l1 == 0 && l2 == 5 ? pm.bulge_0x5_nucleotides(s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 5 && l2 == 0 ? pm.bulge_5x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) : RealT(0))
+        + (l1 == 0 && l2 == 5 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 5 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
-      + (l1 == 0 && l2 == 6 ? pm.bulge_0x6_nucleotides(s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 6 && l2 == 0 ? pm.bulge_6x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) : RealT(0))
+        + (l1 == 0 && l2 == 6 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 6 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x7_NUCLEOTIDES
-      + (l1 == 0 && l2 == 7 ? pm.bulge_0x7_nucleotides(s[j-6], s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 7 && l2 == 0 ? pm.bulge_7x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
+        + (l1 == 0 && l2 == 7 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 7 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-//        + (l1 == 1 && l2 == 1 ? pm.internal_1x1_nucleotides(s[i+1], s[j]) : RealT(0))
-        + (l1 == 1 && l2 == 1 ? pm.internal_nucleotides(s, i+1, 1, j, 1) : RealT(0))
+        + (l1 == 1 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-        + (l1 == 1 && l2 == 2 ? pm.internal_1x2_nucleotides(s[i+1], s[j-1], s[j]) : RealT(0))
-        + (l1 == 2 && l2 == 1 ? pm.internal_2x1_nucleotides(s[i+1], s[i+2], s[j]) : RealT(0))
+        + (l1 == 1 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 2 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-        + (l1 == 2 && l2 == 2 ? pm.internal_2x2_nucleotides(s[i+1], s[i+2], s[j-1], s[j]) : RealT(0))
+        + (l1 == 2 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-      + (l1 == 1 && l2 == 3 ? pm.internal_1x3_nucleotides(s[i+1], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 3 && l2 == 1 ? pm.internal_3x1_nucleotides(s[i+1], s[i+2], s[i+3], s[j]) : RealT(0))
+        + (l1 == 1 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 3 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-      + (l1 == 2 && l2 == 3 ? pm.internal_2x3_nucleotides(s[i+1], s[i+2], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 3 && l2 == 2 ? pm.internal_3x2_nucleotides(s[i+1], s[i+2], s[i+3], s[j-1], s[j]) : RealT(0))
+        + (l1 == 2 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 3 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-      + (l1 == 3 && l2 == 3 ? pm.internal_3x3_nucleotides(s[i+1], s[i+2], s[i+3], s[j-2], s[j-1], s[j]) : RealT(0))
+        + (l1 == 3 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-      + (l1 == 1 && l2 == 4 ? pm.internal_1x4_nucleotides(s[i+1], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 4 && l2 == 1 ? pm.internal_4x1_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j]) : RealT(0))
+        + (l1 == 1 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 4 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-      + (l1 == 2 && l2 == 4 ? pm.internal_2x4_nucleotides(s[i+1], s[i+2], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 4 && l2 == 2 ? pm.internal_4x2_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-1], s[j]) : RealT(0))
+        + (l1 == 2 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 4 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-      + (l1 == 3 && l2 == 4 ? pm.internal_3x4_nucleotides(s[i+1], s[i+2], s[i+3], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-      + (l1 == 4 && l2 == 3 ? pm.internal_4x3_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-2], s[j-1], s[j]) : RealT(0))
+        + (l1 == 3 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 4 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-      + (l1 == 4 && l2 == 4 ? pm.internal_4x4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-3], s[j-2], s[j-1], s[j]) : RealT(0))
-#endif      
+        + (l1 == 4 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+#endif
+#endif
       ;
 }
 
@@ -1455,65 +1470,69 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     
     CountUnpaired(i,p,value);
     CountUnpaired(q,j,value);
+#if PARAMS_INTERNAL_ANY_NUCLEOTIDES
+    pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+#else
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
-    if (l1 == 0 && l2 == 1) pc.bulge_0x1_nucleotides(s[j]) += value;
-    if (l1 == 1 && l2 == 0) pc.bulge_1x0_nucleotides(s[i+1]) += value;
+    if (l1 == 0 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 1 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_BULGE_0x2_NUCLEOTIDES
-    if (l1 == 0 && l2 == 2) pc.bulge_0x2_nucleotides(s[j-1], s[j]) += value;
-    if (l1 == 2 && l2 == 0) pc.bulge_2x0_nucleotides(s[i+1], s[i+2]) += value;
+    if (l1 == 0 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 2 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_BULGE_0x3_NUCLEOTIDES
-    if (l1 == 0 && l2 == 3) pc.bulge_0x3_nucleotides(s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 3 && l2 == 0) pc.bulge_3x0_nucleotides(s[i+1], s[i+2], s[i+3]) += value;
+    if (l1 == 0 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 3 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
-    if (l1 == 0 && l2 == 4) pc.bulge_0x4_nucleotides(s[j-3], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 4 && l2 == 0) pc.bulge_4x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4]) += value;
+    if (l1 == 0 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 4 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
-    if (l1 == 0 && l2 == 5) pc.bulge_0x5_nucleotides(s[j-4], s[j-3], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 5 && l2 == 0) pc.bulge_5x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5]) += value;
+    if (l1 == 0 && l2 == 5) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 5 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
-    if (l1 == 0 && l2 == 6) pc.bulge_0x6_nucleotides(s[j-5], s[j-4], s[j-3], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 6 && l2 == 0) pc.bulge_6x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6]) += value;
+    if (l1 == 0 && l2 == 6) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 6 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-    if (l1 == 1 && l2 == 1) pc.internal_1x1_nucleotides(s[i+1], s[j]) += value;
+    if (l1 == 1 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-    if (l1 == 1 && l2 == 2) pc.internal_1x2_nucleotides(s[i+1], s[j-1], s[j]) += value;
-    if (l1 == 2 && l2 == 1) pc.internal_2x1_nucleotides(s[i+1], s[i+2], s[j]) += value;
+    if (l1 == 1 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 2 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-    if (l1 == 2 && l2 == 2) pc.internal_2x2_nucleotides(s[i+1], s[i+2], s[j-1], s[j]) += value;
+    if (l1 == 2 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-    if (l1 == 1 && l2 == 3) pc.internal_1x3_nucleotides(s[i+1], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 3 && l2 == 1) pc.internal_3x1_nucleotides(s[i+1], s[i+2], s[i+3], s[j]) += value;
+    if (l1 == 1 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 3 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-    if (l1 == 2 && l2 == 3) pc.internal_2x3_nucleotides(s[i+1], s[i+2], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 3 && l2 == 2) pc.internal_3x2_nucleotides(s[i+1], s[i+2], s[i+3], s[j-1], s[j]) += value;
+    if (l1 == 2 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 3 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-    if (l1 == 3 && l2 == 3) pc.internal_3x3_nucleotides(s[i+1], s[i+2], s[i+3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 3 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-    if (l1 == 1 && l2 == 4) pc.internal_1x4_nucleotides(s[i+1], s[j-3], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 4 && l2 == 1) pc.internal_4x1_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j]) += value;
+    if (l1 == 1 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 4 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-    if (l1 == 2 && l2 == 4) pc.internal_2x4_nucleotides(s[i+1], s[i+2], s[j-3], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 4 && l2 == 2) pc.internal_4x2_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-1], s[j]) += value;
+    if (l1 == 2 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 4 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-    if (l1 == 3 && l2 == 4) pc.internal_3x4_nucleotides(s[i+1], s[i+2], s[i+3], s[j-3], s[j-2], s[j-1], s[j]) += value;
-    if (l1 == 4 && l2 == 3) pc.internal_4x3_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 3 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 4 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-    if (l1 == 4 && l2 == 4) pc.internal_4x4_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[j-3], s[j-2], s[j-1], s[j]) += value;
+    if (l1 == 4 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+#endif
 #endif
 }
 

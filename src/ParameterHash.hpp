@@ -45,7 +45,7 @@ public:
   void LoadDefaultComplementary();
   void LoadDefaultNonComplementary();
   void ReadFromFile(const std::string& filename);
-  void WriteToFile(const std::string& filename, bool sort=true) const;
+  void WriteToFile(const std::string& filename) const;
 
   ValueT  get_by_key(const std::string& key) const;
   ValueT& get_by_key(const std::string& key);
@@ -87,6 +87,8 @@ public:
       trie_->suffix(&s[0], len_, from_);
       return s;
     }
+
+    int index() const { return i_; }
 
     ValueT operator*() const
     {
@@ -169,14 +171,14 @@ public:
   ValueT  hairpin_length_at_least(uint l) const;
   ValueT& hairpin_length_at_least(uint l);
 #endif
-#if PARAMS_HAIRPIN_NUCLEOTIDES
+
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
 
   std::vector<int> hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const;
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos);
-#endif
+
 #if PARAMS_HELIX_LENGTH
   ValueT  helix_length_at_least(uint l) const;
   ValueT& helix_length_at_least(uint l);
@@ -205,107 +207,12 @@ public:
   ValueT  internal_asymmetry_at_least(uint l) const;
   ValueT& internal_asymmetry_at_least(uint l);
 #endif
-#if PARAMS_INTERNAL_NUCLEOTIDES
+
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const;
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m);
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t) const;
-  ValueT&  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t);
-#endif
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-  ValueT  bulge_0x1_nucleotides(NUCL i1) const;
-  ValueT& bulge_0x1_nucleotides(NUCL i1);
-  ValueT  bulge_1x0_nucleotides(NUCL i1) const;
-  ValueT& bulge_1x0_nucleotides(NUCL i1);
-#endif
-#if PARAMS_BULGE_0x2_NUCLEOTIDES
-  ValueT  bulge_0x2_nucleotides(NUCL i1, NUCL i2) const;
-  ValueT& bulge_0x2_nucleotides(NUCL i1, NUCL i2);
-  ValueT  bulge_2x0_nucleotides(NUCL i1, NUCL i2) const;
-  ValueT& bulge_2x0_nucleotides(NUCL i1, NUCL i2);
-#endif
-#if PARAMS_BULGE_0x3_NUCLEOTIDES
-  ValueT  bulge_0x3_nucleotides(NUCL i1, NUCL i2, NUCL i3) const;
-  ValueT& bulge_0x3_nucleotides(NUCL i1, NUCL i2, NUCL i3);
-  ValueT  bulge_3x0_nucleotides(NUCL i1, NUCL i2, NUCL i3) const;
-  ValueT& bulge_3x0_nucleotides(NUCL i1, NUCL i2, NUCL i3);
-#endif
-#if PARAMS_BULGE_0x4_NUCLEOTIDES
-  ValueT  bulge_0x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const;
-  ValueT& bulge_0x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4);
-  ValueT  bulge_4x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const;
-  ValueT& bulge_4x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4);
-#endif
-#if PARAMS_BULGE_0x5_NUCLEOTIDES
-  ValueT  bulge_0x5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& bulge_0x5_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);
-  ValueT  bulge_5x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& bulge_5x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);
-#endif
-#if PARAMS_BULGE_0x6_NUCLEOTIDES
-  ValueT  bulge_0x6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const;
-  ValueT& bulge_0x6_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6);
-  ValueT  bulge_6x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const;
-  ValueT& bulge_6x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6);
-#endif
-#if PARAMS_BULGE_0x7_NUCLEOTIDES
-  ValueT  bulge_0x7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const;
-  ValueT& bulge_0x7_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7);
-  ValueT  bulge_7x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const;
-  ValueT& bulge_7x0_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7);
-#endif
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-  ValueT  internal_1x1_nucleotides(NUCL i1, NUCL i2) const;
-  ValueT& internal_1x1_nucleotides(NUCL i1, NUCL i2);
-#endif
-#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-  ValueT  internal_1x2_nucleotides(NUCL i1, NUCL i2, NUCL i3) const;
-  ValueT& internal_1x2_nucleotides(NUCL i1, NUCL i2, NUCL i3);
-  ValueT  internal_2x1_nucleotides(NUCL i1, NUCL i2, NUCL i3) const;
-  ValueT& internal_2x1_nucleotides(NUCL i1, NUCL i2, NUCL i3);
-#endif
-#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-  ValueT  internal_2x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const;
-  ValueT& internal_2x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4);
-#endif
-#if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-  ValueT  internal_1x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const;
-  ValueT& internal_1x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4);
-  ValueT  internal_3x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4) const;
-  ValueT& internal_3x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4);
-#endif
-#if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-  ValueT  internal_2x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& internal_2x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);
-  ValueT  internal_3x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& internal_3x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);
-#endif
-#if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-  ValueT  internal_3x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const;
-  ValueT& internal_3x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6);
-#endif
+  ValueT& internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t);
 
-#if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-  ValueT  internal_1x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& internal_1x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);
-  ValueT  internal_4x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5) const;
-  ValueT& internal_4x1_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5);
-#endif
-#if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-  ValueT  internal_2x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const;
-  ValueT& internal_2x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6);
-  ValueT  internal_4x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6) const;
-  ValueT& internal_4x2_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6);
-#endif
-#if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-  ValueT  internal_3x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const;
-  ValueT& internal_3x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7);
-  ValueT  internal_4x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7) const;
-  ValueT& internal_4x3_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7);
-#endif
-#if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-  ValueT  internal_4x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7, NUCL i8) const;
-  ValueT& internal_4x4_nucleotides(NUCL i1, NUCL i2, NUCL i3, NUCL i4, NUCL i5, NUCL i6, NUCL i7, NUCL i8);
-#endif
 #if PARAMS_HELIX_STACKING
   ValueT  helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
   ValueT& helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
