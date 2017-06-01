@@ -14,6 +14,8 @@ class ParameterHash
 {
 public:
   //typedef typename ValueT ValueT;
+
+private:
   typedef cedar::da<int> trie_t;
 
 public:
@@ -47,6 +49,7 @@ public:
 
   ValueT  get_by_key(const std::string& key) const;
   ValueT& get_by_key(const std::string& key);
+  void set_key_value(const std::string& key, ValueT val);
 
   bool is_basepair_feature(const std::string& f) const;
   bool is_context_feature(const std::string& f) const;
@@ -128,7 +131,6 @@ public:
     int i_;
   };
 
-
   iterator begin()
   {
     return iterator(&trie_, &values_).begin();
@@ -148,6 +150,7 @@ public:
   {
     return iterator(&trie_, &values_).end();
   }
+
 
   // access to parameters
 #if PARAMS_BASE_PAIR
@@ -169,6 +172,7 @@ public:
 #if PARAMS_HAIRPIN_NUCLEOTIDES
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
+
   std::vector<int> hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const;
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos);
@@ -200,6 +204,12 @@ public:
 #if PARAMS_INTERNAL_ASYMMETRY
   ValueT  internal_asymmetry_at_least(uint l) const;
   ValueT& internal_asymmetry_at_least(uint l);
+#endif
+#if PARAMS_INTERNAL_NUCLEOTIDES
+  ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const;
+  ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m);
+  ValueT  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t) const;
+  ValueT&  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t);
 #endif
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
   ValueT  bulge_0x1_nucleotides(NUCL i1) const;

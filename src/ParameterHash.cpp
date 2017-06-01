@@ -3,6 +3,7 @@
 #include <fstream>
 #include <algorithm>
 #include <memory>
+#include <regex>
 #include <stdexcept>
 #include <cerrno>
 #include <cstdio>
@@ -67,7 +68,7 @@ LoadFromHash(const std::unordered_map<std::string, ValueT>& hash)
 {
   for (auto e: hash)
   {
-    get_by_key(e.first) = e.second;
+    set_key_value(e.first, e.second);
   }
 }
 
@@ -87,7 +88,7 @@ ReadFromFile(const std::string& filename)
   {
     while (is >> k >> v)
       if (v!=0.0)
-        get_by_key(k) = v;
+        set_key_value(k, v);
   }
   else
   {
@@ -96,7 +97,7 @@ ReadFromFile(const std::string& filename)
     is >> eta >> lambda >> eps >> t;
     while (is >> k >> v >> s1 >> s2)
       if (v!=0.0)
-        get_by_key(k) = v;
+        set_key_value(k, v);
   }
 }
 
@@ -149,6 +150,36 @@ get_by_key(const std::string& key)
   trie_.update(key.c_str()) = values_.size();
   values_.push_back(static_cast<ValueT>(0.0));
   return values_.back();
+}
+
+template < class ValueT >
+inline
+void
+ParameterHash<ValueT>::
+set_key_value(const std::string& key, ValueT val)
+{
+  auto i = trie_.template exactMatchSearch<int>(key.c_str());
+  if (i!=trie_t::CEDAR_NO_VALUE)
+  {
+    values_[i] = val;
+    return;
+  }
+
+  trie_.update(key.c_str()) = values_.size();
+
+  std::regex re("internal_([A-Za-z]*)_([A-Za-z]*)");
+  std::smatch match;
+  if (std::regex_match(key, match, re))
+  {
+    std::string nuc1(match[1]), nuc2(match[2]);
+    std::reverse(nuc1.begin(), nuc1.end());
+    std::reverse(nuc2.begin(), nuc2.end());
+    std::string key2("internal_");
+    key2 += nuc2 + "_" + nuc1;
+    trie_.update(key2.c_str()) = values_.size();
+  }
+
+  values_.push_back(val);
 }
 
 #if PARAMS_BASE_PAIR
@@ -252,7 +283,7 @@ ValueT
 ParameterHash<ValueT>::
 hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
 {
-  std::string h(l+1, '\0');
+  std::string h(l, ' ');
   std::copy(&s[i], &s[i]+l, h.begin());
   return get_by_key(format_hairpin_nucleotides + h);
 }
@@ -263,8 +294,8 @@ ValueT&
 ParameterHash<ValueT>::
 hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
 {
-  std::string h(l+1, '\0');
-  std::copy(&s[i], &s[i]+l, h.begin());
+  std::string h(l, ' ');
+  auto x = std::copy(&s[i], &s[i+l], h.begin());
   return get_by_key(format_hairpin_nucleotides + h);
 }
 
@@ -462,6 +493,53 @@ internal_asymmetry_at_least(uint l)
   return get_by_key(string_format(format_internal_asymmetry_at_least, l));
 }
 #endif
+
+#if PARAMS_INTERNAL_NUCLEOTIDES
+static const std::string format_internal_nucleotides("internal_");
+
+template <class ValueT>
+inline
+ValueT
+ParameterHash<ValueT>::
+internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
+{
+  std::string nuc(l+m+1, ' ');
+  auto x = std::copy(&s[i], &s[i+l], nuc.begin());
+  *(x++) = '_';
+  std::reverse_copy(&s[j-m+1], &s[j+1], x);
+  return get_by_key(format_internal_nucleotides + nuc);
+}
+
+template <class ValueT>
+inline
+ValueT&
+ParameterHash<ValueT>::
+internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
+{
+  std::string nuc1(l+m+1, ' ');
+  auto x = std::copy(&s[i], &s[i+l], nuc1.begin());
+  *(x++) = '_';
+  std::reverse_copy(&s[j-m+1], &s[j+1], x);
+
+  auto key1 = format_internal_nucleotides+nuc1;
+  auto k = trie_.template exactMatchSearch<int>(key1.c_str());
+  if (k!=trie_t::CEDAR_NO_VALUE)
+    return values_[k];
+
+  trie_.update(key1.c_str()) = values_.size();
+
+  std::string nuc2(l+m+1, ' ');
+  x = std::copy(&s[j-m+1], &s[j+1], nuc2.begin());
+  *(x++) = '_';
+  std::reverse_copy(&s[i], &s[i+l], x);
+  auto key2 = format_internal_nucleotides+nuc2;
+  trie_.update(key2.c_str()) = values_.size();
+
+  values_.push_back(static_cast<ValueT>(0.0));
+  return values_.back();
+}
+#endif
+
 
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
 static const char* format_bulge_0x1_nucleotides = "bulge_0x1_nucleotides_%c";

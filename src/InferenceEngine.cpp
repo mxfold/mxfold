@@ -1401,7 +1401,8 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
       + (l1 == 7 && l2 == 0 ? pm.bulge_7x0_nucleotides(s[i+1], s[i+2], s[i+3], s[i+4], s[i+5], s[i+6], s[i+7]) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-        + (l1 == 1 && l2 == 1 ? pm.internal_1x1_nucleotides(s[i+1], s[j]) : RealT(0))
+//        + (l1 == 1 && l2 == 1 ? pm.internal_1x1_nucleotides(s[i+1], s[j]) : RealT(0))
+        + (l1 == 1 && l2 == 1 ? pm.internal_nucleotides(s, i+1, 1, j, 1) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
         + (l1 == 1 && l2 == 2 ? pm.internal_1x2_nucleotides(s[i+1], s[j-1], s[j]) : RealT(0))
