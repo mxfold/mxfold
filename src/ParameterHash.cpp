@@ -558,8 +558,11 @@ internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
     for (uint m=0; m<max_m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
     {
       if (l+m<1) continue;
-      key_pos = 0;
-      k = trie_.traverse(&s[j-m+1], node_pos2, key_pos, 1);
+      if (m>0)
+      {
+        key_pos = 0;
+        k = trie_.traverse(&s[j-m+1], node_pos2, key_pos, 1);
+      }
       if (k==trie_t::CEDAR_NO_PATH) break;
       ret[l][m] = k;
     }
