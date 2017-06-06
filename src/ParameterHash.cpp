@@ -11,6 +11,7 @@
 #include <cassert>
 #include "ParameterHash.hpp"
 #include "Utilities.hpp"
+#include "Config.hpp"
 
 template<typename ... Args>
 std::string
@@ -530,6 +531,64 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
   values_.push_back(static_cast<ValueT>(0.0));
   return values_.back();
 }
+
+template <class ValueT>
+std::vector<std::vector<int>>
+ParameterHash<ValueT>::
+internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
+                           uint max_l, uint max_m) const
+{
+  std::vector<std::vector<int>> ret(max_l, std::vector<int>(max_m, trie_t::CEDAR_NO_VALUE));
+
+  size_t node_pos=0, key_pos=0;
+  auto k = trie_.traverse(format_internal_nucleotides.c_str(), node_pos, key_pos, 
+                          format_internal_nucleotides.size());
+
+  for (uint l=0; l<max_l; ++l)
+  {
+    if (l>0)
+    {
+      key_pos = 0;
+      k = trie_.traverse(&s[i+l-1], node_pos, key_pos, 1);
+    }
+    auto node_pos2 = node_pos;
+    key_pos = 0;
+    k = trie_.traverse("_", node_pos2, key_pos, 1);
+
+    for (uint m=0; m<max_m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
+    {
+      if (l+m<1) continue;
+      key_pos = 0;
+      k = trie_.traverse(&s[j-m+1], node_pos2, key_pos, 1);
+      if (k==trie_t::CEDAR_NO_PATH) break;
+      ret[l][m] = k;
+    }
+  }
+  return ret;
+}
+
+
+template <class ValueT>
+inline
+ValueT
+ParameterHash<ValueT>::
+internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
+                     const std::vector<std::vector<int>>& pos) const
+{
+  return pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
+}
+
+template <class ValueT>
+inline
+ValueT&
+ParameterHash<ValueT>::
+internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
+                     const std::vector<std::vector<int>>& pos)
+{
+  return pos[l][m]>=0 ? values_[pos[l][m]] : internal_nucleotides(s, i, l, j, m);
+}
+
+
 
 #if PARAMS_HELIX_STACKING
 static const char* format_helix_stacking = "helix_stacking_%c%c%c%c";

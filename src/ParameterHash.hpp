@@ -213,6 +213,13 @@ public:
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t) const;
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t);
 
+  std::vector<std::vector<int>> internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
+                                                           uint max_l, uint max_m) const;
+  ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
+                               const std::vector<std::vector<int>>& pos) const;
+  ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
+                               const std::vector<std::vector<int>>& pos);
+
 #if PARAMS_HELIX_STACKING
   ValueT  helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
   ValueT& helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
