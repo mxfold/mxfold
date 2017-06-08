@@ -124,7 +124,9 @@ private:
     RealT ScoreHairpin(int i, int j, const std::vector<int>& pos) const;
     RealT ScoreHelix(int i, int j, int m) const;
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
+    RealT ScoreSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;
+    RealT ScoreSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const;
     
     void CountUnpairedPosition(int i, RealT v);
     void CountUnpaired(int i,int j, RealT v);
@@ -142,7 +144,9 @@ private:
     void CountHairpin(int i, int j, RealT value);
     void CountHelix(int i, int j, int m, RealT value);
     void CountSingleNucleotides(int i, int j, int p, int q, RealT value);
+    void CountSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value);
     void CountSingle(int i, int j, int p, int q, RealT value);
+    void CountSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value);
 
     int EncodeTraceback(int i, int j) const;
     std::pair<int,int> DecodeTraceback(int s) const;

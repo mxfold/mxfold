@@ -538,24 +538,26 @@ ParameterHash<ValueT>::
 internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
                            uint max_l, uint max_m) const
 {
-  std::vector<std::vector<int>> ret(max_l, std::vector<int>(max_m, trie_t::CEDAR_NO_VALUE));
+  std::vector<std::vector<int>> ret(max_l+1, std::vector<int>(max_m+1, trie_t::CEDAR_NO_VALUE));
 
   size_t node_pos=0, key_pos=0;
   auto k = trie_.traverse(format_internal_nucleotides.c_str(), node_pos, key_pos, 
                           format_internal_nucleotides.size());
 
-  for (uint l=0; l<max_l; ++l)
+  for (uint l=0; l<=max_l; ++l)
   {
     if (l>0)
     {
       key_pos = 0;
       k = trie_.traverse(&s[i+l-1], node_pos, key_pos, 1);
+      if (k==trie_t::CEDAR_NO_PATH) break;
     }
+
     auto node_pos2 = node_pos;
     key_pos = 0;
     k = trie_.traverse("_", node_pos2, key_pos, 1);
 
-    for (uint m=0; m<max_m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
+    for (uint m=0; m<=max_m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
     {
       if (l+m<1) continue;
       if (m>0)
@@ -578,6 +580,13 @@ ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
                      const std::vector<std::vector<int>>& pos) const
 {
+#if 0
+#ifndef NDEBUG
+  auto v = pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
+  //std::cout << s[i] << " " << i << " " << l << " " << j << " " << m << " " << pos[l][m] << " " << v << " " << internal_nucleotides(s, i, l, j, m)<< std::endl;
+  assert(v == internal_nucleotides(s, i, l, j, m));
+#endif
+#endif
   return pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
 }
 
