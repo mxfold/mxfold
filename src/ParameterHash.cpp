@@ -29,6 +29,23 @@ string_format( const std::string& format, Args ... args )
 }
 
 template < class ValueT >
+ParameterHash<ValueT>::
+ParameterHash()
+  : trie_(), values_()
+{
+  initialize(); 
+}
+
+template < class ValueT >
+ParameterHash<ValueT>::
+ParameterHash(ParameterHash&& other)
+  : trie_(std::move(other.trie_)),
+    values_(std::move(other.values_))
+{
+  initialize();
+}
+
+template < class ValueT >
 void
 ParameterHash<ValueT>::
 initialize()
@@ -49,6 +66,61 @@ initialize()
   is_complementary_['C']['P'] = is_complementary_['P']['C'] = true;
   is_complementary_['G']['P'] = is_complementary_['P']['G'] = true;
   is_complementary_['U']['P'] = is_complementary_['P']['U'] = true;
+
+#if PARAMS_BASE_PAIR
+  initialize_cache_base_pair();
+#endif
+#if PARAMS_BASE_PAIR_DIST
+  initialize_cache_base_pair_dist_at_least();
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+  initialize_cache_terminal_mismatch();
+#endif
+#if 0
+#if PARAMS_HAIRPIN_LENGTH
+  initialize_cache_hairpin_length_at_least();
+#endif
+#if PARAMS_HELIX_LENGTH
+  initialize_cache_helix_length_at_least();
+#endif
+#if PARAMS_ISOLATED_BASE_PAIR
+  initialize_cache_isolated_base_pair();
+#endif
+#if PARAMS_INTERNAL_EXPLICIT
+  initialize_cache_internal_explicit();
+#endif
+#if PARAMS_BULGE_LENGTH
+  initialize_cache_bulge_length_at_least();
+#endif
+#if PARAMS_INTERNAL_LENGTH
+  initialize_cache_internal_length_at_least();
+#endif
+#if PARAMS_INTERNAL_SYMMETRY
+  initialize_cache_internal_symmetric_length_at_least();
+#endif
+#if PARAMS_INTERNAL_ASYMMETRY
+  initialize_cache_internal_asymmetry_at_least();
+#endif
+#if PARAMS_HELIX_STACKING
+  initialize_cache_helix_stacking();
+#endif
+#if PARAMS_HELIX_CLOSING
+  initialize_cache_helix_closing();
+#endif
+#if PARAMS_MULTI_LENGTH
+  initialize_cache_multi_base();
+  initialize_cache_multi_unpaired();
+  initialize_cache_multi_paired();
+#endif
+#if PARAMS_DANGLE
+  initialize_cache_dangle_left();
+  initialize_cache_dangle_right();
+#endif
+#if PARAMS_EXTERNAL_LENGTH
+  initialize_cache_external_unpaired();
+  initialize_cache_external_paired();
+#endif
+#endif
 }
 
 template < class ValueT >
@@ -156,7 +228,7 @@ get_by_key(const std::string& key)
 
 template < class ValueT >
 inline
-void
+uint
 ParameterHash<ValueT>::
 set_key_value(const std::string& key, ValueT val)
 {
@@ -164,7 +236,7 @@ set_key_value(const std::string& key, ValueT val)
   if (i!=trie_t::CEDAR_NO_VALUE)
   {
     values_[i] = val;
-    return;
+    return i;
   }
 
   trie_.update(key.c_str()) = values_.size();
@@ -207,6 +279,7 @@ set_key_value(const std::string& key, ValueT val)
   }
 
   values_.push_back(val);
+  return values_.size()-1;
 }
 
 #if PARAMS_BASE_PAIR
@@ -214,11 +287,27 @@ static const char* format_base_pair = "base_pair_%c%c";
 
 template < class ValueT >
 inline
+void
+ParameterHash<ValueT>::
+initialize_cache_base_pair()
+{
+  cache_base_pair_.resize(def_bases.size(), VI(def_bases.size(), -1));
+  for (auto i : def_bases)
+    for (auto j : def_bases)
+      cache_base_pair_[is_base_[i]][is_base_[j]] = set_key_value(string_format(format_base_pair, i, j), static_cast<ValueT>(0));
+}
+
+template < class ValueT >
+inline
 ValueT
 ParameterHash<ValueT>::
 base_pair(NUCL i, NUCL j) const
 {
-  return get_by_key(string_format(format_base_pair, i, j));
+  auto ii=is_base_[i], jj=is_base_[j];
+  if (ii>=0 && jj>=0)
+    return values_[cache_base_pair_[ii][jj]];
+  else
+    return get_by_key(string_format(format_base_pair, i, j));
 }
 
 template < class ValueT >
@@ -227,7 +316,11 @@ ValueT&
 ParameterHash<ValueT>::
 base_pair(NUCL i, NUCL j)
 {
-  return get_by_key(string_format(format_base_pair, i, j));
+  auto ii=is_base_[i], jj=is_base_[j];
+  if (ii>=0 && jj>=0)
+    return values_[cache_base_pair_[ii][jj]];
+  else
+    return get_by_key(string_format(format_base_pair, i, j));
 }
 #endif
 
@@ -236,11 +329,25 @@ static const char* format_base_pair_dist_at_least = "base_pair_dist_at_least_%d"
 
 template <class ValueT>
 inline
+void
+ParameterHash<ValueT>::
+initialize_cache_base_pair_dist_at_least()
+{
+  cache_base_pair_dist_at_least_.resize(D_MAX_BP_DIST_THRESHOLDS, -1);
+  for (size_t i=0; i!=cache_base_pair_dist_at_least_.size(); ++i)
+    cache_base_pair_dist_at_least_[i] = set_key_value(string_format(format_base_pair_dist_at_least, i),  static_cast<ValueT>(0));
+}
+
+template <class ValueT>
+inline
 ValueT
 ParameterHash<ValueT>::
 base_pair_dist_at_least(uint l) const
 {
-  return get_by_key(string_format(format_base_pair_dist_at_least, l));
+  if (l<cache_base_pair_dist_at_least_.size())
+    return values_[cache_base_pair_dist_at_least_[l]];
+  else
+    return get_by_key(string_format(format_base_pair_dist_at_least, l));
 }
 
 template <class ValueT>
@@ -249,7 +356,10 @@ ValueT&
 ParameterHash<ValueT>::
 base_pair_dist_at_least(uint l)
 {
-  return get_by_key(string_format(format_base_pair_dist_at_least, l));
+  if (l<cache_base_pair_dist_at_least_.size())
+    return values_[cache_base_pair_dist_at_least_[l]];
+  else
+    return get_by_key(string_format(format_base_pair_dist_at_least, l));
 }
 #endif
 
@@ -258,11 +368,44 @@ static const char* format_terminal_mismatch = "terminal_mismatch_%c%c%c%c";
 
 template <class ValueT>
 inline
+void
+ParameterHash<ValueT>::
+initialize_cache_terminal_mismatch()
+{
+  const size_t N = def_bases.size();
+  cache_terminal_mismatch_.resize(N, VVVI(N, VVI(N, VI(N, -1))));
+  for (auto i1: def_bases)
+  {
+    auto ii1 = is_base_[i1];
+    for (auto j1: def_bases)
+    {
+      auto jj1 = is_base_[j1];
+      for (auto i2: def_bases)
+      {
+        auto ii2 = is_base_[i2];
+        for (auto j2: def_bases)
+        {
+          auto jj2 = is_base_[j2];
+          cache_terminal_mismatch_[ii1][jj1][ii2][jj2]
+            = set_key_value(string_format(format_terminal_mismatch, i1, j1, i2, j2), static_cast<ValueT>(0));
+        }
+      }
+    }
+  }
+}
+
+template <class ValueT>
+inline
 ValueT
 ParameterHash<ValueT>::
 terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
-  return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
+  auto ii1 = is_base_[i1], jj1 = is_base_[j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
+    return values_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]];
+  else
+    return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
 }
 
 template <class ValueT>
@@ -271,7 +414,12 @@ ValueT&
 ParameterHash<ValueT>::
 terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
 {
-  return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
+  auto ii1 = is_base_[i1], jj1 = is_base_[j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
+    return values_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]];
+  else
+    return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
 }
 #endif
 
@@ -323,11 +471,11 @@ hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
 
 template <class ValueT>
 inline
-std::vector<int>
+VI
 ParameterHash<ValueT>::
 hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const
 {
-  std::vector<int> v(max_l, trie_t::CEDAR_NO_VALUE);
+  VI v(max_l, trie_t::CEDAR_NO_VALUE);
   size_t node_pos=0, key_pos=0;
   auto r = trie_.traverse(format_hairpin_nucleotides.c_str(), node_pos, key_pos, 
                           format_hairpin_nucleotides.size());
@@ -345,7 +493,7 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos) const
+hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos) const
 {
   return pos[l]>=0 ? values_[pos[l]] : static_cast<ValueT>(0);
 }
@@ -354,7 +502,7 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const std::vector<int>& pos)
+hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos)
 {
   return pos[l]>=0 ? values_[pos[l]] : hairpin_nucleotides(s, i, l);
 }
@@ -558,12 +706,12 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
 }
 
 template <class ValueT>
-std::vector<std::vector<int>>
+VVI
 ParameterHash<ValueT>::
 internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
                            uint max_l, uint max_m) const
 {
-  std::vector<std::vector<int>> ret(max_l+1, std::vector<int>(max_m+1, trie_t::CEDAR_NO_VALUE));
+  VVI ret(max_l+1, VI(max_m+1, trie_t::CEDAR_NO_VALUE));
 
   size_t node_pos=0, key_pos=0;
   auto k = trie_.traverse(format_internal_nucleotides.c_str(), node_pos, key_pos, 
@@ -602,8 +750,7 @@ template <class ValueT>
 inline
 ValueT
 ParameterHash<ValueT>::
-internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
-                     const std::vector<std::vector<int>>& pos) const
+internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos) const
 {
 #if 0
 #ifndef NDEBUG
@@ -619,8 +766,7 @@ template <class ValueT>
 inline
 ValueT&
 ParameterHash<ValueT>::
-internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
-                     const std::vector<std::vector<int>>& pos)
+internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos)
 {
   return pos[l][m]>=0 ? values_[pos[l][m]] : internal_nucleotides(s, i, l, j, m);
 }

@@ -7,7 +7,14 @@
 #ifndef CONFIG_HPP
 #define CONFIG_HPP
 
+#include <vector>
+
 typedef float param_value_type;
+
+typedef std::vector<int> VI;
+typedef std::vector<VI> VVI;
+typedef std::vector<VVI> VVVI;
+typedef std::vector<VVVI> VVVVI;
 
 //////////////////////////////////////////////////////////////////////
 // Options related to general inference
