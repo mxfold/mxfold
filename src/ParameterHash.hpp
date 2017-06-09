@@ -44,6 +44,7 @@ public:
   ValueT  get_by_key(const std::string& key) const;
   ValueT& get_by_key(const std::string& key);
   uint set_key_value(const std::string& key, ValueT val);
+  uint set_key_value(const std::string& key);
 
   bool is_basepair_feature(const std::string& f) const;
   bool is_context_feature(const std::string& f) const;
@@ -290,7 +291,10 @@ private:
   VI cache_helix_length_at_least_;
 #endif
 #if PARAMS_ISOLATED_BASE_PAIR
-  int cache_internal_explicit_;
+  int cache_isolated_base_pair_;
+#endif
+#if PARAMS_INTERNAL_EXPLICIT 
+  VVI cache_internal_explicit_;
 #endif
 #if PARAMS_BULGE_LENGTH
   VI cache_bulge_length_at_least_;
