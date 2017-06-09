@@ -13,6 +13,11 @@
 #include "Utilities.hpp"
 #include "Config.hpp"
 
+// static
+template < class ValueT >
+std::string ParameterHash<ValueT>::def_bases = "ACGUP";
+
+
 template<typename ... Args>
 std::string
 string_format( const std::string& format, Args ... args )
@@ -28,8 +33,9 @@ void
 ParameterHash<ValueT>::
 initialize()
 {
-  std::fill(std::begin(is_base_), std::end(is_base_), false);
-  is_base_['A'] = is_base_['C'] = is_base_['G'] = is_base_['U'] = is_base_['P'] = true;
+  std::fill(std::begin(is_base_), std::end(is_base_), -1);
+  for (size_t i=0; i!=def_bases.size(); ++i)
+    is_base_[def_bases[i]] = i;
 
   // precompute complementary pairings
   for (auto e : is_complementary_)
@@ -58,7 +64,7 @@ bool
 ParameterHash<ValueT>::
 is_base(NUCL x) const
 {
-  return is_base_[x];
+  return is_base_[x]>=0;
 }
 
 
@@ -163,15 +169,40 @@ set_key_value(const std::string& key, ValueT val)
 
   trie_.update(key.c_str()) = values_.size();
 
-  std::regex re("internal_nucleotides_([A-Za-z]*)_([A-Za-z]*)");
+  // symmetric features
+  std::regex re0("internal_nucleotides_([A-Za-z]*)_([A-Za-z]*)");
+  std::regex re1("base_pair_([A-Za-z])([A-Za-z])");
+  std::regex re2("helix_stacking_([A-Za-z])([A-Za-z])([A-Za-z])([A-Za-z])");
+  std::regex re3("internal_explicit_([0-9]+)_([0-9]+)");
   std::smatch match;
-  if (std::regex_match(key, match, re))
+  if (std::regex_match(key, match, re0)) // internal_nucleotides
   {
     std::string nuc1(match[1]), nuc2(match[2]);
     std::reverse(nuc1.begin(), nuc1.end());
     std::reverse(nuc2.begin(), nuc2.end());
     std::string key2("internal_nucleotides_");
     key2 += nuc2 + "_" + nuc1;
+    trie_.update(key2.c_str()) = values_.size();
+  }
+  else if (std::regex_match(key, match, re1)) // base_pair
+  {
+    std::string nuc1(match[1]), nuc2(match[2]);
+    std::string key2("base_pair_");
+    key2 += nuc2 + nuc1;
+    trie_.update(key2.c_str()) = values_.size();
+  }
+  else if (std::regex_match(key, match, re2)) // helix_stacking
+  {
+    std::string nuc1(match[1]), nuc2(match[2]), nuc3(match[3]), nuc4(match[4]);
+    std::string key2("helix_stacking_");
+    key2 += nuc4 + nuc3 + nuc2 + nuc1;
+    trie_.update(key2.c_str()) = values_.size();
+  }
+  else if (std::regex_match(key, match, re3)) // internal_explicit
+  {
+    std::string l1(match[1]), l2(match[2]);
+    std::string key2("internal_explicit_");
+    key2 += l2 + "_" + l1;
     trie_.update(key2.c_str()) = values_.size();
   }
 
@@ -187,9 +218,7 @@ ValueT
 ParameterHash<ValueT>::
 base_pair(NUCL i, NUCL j) const
 {
-  assert(is_complementary(i, j));
-  auto v = std::minmax(i, j);
-  return get_by_key(string_format(format_base_pair, v.first, v.second));
+  return get_by_key(string_format(format_base_pair, i, j));
 }
 
 template < class ValueT >
@@ -198,9 +227,7 @@ ValueT&
 ParameterHash<ValueT>::
 base_pair(NUCL i, NUCL j)
 {
-  assert(is_complementary(i, j));
-  auto v = std::minmax(i, j);
-  return get_by_key(string_format(format_base_pair, v.first, v.second));
+  return get_by_key(string_format(format_base_pair, i, j));
 }
 #endif
 
@@ -385,8 +412,7 @@ ValueT
 ParameterHash<ValueT>::
 internal_explicit(uint i, uint j) const
 {
-  auto v = std::minmax(i, j);
-  return get_by_key(string_format(format_internal_explicit, v.first, v.second));
+  return get_by_key(string_format(format_internal_explicit, i, j));
 }
 
 template <class ValueT>
@@ -395,8 +421,7 @@ ValueT&
 ParameterHash<ValueT>::
 internal_explicit(uint i, uint j)
 {
-  auto v = std::minmax(i, j);
-  return get_by_key(string_format(format_internal_explicit, v.first, v.second));
+  return get_by_key(string_format(format_internal_explicit, i, j));
 }
 #endif
 
@@ -611,9 +636,7 @@ ValueT
 ParameterHash<ValueT>::
 helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
-  auto s1 = string_format(format_helix_stacking, i1, j1, i2, j2);
-  auto s2 = string_format(format_helix_stacking, j2, i2, j1, i1);
-  return get_by_key(s1<s2 ? s1 : s2);
+  return get_by_key(string_format(format_helix_stacking, i1, j1, i2, j2));
 }
 
 template <class ValueT>
@@ -622,9 +645,7 @@ ValueT&
 ParameterHash<ValueT>::
 helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
 {
-  auto s1 = string_format(format_helix_stacking, i1, j1, i2, j2);
-  auto s2 = string_format(format_helix_stacking, j2, i2, j1, i1);
-  return get_by_key(s1<s2 ? s1 : s2);
+  return get_by_key(string_format(format_helix_stacking, i1, j1, i2, j2));
 }
 #endif
 

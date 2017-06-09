@@ -255,6 +255,8 @@ private:
   std::vector<ValueT> values_;
   std::array<std::array<int, 256>, 256> is_complementary_;
   std::array<int, 256> is_base_;
+
+  static std::string def_bases;
 };
 
 #endif  // PARAMETERHASH_HPP
