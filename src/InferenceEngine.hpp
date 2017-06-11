@@ -142,6 +142,7 @@ private:
     void CountJunctionB(int i, int j, RealT value);
     void CountBasePair(int i, int j, RealT value);
     void CountHairpin(int i, int j, RealT value);
+    void CountHairpin(int i, int j, const std::vector<int>& pos, RealT value);
     void CountHelix(int i, int j, int m, RealT value);
     void CountSingleNucleotides(int i, int j, int p, int q, RealT value);
     void CountSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value);

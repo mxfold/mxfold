@@ -23,14 +23,10 @@ public:
   ~ParameterHash() { }
   ParameterHash(ParameterHash&& other);
   
-  ParameterHash& operator=(ParameterHash&& other)
-  {
-    trie_ = std::move(other.trie_);
-    values_ = std::move(other.values_);
-    return *this;
-  }
+  ParameterHash& operator=(ParameterHash&& other);
 
   void initialize();
+  void initialize_cache();
 
   bool is_complementary(NUCL x, NUCL y) const;
   bool is_base(NUCL x) const;
@@ -266,7 +262,8 @@ public:
 #endif
 
 private:
-  static std::string def_bases;
+  static const std::string def_bases;
+  static const size_t N;
 
   //std::unordered_map<std::string, ValueT> param_;
   trie_t trie_;

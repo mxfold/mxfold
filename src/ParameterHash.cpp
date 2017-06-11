@@ -15,8 +15,9 @@
 
 // static
 template < class ValueT >
-std::string ParameterHash<ValueT>::def_bases = "ACGUP";
-
+const std::string ParameterHash<ValueT>::def_bases("ACGUP");
+template < class ValueT >
+const size_t ParameterHash<ValueT>::N = 5; //ParameterHash<ValueT>::def_bases.size();
 
 template<typename ... Args>
 std::string
@@ -32,8 +33,61 @@ template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
   : trie_(), values_()
+#if PARAMS_BASE_PAIR
+  , cache_base_pair_(N, VI(N, -1))
+#endif
+#if PARAMS_BASE_PAIR_DIST
+  , cache_base_pair_dist_at_least_(D_MAX_BP_DIST_THRESHOLDS, -1)
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+  , cache_terminal_mismatch_(N, VVVI(N, VVI(N, VI(N, -1))))
+#endif
+#if PARAMS_HAIRPIN_LENGTH
+  , cache_hairpin_length_at_least_(D_MAX_HAIRPIN_LENGTH, -1)
+#endif
+#if PARAMS_HELIX_LENGTH
+  , cache_helix_length_at_least_(D_MAX_HELIX_LENGTH, -1)
+#endif
+#if PARAMS_ISOLATED_BASE_PAIR
+  , cache_isolated_base_pair_(-1)
+#endif
+#if PARAMS_INTERNAL_EXPLICIT
+  , cache_internal_explicit_(D_MAX_INTERNAL_EXPLICIT_LENGTH, VI(D_MAX_INTERNAL_EXPLICIT_LENGTH, -1))
+#endif
+#if PARAMS_BULGE_LENGTH
+  , cache_bulge_length_at_least_(D_MAX_BULGE_LENGTH, -1)
+#endif
+#if PARAMS_INTERNAL_LENGTH
+  , cache_internal_length_at_least_(D_MAX_INTERNAL_LENGTH, -1)
+#endif
+#if PARAMS_INTERNAL_SYMMETRY
+  , cache_internal_symmetric_length_at_least_(D_MAX_INTERNAL_SYMMETRIC_LENGTH, -1)
+#endif
+#if PARAMS_INTERNAL_ASYMMETRY
+  , cache_internal_asymmetry_at_least_(D_MAX_INTERNAL_ASYMMETRY, -1)
+#endif
+#if PARAMS_HELIX_STACKING
+  , cache_helix_stacking_(N, VVVI(N, VVI(N, VI(N, -1))))
+#endif
+#if PARAMS_HELIX_CLOSING
+  , cache_helix_closing_(N, VI(N, -1))
+#endif
+#if PARAMS_MULTI_LENGTH
+  , cache_multi_base_(-1)
+  , cache_multi_unpaired_(-1)
+  , cache_multi_paired_(-1)
+#endif
+#if PARAMS_DANGLE
+  , cache_dangle_left_(N, VVI(N, VI(N, -1)))
+  , cache_dangle_right_(N, VVI(N, VI(N, -1)))
+#endif
+#if PARAMS_EXTERNAL_LENGTH
+  , cache_external_unpaired_(-1)
+  , cache_external_paired_(-1)
+#endif
 {
-  initialize(); 
+  initialize();
+  initialize_cache();
 }
 
 template < class ValueT >
@@ -41,8 +95,123 @@ ParameterHash<ValueT>::
 ParameterHash(ParameterHash&& other)
   : trie_(std::move(other.trie_)),
     values_(std::move(other.values_))
+#if PARAMS_BASE_PAIR
+  , cache_base_pair_(std::move(other.cache_base_pair_))
+#endif
+#if PARAMS_BASE_PAIR_DIST
+  , cache_base_pair_dist_at_least_(std::move(other.cache_base_pair_dist_at_least_))
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+  , cache_terminal_mismatch_(std::move(other.cache_terminal_mismatch_))
+#endif
+#if PARAMS_HAIRPIN_LENGTH
+  , cache_hairpin_length_at_least_(std::move(other.cache_hairpin_length_at_least_))
+#endif
+#if PARAMS_HELIX_LENGTH
+  , cache_helix_length_at_least_(std::move(other.cache_helix_length_at_least_))
+#endif
+#if PARAMS_ISOLATED_BASE_PAIR
+  , cache_isolated_base_pair_(std::move(other.cache_isolated_base_pair_))
+#endif
+#if PARAMS_INTERNAL_EXPLICIT
+  , cache_internal_explicit_(std::move(other.cache_internal_explicit_))
+#endif
+#if PARAMS_BULGE_LENGTH
+  , cache_bulge_length_at_least_(std::move(other.cache_bulge_length_at_least_))
+#endif
+#if PARAMS_INTERNAL_LENGTH
+  , cache_internal_length_at_least_(std::move(other.cache_internal_length_at_least_))
+#endif
+#if PARAMS_INTERNAL_SYMMETRY
+  , cache_internal_symmetric_length_at_least_(std::move(other.cache_internal_symmetric_length_at_least_))
+#endif
+#if PARAMS_INTERNAL_ASYMMETRY
+  , cache_internal_asymmetry_at_least_(std::move(other.cache_internal_asymmetry_at_least_))
+#endif
+#if PARAMS_HELIX_STACKING
+  , cache_helix_stacking_(std::move(other.cache_helix_stacking_))
+#endif
+#if PARAMS_HELIX_CLOSING
+  , cache_helix_closing_(std::move(other.cache_helix_closing_))
+#endif
+#if PARAMS_MULTI_LENGTH
+  , cache_multi_base_(std::move(other.cache_multi_base_))
+  , cache_multi_unpaired_(std::move(other.cache_multi_unpaired_))
+  , cache_multi_paired_(std::move(other.cache_multi_paired_))
+#endif
+#if PARAMS_DANGLE
+  , cache_dangle_left_(std::move(other.cache_dangle_left_))
+  , cache_dangle_right_(std::move(other.cache_dangle_right_))
+#endif
+#if PARAMS_EXTERNAL_LENGTH
+  , cache_external_unpaired_(std::move(other.cache_external_unpaired_))
+  , cache_external_paired_(std::move(other.cache_external_paired_))
+#endif
 {
   initialize();
+}
+
+
+template < class ValueT >
+ParameterHash<ValueT>&
+ParameterHash<ValueT>::
+operator=(ParameterHash&& other)
+{
+  trie_ = std::move(other.trie_);
+  values_ = std::move(other.values_);
+#if PARAMS_BASE_PAIR
+  cache_base_pair_ = std::move(other.cache_base_pair_);
+#endif
+#if PARAMS_BASE_PAIR_DIST
+  cache_base_pair_dist_at_least_ = std::move(other.cache_base_pair_dist_at_least_);
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+  cache_terminal_mismatch_ = std::move(other.cache_terminal_mismatch_);
+#endif
+#if PARAMS_HAIRPIN_LENGTH
+  cache_hairpin_length_at_least_ = std::move(other.cache_hairpin_length_at_least_);
+#endif
+#if PARAMS_HELIX_LENGTH
+  cache_helix_length_at_least_ = std::move(other.cache_helix_length_at_least_);
+#endif
+#if PARAMS_ISOLATED_BASE_PAIR
+  cache_isolated_base_pair_ = std::move(other.cache_isolated_base_pair_);
+#endif
+#if PARAMS_INTERNAL_EXPLICIT 
+  cache_internal_explicit_ = std::move(other.cache_internal_explicit_);
+#endif
+#if PARAMS_BULGE_LENGTH
+  cache_bulge_length_at_least_ = std::move(other.cache_bulge_length_at_least_);
+#endif
+#if PARAMS_INTERNAL_LENGTH
+  cache_internal_length_at_least_ = std::move(other.cache_internal_length_at_least_);
+#endif
+#if PARAMS_INTERNAL_SYMMETRY
+  cache_internal_symmetric_length_at_least_ = std::move(other.cache_internal_symmetric_length_at_least_);
+#endif
+#if PARAMS_INTERNAL_ASYMMETRY
+  cache_internal_asymmetry_at_least_ = std::move(other.cache_internal_asymmetry_at_least_);
+#endif
+#if PARAMS_HELIX_STACKING
+  cache_helix_stacking_ = std::move(other.cache_helix_stacking_);
+#endif
+#if PARAMS_HELIX_CLOSING
+  cache_helix_closing_ = std::move(other.cache_helix_closing_);
+#endif
+#if PARAMS_MULTI_LENGTH
+  cache_multi_base_ = std::move(other.cache_multi_base_);
+  cache_multi_unpaired_ = std::move(other.cache_multi_unpaired_);
+  cache_multi_paired_ = std::move(other.cache_multi_paired_);
+#endif
+#if PARAMS_DANGLE
+  cache_dangle_left_ = std::move(other.cache_dangle_left_);
+  cache_dangle_right_ = std::move(other.cache_dangle_right_);
+#endif
+#if PARAMS_EXTERNAL_LENGTH
+  cache_external_unpaired_ = std::move(other.cache_external_unpaired_);
+  cache_external_paired_ = std::move(other.cache_external_paired_);
+#endif
+  return *this;
 }
 
 template < class ValueT >
@@ -66,7 +235,13 @@ initialize()
   is_complementary_['C']['P'] = is_complementary_['P']['C'] = true;
   is_complementary_['G']['P'] = is_complementary_['P']['G'] = true;
   is_complementary_['U']['P'] = is_complementary_['P']['U'] = true;
+}
 
+template < class ValueT >
+void
+ParameterHash<ValueT>::
+initialize_cache()
+{
 #if PARAMS_BASE_PAIR
   initialize_cache_base_pair();
 #endif
@@ -299,7 +474,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_base_pair()
 {
-  cache_base_pair_.resize(def_bases.size(), VI(def_bases.size(), -1));
   for (auto i : def_bases)
     for (auto j : def_bases)
       cache_base_pair_[is_base_[i]][is_base_[j]] = set_key_value(string_format(format_base_pair, i, j));
@@ -341,7 +515,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_base_pair_dist_at_least()
 {
-  cache_base_pair_dist_at_least_.resize(D_MAX_BP_DIST_THRESHOLDS, -1);
   for (size_t i=0; i!=cache_base_pair_dist_at_least_.size(); ++i)
     cache_base_pair_dist_at_least_[i] = set_key_value(string_format(format_base_pair_dist_at_least, i));
 }
@@ -380,8 +553,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_terminal_mismatch()
 {
-  const size_t N = def_bases.size();
-  cache_terminal_mismatch_.resize(N, VVVI(N, VVI(N, VI(N, -1))));
   for (auto i1: def_bases)
   {
     auto ii1 = is_base_[i1];
@@ -440,7 +611,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_hairpin_length_at_least()
 {
-  cache_hairpin_length_at_least_.resize(D_MAX_HAIRPIN_LENGTH, -1);
   for (size_t i=0; i!=cache_hairpin_length_at_least_.size(); ++i)
     cache_hairpin_length_at_least_[i] = set_key_value(string_format(format_hairpin_length_at_least, i));
 }
@@ -547,7 +717,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_helix_length_at_least()
 {
-  cache_helix_length_at_least_.resize(D_MAX_HELIX_LENGTH, -1);
   for (size_t i=0; i!=cache_helix_length_at_least_.size(); ++i)
     cache_helix_length_at_least_[i] = set_key_value(string_format(format_helix_length_at_least, i));
 }
@@ -617,7 +786,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_internal_explicit()
 {
-  cache_internal_explicit_.resize(D_MAX_INTERNAL_EXPLICIT_LENGTH, VI(D_MAX_INTERNAL_EXPLICIT_LENGTH, -1));
   for (size_t i=0; i!=cache_internal_explicit_.size(); ++i)
     for (size_t j=0; j!=cache_internal_explicit_[i].size(); ++j)
       cache_internal_explicit_[i][j] = set_key_value(string_format(format_internal_explicit, i, j));
@@ -657,7 +825,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_bulge_length_at_least()
 {
-  cache_bulge_length_at_least_.resize(D_MAX_BULGE_LENGTH, -1);
   for (size_t i=0; i!=cache_bulge_length_at_least_.size(); ++i)
     cache_bulge_length_at_least_[i] = set_key_value(string_format(format_bulge_length_at_least, i));
 }
@@ -696,7 +863,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_internal_length_at_least()
 {
-  cache_internal_length_at_least_.resize(D_MAX_INTERNAL_LENGTH, -1);
   for (size_t i=0; i!=cache_internal_length_at_least_.size(); ++i)
     cache_internal_length_at_least_[i] = set_key_value(string_format(format_internal_length_at_least, i));
 }
@@ -735,7 +901,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_internal_symmetric_length_at_least()
 {
-  cache_internal_symmetric_length_at_least_.resize(D_MAX_INTERNAL_SYMMETRIC_LENGTH, -1);
   for (size_t i=0; i!=cache_internal_symmetric_length_at_least_.size(); ++i)
     cache_internal_symmetric_length_at_least_[i] = set_key_value(string_format(format_internal_symmetric_length_at_least, i));
 }
@@ -774,7 +939,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_internal_asymmetry_at_least()
 {
-  cache_internal_asymmetry_at_least_.resize(D_MAX_INTERNAL_ASYMMETRY, -1);
   for (size_t i=0; i!=cache_internal_asymmetry_at_least_.size(); ++i)
     cache_internal_asymmetry_at_least_[i] = set_key_value(string_format(format_internal_asymmetry_at_least, i));
 }
@@ -910,7 +1074,10 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m,
   assert(v == internal_nucleotides(s, i, l, j, m));
 #endif
 #endif
-  return pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
+  if (l<pos.size() && m<pos[l].size())
+        return pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
+  else
+    return internal_nucleotides(s, i, l, j, m);
 }
 
 template <class ValueT>
@@ -919,7 +1086,10 @@ ValueT&
 ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos)
 {
-  return pos[l][m]>=0 ? values_[pos[l][m]] : internal_nucleotides(s, i, l, j, m);
+  if (l<pos.size() && m<pos[l].size())
+    return pos[l][m]>=0 ? values_[pos[l][m]] : internal_nucleotides(s, i, l, j, m);
+  else
+    return internal_nucleotides(s, i, l, j, m);
 }
 
 
@@ -932,8 +1102,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_helix_stacking()
 {
-  const size_t N = def_bases.size();
-  cache_helix_stacking_.resize(N, VVVI(N, VVI(N, VI(N, -1))));
   for (auto i1: def_bases)
   {
     auto ii1 = is_base_[i1];
@@ -991,8 +1159,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_helix_closing()
 {
-  const size_t N = def_bases.size();
-  cache_helix_closing_.resize(N, VI(N, -1));
   for (auto i: def_bases)
   {
     auto ii = is_base_[i];
@@ -1129,8 +1295,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_dangle_left()
 {
-  const size_t N = def_bases.size();
-  cache_dangle_left_.resize(N, VVI(N, VI(N, -1)));
   for (auto i1: def_bases)
   {
     auto ii1 = is_base_[i1];
@@ -1180,8 +1344,6 @@ void
 ParameterHash<ValueT>::
 initialize_cache_dangle_right()
 {
-  const size_t N = def_bases.size();
-  cache_dangle_right_.resize(N, VVI(N, VI(N, -1)));
   for (auto i1: def_bases)
   {
     auto ii1 = is_base_[i1];
