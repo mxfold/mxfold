@@ -1042,6 +1042,7 @@ internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
 
   for (uint l=0; l<=max_l; ++l)
   {
+    if (s.size()>=i+l-1) break;
     if (l>0)
     {
       key_pos = 0;
@@ -1055,6 +1056,7 @@ internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
 
     for (uint m=0; m<=max_m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
     {
+      if (j+1<m) break;
       if (l+m<1) continue;
       if (m>0)
       {
