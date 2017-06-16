@@ -230,7 +230,7 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   auto loss1 = inference_engine1.GetViterbiScore();
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
   for (auto p=corr.begin(); p!=corr.end(); ++p)
-    grad.insert(std::make_pair(p.key(), 0.0)).first->second -= *p;
+    grad.insert(std::make_pair(p.key(), 0.0)).first->second -= p.value();
 
 
   // count the occurence of parameters in the predicted structure
@@ -255,7 +255,7 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   auto loss0 = inference_engine0.GetViterbiScore();
   auto pred = inference_engine0.ComputeViterbiFeatureCounts();
   for (auto p=pred.begin(); p!=pred.end(); ++p)
-    grad.insert(std::make_pair(p.key(), 0.0)).first->second += *p;
+    grad.insert(std::make_pair(p.key(), 0.0)).first->second += p.value();
 
 
   if (verbose_>0)
@@ -297,6 +297,7 @@ NGSfold::train()
     pm.ReadFromFile(param_file_);
     optimizer.read_from_file(param_file_);
   }
+  pm.initialize_cache();
 
   // run max-margin training
   for (uint t=0, k=0; t!=t_max_; ++t)
@@ -347,7 +348,7 @@ NGSfold::train()
         if (true /*!is_weak_label || pm.is_context_feature(p->first) ||
                    (use_bp_context_ && pm.is_basepair_context_feature(p->first)) */)
         {
-          optimizer.regularize(p.key(), *p, eta_w);
+          optimizer.regularize(p.key(), p.value(), eta_w);
 #if 0
           if (*p==0.0)
             p = pm.erase(p);
@@ -379,13 +380,13 @@ NGSfold::predict()
 {
   // set parameters
   ParameterHash<param_value_type> pm;
-
   if (!param_file_.empty())
     pm.ReadFromFile(param_file_);
   else if (noncomplementary_)
     pm.LoadFromHash(default_params_noncomplementary);
   else
     pm.LoadFromHash(default_params_complementary);
+  pm.initialize_cache();
 
   // predict ss
   InferenceEngine<param_value_type> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
@@ -435,6 +436,7 @@ NGSfold::validate()
     pm.LoadFromHash(default_params_noncomplementary);
   else
     pm.LoadFromHash(default_params_complementary);
+  pm.initialize_cache();
   
   for (auto s : args_)
   {
@@ -472,6 +474,7 @@ NGSfold::count_features()
     pm.LoadFromHash(default_params_noncomplementary);
   else
     pm.LoadFromHash(default_params_complementary);
+  pm.initialize_cache();
   
   std::unordered_map<std::string, param_value_type> cnt;
   for (auto s : args_)
@@ -487,8 +490,8 @@ NGSfold::count_features()
     inference_engine.ComputeViterbi();
     auto corr = inference_engine.ComputeViterbiFeatureCounts();
     for (auto p=corr.begin(); p!=corr.end(); ++p)
-      if (*p!=0.0)
-        cnt.insert(std::make_pair(p.key(), 0.0)).first->second += *p;
+      if (p.value()!=0.0)
+        cnt.insert(std::make_pair(p.key(), 0.0)).first->second += p.value();
   }
 
   std::vector<std::string> keys;

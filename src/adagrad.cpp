@@ -45,7 +45,7 @@ regularize(const std::string& fname, param_value_type& w, param_value_type weigh
 {
   auto u = sum_grad_.find(fname);
   auto g = sum_squared_grad_.find(fname);
-  w = - weight * eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, lambda_);
+  w = - weight * eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, static_cast<param_value_type>(lambda_));
 }
 
 void

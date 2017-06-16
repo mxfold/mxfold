@@ -50,100 +50,90 @@ public:
   class iterator : public std::iterator<std::forward_iterator_tag, ValueT >
   {
   public:
-    iterator(const trie_t* trie, const std::vector<ValueT>* values, size_t from=0, size_t len=0)
-      : trie_(const_cast<trie_t*>(trie)), values_(const_cast<std::vector<ValueT>*>(values)), from_(from), len_(len)
-    { }
+    iterator(const std::vector<std::string>* keys, const std::vector<ValueT>* values)
+      : keys_(const_cast<std::vector<std::string>*>(keys)), values_(const_cast<std::vector<ValueT>*>(values))
+    {  }
 
-    iterator(trie_t* trie, std::vector<ValueT>* values, size_t from=0, size_t len=0)
-      : trie_(trie), values_(values), from_(from), len_(len)
-    { }
+    iterator(std::vector<std::string>* keys, std::vector<ValueT>* values)
+      : keys_(keys), values_(values)
+    {  }
 
     iterator& begin()
     {
-      i_ = trie_->begin(from_, len_);
+      i_ = 0;
       return *this;
     }
 
     iterator& end()
     {
-      i_ = trie_t::CEDAR_NO_PATH;
-      from_ = -1u;
-      len_ = 0;
+      i_ = values_->size();
       return *this;
     }
 
-    std::string key() const
+    const std::string& key() const
     {
-      std::string s(len_, ' ');
-      trie_->suffix(&s[0], len_, from_);
-      return s;
+      return (*keys_)[i_];
     }
 
-    int index() const { return i_; }
-
-    ValueT operator*() const
+    ValueT value() const
     {
       return (*values_)[i_];
     }
 
-    ValueT& operator*()
+    ValueT& value()
     {
       return (*values_)[i_];
     }
 
     iterator& operator++()
     {
-      i_ = trie_->next(from_, len_);
-      if (i_==trie_t::CEDAR_NO_PATH) end();
+      i_++;
       return *this;
     }
 
     iterator operator++(int)
     {
       iterator temp = *this;
-      i_ = trie_->next(from_, len_);
-      if (i_==trie_t::CEDAR_NO_PATH) end();
+      ++i_;
       return temp;
     }
 
     bool operator!=(const iterator& x) const
     {
-      return from_!=x.from_ || len_!=x.len_;
+      return i_!=x.i_;
     }
 
     bool operator==(const iterator& x) const
     {
-      return from_==x.from_ && len_==x.len_;
+      return i_==x.i_;
     }
 
   private:
     trie_t* trie_;
+    std::vector<std::string>* keys_;
     std::vector<ValueT>* values_;
-    size_t from_;
-    size_t len_;
     int i_;
   };
 
   iterator begin()
   {
-    return iterator(&trie_, &values_).begin();
+    return iterator(&keys_, &values_).begin();
   }
 
   iterator end()
   {
-    return iterator(&trie_, &values_).end();
+    return iterator(&keys_, &values_).end();
   }
 
   iterator cbegin() const
   {
-    return iterator(&trie_, &values_).begin();
+    return iterator(&keys_, &values_).begin();
   }
 
   iterator cend() const
   {
-    return iterator(&trie_, &values_).end();
+    return iterator(&keys_, &values_).end();
   }
-
 
   // access to parameters
 #if PARAMS_BASE_PAIR
@@ -267,6 +257,7 @@ private:
 
   //std::unordered_map<std::string, ValueT> param_;
   trie_t trie_;
+  std::vector<std::string> keys_;
   std::vector<ValueT> values_;
   std::array<std::array<int, 256>, 256> is_complementary_;
   std::array<int, 256> is_base_;

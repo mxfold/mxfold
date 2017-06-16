@@ -3,7 +3,6 @@
 #include <fstream>
 #include <algorithm>
 #include <memory>
-#include <regex>
 #include <iterator>
 #include <stdexcept>
 #include <cerrno>
@@ -33,7 +32,7 @@ string_format( const std::string& format, Args ... args )
 template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
-  : trie_(), values_()
+  : trie_(), keys_(), values_()
 #if PARAMS_BASE_PAIR
   , cache_base_pair_(N, VI(N, -1))
 #endif
@@ -53,7 +52,7 @@ ParameterHash()
   , cache_isolated_base_pair_(-1)
 #endif
 #if PARAMS_INTERNAL_EXPLICIT
-  , cache_internal_explicit_(D_MAX_INTERNAL_EXPLICIT_LENGTH, VI(D_MAX_INTERNAL_EXPLICIT_LENGTH, -1))
+  , cache_internal_explicit_(D_MAX_INTERNAL_EXPLICIT_LENGTH+1, VI(D_MAX_INTERNAL_EXPLICIT_LENGTH+1, -1))
 #endif
 #if PARAMS_BULGE_LENGTH
   , cache_bulge_length_at_least_(D_MAX_BULGE_LENGTH, -1)
@@ -88,13 +87,13 @@ ParameterHash()
 #endif
 {
   initialize();
-  initialize_cache();
 }
 
 template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash(ParameterHash&& other)
   : trie_(std::move(other.trie_)),
+    keys_(std::move(other.keys_)),
     values_(std::move(other.values_))
 #if PARAMS_BASE_PAIR
   , cache_base_pair_(std::move(other.cache_base_pair_))
@@ -159,6 +158,7 @@ ParameterHash<ValueT>::
 operator=(ParameterHash&& other)
 {
   trie_ = std::move(other.trie_);
+  keys_ = std::move(other.keys_);
   values_ = std::move(other.values_);
 #if PARAMS_BASE_PAIR
   cache_base_pair_ = std::move(other.cache_base_pair_);
@@ -319,10 +319,11 @@ void
 ParameterHash<ValueT>::
 LoadFromHash(const std::unordered_map<std::string, ValueT>& hash)
 {
+  trie_.clear();
+  keys_.clear();
+  values_.clear();
   for (auto e: hash)
-  {
     set_key_value(e.first, e.second);
-  }
 }
 
 template < class ValueT >
@@ -331,6 +332,7 @@ ParameterHash<ValueT>::
 ReadFromFile(const std::string& filename)
 {
   trie_.clear();
+  keys_.clear();
   values_.clear();
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
@@ -362,17 +364,13 @@ WriteToFile(const std::string& filename) const
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
-  std::vector<std::string> keys(values_.size());
-  for (auto p=this->cbegin(); p!=this->cend(); ++p)
-    if (keys[p.index()].empty() || p.key()<keys[p.index()])
-        keys[p.index()] = p.key();
-  std::vector<size_t> idx(keys.size());
+  std::vector<size_t> idx(keys_.size());
   std::iota(idx.begin(), idx.end(), 0);
-  std::sort(idx.begin(), idx.end(), 
-            [&keys](size_t i, size_t j) { return keys[i] < keys[j]; });
+  std::sort(idx.begin(), idx.end(),
+            [&](size_t i, size_t j) { return keys_[i] < keys_[j]; });
   for (auto i: idx)
     if (values_[i]!=0.0)
-      os << keys[i] << " " << values_[i] << std::endl;
+      os << keys_[i] << " " << values_[i] << std::endl;
 }
 
 template < class ValueT >
@@ -396,6 +394,7 @@ get_by_key(const std::string& key)
     return values_[i];
 
   trie_.update(key.c_str()) = values_.size();
+  keys_.push_back(key);
   values_.push_back(static_cast<ValueT>(0.0));
   return values_.back();
 }
@@ -419,47 +418,53 @@ set_key_value(const std::string& key)
 {
   auto i = trie_.template exactMatchSearch<int>(key.c_str());
   if (i!=trie_t::CEDAR_NO_VALUE)
-  {
     return i;
-  }
 
+  keys_.push_back(key);
   trie_.update(key.c_str()) = values_.size();
 
   // symmetric features
-  std::regex re0("internal_nucleotides_([A-Za-z]*)_([A-Za-z]*)", std::regex_constants::basic);
-  std::regex re1("base_pair_([A-Za-z])([A-Za-z])", std::regex_constants::basic);
-  std::regex re2("helix_stacking_([A-Za-z])([A-Za-z])([A-Za-z])([A-Za-z])", std::regex_constants::basic);
-  std::regex re3("internal_explicit_([0-9]+)_([0-9]+)", std::regex_constants::basic);
-  std::smatch match;
-  if (std::regex_match(key, match, re0)) // internal_nucleotides
+  std::string s_internal_nucleotides("internal_nucleotides_");
+  std::string s_base_pair("base_pair_");
+  std::string s_helix_stacking("helix_stacking_");
+  std::string s_internal_explicit("internal_explicit_");
+  if (key.find(s_internal_nucleotides) == 0)
   {
-    std::string nuc1(match[1]), nuc2(match[2]);
+    size_t pos=key.find("_", s_internal_nucleotides.size());
+    std::string nuc1 = key.substr(s_internal_nucleotides.size(), pos-s_internal_nucleotides.size());
+    std::string nuc2 = key.substr(pos+1);
     std::reverse(nuc1.begin(), nuc1.end());
     std::reverse(nuc2.begin(), nuc2.end());
-    std::string key2("internal_nucleotides_");
-    key2 += nuc2 + "_" + nuc1;
+    std::string key2 = s_internal_nucleotides + nuc2 + "_" + nuc1;
     trie_.update(key2.c_str()) = values_.size();
+    if (keys_.back()>key2) keys_.back() = key2;
   }
-  else if (std::regex_match(key, match, re1)) // base_pair
+  else if (key.find(s_base_pair) == 0 && key.size() == s_base_pair.size()+2)
   {
-    std::string nuc1(match[1]), nuc2(match[2]);
-    std::string key2("base_pair_");
-    key2 += nuc2 + nuc1;
+    std::string nuc1 = key.substr(s_base_pair.size()+0, 1);
+    std::string nuc2 = key.substr(s_base_pair.size()+1, 1);
+    std::string key2 = s_base_pair + nuc2 + nuc1;
     trie_.update(key2.c_str()) = values_.size();
+    if (keys_.back()>key2) keys_.back() = key2;
   }
-  else if (std::regex_match(key, match, re2)) // helix_stacking
+  else if (key.find(s_helix_stacking) == 0)
   {
-    std::string nuc1(match[1]), nuc2(match[2]), nuc3(match[3]), nuc4(match[4]);
-    std::string key2("helix_stacking_");
-    key2 += nuc4 + nuc3 + nuc2 + nuc1;
+    std::string nuc1 = key.substr(s_helix_stacking.size()+0, 1);
+    std::string nuc2 = key.substr(s_helix_stacking.size()+1, 1);
+    std::string nuc3 = key.substr(s_helix_stacking.size()+2, 1);
+    std::string nuc4 = key.substr(s_helix_stacking.size()+3, 1);
+    std::string key2 = s_helix_stacking + nuc4 + nuc3 + nuc2 + nuc1;
     trie_.update(key2.c_str()) = values_.size();
+    if (keys_.back()>key2) keys_.back() = key2;
   }
-  else if (std::regex_match(key, match, re3)) // internal_explicit
+  else if (key.find(s_internal_explicit) == 0)
   {
-    std::string l1(match[1]), l2(match[2]);
-    std::string key2("internal_explicit_");
-    key2 += l2 + "_" + l1;
+    size_t pos=key.find("_", s_internal_explicit.size());
+    std::string l1 = key.substr(s_internal_explicit.size(), pos-s_internal_explicit.size());
+    std::string l2 = key.substr(pos+1);
+    std::string key2 = s_internal_explicit + l2 + "_" + l1;
     trie_.update(key2.c_str()) = values_.size();
+    if (keys_.back()>key2) keys_.back() = key2;
   }
 
   values_.push_back(static_cast<ValueT>(0));
@@ -1000,6 +1005,7 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
   if (k!=trie_t::CEDAR_NO_VALUE)
     return values_[k];
 
+  keys_.push_back(key1);
   trie_.update(key1.c_str()) = values_.size();
 
   std::string nuc2(l+m+1, ' ');
@@ -1008,6 +1014,7 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
   std::reverse_copy(&s[i], &s[i+l], x);
   auto key2 = format_internal_nucleotides+nuc2;
   trie_.update(key2.c_str()) = values_.size();
+  if (keys_.back()>key2) keys_.back() = key2;
 
   values_.push_back(static_cast<ValueT>(0.0));
   return values_.back();

@@ -4178,7 +4178,7 @@ void InferenceEngine<RealT>::ComputePosterior()
 
 template<class RealT>
 template<int GCE>
-std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const RealT gamma) const
+std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float gamma) const
 {
     Assert(gamma > 0, "Non-negative gamma expected.");
     

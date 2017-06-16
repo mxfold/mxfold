@@ -193,7 +193,7 @@ public:
     void ComputeOutside();
     ParameterHash<RealT> ComputeFeatureCountExpectations();
     void ComputePosterior();
-    template <int GCE> std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
+    template <int GCE> std::vector<int> PredictPairingsPosterior(const float gamma) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;
 };
 

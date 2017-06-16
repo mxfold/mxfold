@@ -9,7 +9,7 @@
 
 #include <vector>
 
-typedef float param_value_type;
+typedef double param_value_type;
 
 typedef std::vector<int> VI;
 typedef std::vector<VI> VVI;
