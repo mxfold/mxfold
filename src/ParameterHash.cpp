@@ -87,6 +87,7 @@ ParameterHash()
 #endif
 {
   initialize();
+  initialize_cache();
 }
 
 template < class ValueT >
