@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <memory>
 #include <regex>
+#include <iterator>
 #include <stdexcept>
 #include <cerrno>
 #include <cstdio>
@@ -425,10 +426,10 @@ set_key_value(const std::string& key)
   trie_.update(key.c_str()) = values_.size();
 
   // symmetric features
-  std::regex re0("internal_nucleotides_([A-Za-z]*)_([A-Za-z]*)");
-  std::regex re1("base_pair_([A-Za-z])([A-Za-z])");
-  std::regex re2("helix_stacking_([A-Za-z])([A-Za-z])([A-Za-z])([A-Za-z])");
-  std::regex re3("internal_explicit_([0-9]+)_([0-9]+)");
+  std::regex re0("internal_nucleotides_([A-Za-z]*)_([A-Za-z]*)", std::regex_constants::basic);
+  std::regex re1("base_pair_([A-Za-z])([A-Za-z])", std::regex_constants::basic);
+  std::regex re2("helix_stacking_([A-Za-z])([A-Za-z])([A-Za-z])([A-Za-z])", std::regex_constants::basic);
+  std::regex re3("internal_explicit_([0-9]+)_([0-9]+)", std::regex_constants::basic);
   std::smatch match;
   if (std::regex_match(key, match, re0)) // internal_nucleotides
   {
