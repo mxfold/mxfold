@@ -712,6 +712,10 @@ ValueT&
 ParameterHash<ValueT>::
 hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos)
 {
+#ifdef TEST_CACHE
+  auto v = pos[l]>=0 ? values_[pos[l]] : hairpin_nucleotides(s, i, l);
+  assert(v == hairpin_nucleotides(s, i, l));
+#endif
   return pos[l]>=0 ? values_[pos[l]] : hairpin_nucleotides(s, i, l);
 }
 
@@ -1036,18 +1040,24 @@ internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
   if (head == -1u)
   {
     k = trie_.traverse(format_internal_nucleotides.c_str(), node_pos, key_pos, 
-                            format_internal_nucleotides.size());
+                       format_internal_nucleotides.size());
     head = node_pos;
   }
-  node_pos =head;
+  node_pos = head;
 
-  for (uint l=0; l<=max_l; ++l)
+  for (uint l=0; l<=max_l && i+l-1<s.size(); ++l)
   {
-    if (s.size()>=i+l-1) break;
     if (l>0)
     {
       key_pos = 0;
       k = trie_.traverse(&s[i+l-1], node_pos, key_pos, 1);
+#ifdef TEST_CACHE
+      std::string s2 = format_internal_nucleotides;
+      for (uint kk=i; kk<i+l; ++kk) s2.push_back(s[kk]);
+      size_t np=0, kp=0;
+      auto k2 = trie_.traverse(s2.c_str(), np, kp, s2.size());
+      assert(k == k2);
+#endif
       if (k==trie_t::CEDAR_NO_PATH) break;
     }
 
@@ -1055,14 +1065,22 @@ internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
     key_pos = 0;
     k = trie_.traverse("_", node_pos2, key_pos, 1);
 
-    for (uint m=0; m<=max_m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
+    for (uint m=0; m<=max_m && j+1>=m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
     {
-      if (j+1<m) break;
       if (l+m<1) continue;
       if (m>0)
       {
         key_pos = 0;
         k = trie_.traverse(&s[j-m+1], node_pos2, key_pos, 1);
+#ifdef TEST_CACHE
+        std::string s2 = format_internal_nucleotides;
+        for (uint kk=i; kk<i+l; ++kk) s2.push_back(s[kk]);
+        s2.push_back('_');
+        for (uint kk=j; j+1<=kk+m && kk!=-1u; --kk) s2.push_back(s[kk]);
+        size_t np=0, kp=0;
+        auto k2 = trie_.traverse(s2.c_str(), np, kp, s2.size());
+        assert(k == k2);
+#endif
       }
       if (k==trie_t::CEDAR_NO_PATH) break;
       ret[l][m] = k;
@@ -1078,12 +1096,13 @@ ValueT
 ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos) const
 {
-#if 0
-#ifndef NDEBUG
-  auto v = pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
-  //std::cout << s[i] << " " << i << " " << l << " " << j << " " << m << " " << pos[l][m] << " " << v << " " << internal_nucleotides(s, i, l, j, m)<< std::endl;
+#ifdef TEST_CACHE
+  ValueT v;
+  if (l<pos.size() && m<pos[l].size())
+    v = pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
+  else
+    v = internal_nucleotides(s, i, l, j, m);
   assert(v == internal_nucleotides(s, i, l, j, m));
-#endif
 #endif
   if (l<pos.size() && m<pos[l].size())
         return pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
