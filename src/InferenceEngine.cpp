@@ -1184,6 +1184,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
       ;
 }
 
+#if 0
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j, const std::vector<int>& pos) const
 {
@@ -1221,6 +1222,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j, const std::vecto
 #endif
       ;
 }
+#endif
 
 template<class RealT>
 inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
@@ -1254,6 +1256,7 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #endif
 }
 
+#if 0
 template<class RealT>
 inline void InferenceEngine<RealT>::CountHairpin(int i, int j, const std::vector<int>& pos, RealT value)
 {
@@ -1285,6 +1288,7 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, const std::vector
 #endif
 #endif
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::ScoreHelix()
@@ -1787,6 +1791,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
         + ScoreSingleNucleotides(i,j,p,q);
 }
 
+#if 0
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const
 {
@@ -1808,6 +1813,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q, con
         + ScoreJunctionB(q,p)
         + ScoreSingleNucleotides(i,j,p,q,pos);
 }
+#endif
 
 template<class RealT>
 inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, RealT value)
@@ -1825,6 +1831,7 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, Real
     CountSingleNucleotides(i,j,p,q,value);
 }
 
+#if 0
 template<class RealT>
 inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value)
 {
@@ -1840,6 +1847,7 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, cons
     CountJunctionB(q,p,value);
     CountSingleNucleotides(i,j,p,q,pos,value);
 }
+#endif
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::EncodeTraceback()
@@ -1908,7 +1916,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
 #if CANDIDATE_LIST
         candidates.clear();
 #endif
-        auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
+        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
 
         for (int j = i; j <= L; j++)
         {
@@ -1976,11 +1984,11 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j,hairpin_pos), EncodeTraceback(TB_FN_HAIRPIN,0));
+                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j), EncodeTraceback(TB_FN_HAIRPIN,0));
                 
                 // compute MAX (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -1994,7 +2002,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                         if (i == p && j == q) continue;
                         
                         UPDATE_MAX(best_v, best_t,
-                                   ScoreSingle(i,j,p,q,internal_pos) + FCv[offset[p+1]+q-1],
+                                   ScoreSingle(i,j,p,q) + FCv[offset[p+1]+q-1],
                                    EncodeTraceback(TB_FN_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q));
                     }
                 }
@@ -2017,7 +2025,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                             if (i == p && j == q) continue;
                             
                             RealT score = (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) +
-                                           ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                           ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                             
                             if (score > best_v)
                             {
@@ -2143,7 +2151,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 
                 // compute MAX (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -2157,7 +2165,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                         
                         UPDATE_MAX(best_v, best_t,
                                    FCv[offset[p+1]+q-1] +
-                                   (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q,internal_pos)),
+                                   (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q)),
                                    EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q));
                     }
                 }
@@ -2181,7 +2189,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                             
                             RealT score = (p == i && q == j) ?
                                 (score_helix + FCptr[q]) :
-                                (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                             
                             if (score > best_v)
                             {
@@ -2729,7 +2737,7 @@ void InferenceEngine<RealT>::ComputeInside()
 
     for (int i = L; i >= 0; i--)
     {
-        auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
+        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
 
         for (int j = i; j <= L; j++)
         {
@@ -2781,11 +2789,11 @@ void InferenceEngine<RealT>::ComputeInside()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    Fast_LogPlusEquals(sum_i, ScoreHairpin(i,j,hairpin_pos));
+                    Fast_LogPlusEquals(sum_i, ScoreHairpin(i,j));
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
                 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 
@@ -2799,7 +2807,7 @@ void InferenceEngine<RealT>::ComputeInside()
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
                         
-                        Fast_LogPlusEquals(sum_i, ScoreSingle(i,j,p,q,internal_pos) + FCi[offset[p+1]+q-1]);
+                        Fast_LogPlusEquals(sum_i, ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]);
                     }
                 }
                 
@@ -2821,7 +2829,7 @@ void InferenceEngine<RealT>::ComputeInside()
                             if (i == p && j == q) continue;
                             
                             RealT score = (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) +
-                                           ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                           ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                             
                             Fast_LogPlusEquals(sum_i, score);
                         }
@@ -2926,7 +2934,7 @@ void InferenceEngine<RealT>::ComputeInside()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 
@@ -2941,7 +2949,7 @@ void InferenceEngine<RealT>::ComputeInside()
 
                         Fast_LogPlusEquals(sum_i,
                                            FCi[offset[p+1]+q-1] +
-                                           (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q,internal_pos)));
+                                           (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q)));
                     }
                 }
                 
@@ -2964,7 +2972,7 @@ void InferenceEngine<RealT>::ComputeInside()
                             RealT score = (p == i && q == j) ?
                                 (score_helix + FCptr[q]) :
                                 (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) +
-                                 ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                 ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                             
                             Fast_LogPlusEquals(sum_i, score);
                         }
@@ -3268,7 +3276,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 {
@@ -3283,7 +3291,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                             if (!allow_paired[offset[p+1]+q]) continue;
                             if (i == p && j == q) continue;
                             
-                            Fast_LogPlusEquals(FCo[offset[p+1]+q-1], temp + ScoreSingle(i,j,p,q,internal_pos));
+                            Fast_LogPlusEquals(FCo[offset[p+1]+q-1], temp + ScoreSingle(i,j,p,q));
                         }
                     }
                 }
@@ -3303,7 +3311,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                             if (!allow_paired[offset[p+1]+q]) continue;
                             if (i == p && j == q) continue;
                             
-                            Fast_LogPlusEquals(FCptr[q], score_other + cache_score_single[p-i][j-q].first + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                            Fast_LogPlusEquals(FCptr[q], score_other + cache_score_single[p-i][j-q].first + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                         }
                     }
                 }
@@ -3334,7 +3342,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 {
@@ -3349,7 +3357,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                             if (!allow_paired[offset[p+1]+q]) continue;
                             
                             Fast_LogPlusEquals(FCo[offset[p+1]+q-1],
-                                               temp + (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q,internal_pos)));
+                                               temp + (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q)));
                         }
                     }
                 }
@@ -3372,7 +3380,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                             Fast_LogPlusEquals(FCptr[q], 
                                                (p == i && q == j) ?
                                                score_helix :
-                                               score_other + cache_score_single[p-i][j-q].first + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                               score_other + cache_score_single[p-i][j-q].first + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                         }
                     }
                 }
@@ -3463,7 +3471,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     
     for (int i = L; i >= 0; i--)
     {
-        auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
+        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
 
         for (int j = i; j <= L; j++)
         {
@@ -3515,11 +3523,11 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    CountHairpin(i,j,hairpin_pos,Fast_Exp(outside + ScoreHairpin(i,j,hairpin_pos)));
+                    CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3532,7 +3540,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
                         
-                        CountSingle(i,j,p,q,internal_pos,Fast_Exp(outside + ScoreSingle(i,j,p,q,internal_pos) + FCi[offset[p+1]+q-1]));
+                        CountSingle(i,j,p,q,Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]));
                     }
                 }
                 
@@ -3552,12 +3560,12 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                             if (!allow_paired[offset[p+1]+q]) continue;
                             if (i == p && j == q) continue;
                             
-                            RealT value = Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                            RealT value = Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                             cache_score_single[p-i][j-q].second += value;
                             CountBasePair(p+1,q,value);
                             CountJunctionB(i,j,value);
                             CountJunctionB(q,p,value);
-                            CountSingleNucleotides(i,j,p,q,internal_pos,value);
+                            CountSingleNucleotides(i,j,p,q,value);
                         }
                     }
                 }
@@ -3662,7 +3670,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
                 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3682,7 +3690,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                         }
                         else
                         {
-                            CountSingle(i,j,p,q,internal_pos,Fast_Exp(outside + ScoreSingle(i,j,p,q,internal_pos) + FCi[offset[p+1]+q-1]));
+                            CountSingle(i,j,p,q,Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]));
                         }
                     }
                 }
@@ -3713,12 +3721,12 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                             else
                             {
                                 RealT value = Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + 
-                                                       ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                                       ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                                 cache_score_single[p-i][j-q].second += value;
                                 CountBasePair(p+1,q,value);
                                 CountJunctionB(i,j,value);
                                 CountJunctionB(q,p,value);
-                                CountSingleNucleotides(i,j,p,q,internal_pos,value);
+                                CountSingleNucleotides(i,j,p,q,value);
                             }
                         }
                     }
@@ -3853,7 +3861,7 @@ void InferenceEngine<RealT>::ComputePosterior()
     
     for (int i = L; i >= 0; i--)
     {
-        auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
+        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
         
         for (int j = i; j <= L; j++)
         {
@@ -3904,11 +3912,11 @@ void InferenceEngine<RealT>::ComputePosterior()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    CountHairpin(i,j,hairpin_pos,Fast_Exp(outside + ScoreHairpin(i,j,hairpin_pos)));
+                    CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3921,7 +3929,7 @@ void InferenceEngine<RealT>::ComputePosterior()
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
                         
-                        posterior[offset[p+1]+q] += Fast_Exp(outside + ScoreSingle(i,j,p,q,internal_pos) + FCi[offset[p+1]+q-1]);
+                        posterior[offset[p+1]+q] += Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]);
                     }
                 }
                 
@@ -3942,7 +3950,7 @@ void InferenceEngine<RealT>::ComputePosterior()
                             if (i == p && j == q) continue;
                             
                             posterior[offset[p+1]+q] += 
-                                Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                         }
                     }
                 }
@@ -4043,7 +4051,7 @@ void InferenceEngine<RealT>::ComputePosterior()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
+                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -4061,7 +4069,7 @@ void InferenceEngine<RealT>::ComputePosterior()
                         }
                         else
                         {
-                            posterior[offset[p+1]+q] += Fast_Exp(outside + ScoreSingle(i,j,p,q,internal_pos) + FCi[offset[p+1]+q-1]);
+                            posterior[offset[p+1]+q] += Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]);
                         }
                     }
                 }
@@ -4086,7 +4094,7 @@ void InferenceEngine<RealT>::ComputePosterior()
                                 Fast_Exp(p == i && q == j ?
                                          score_helix + FCptr[q] :
                                          score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + 
-                                         ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q,internal_pos));
+                                         ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
                         }
                     }
                 }
