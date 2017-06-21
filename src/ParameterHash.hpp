@@ -159,8 +159,12 @@ public:
 
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
-  void initialize_cache_hairpin_nucleotides();
-
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+  void initialize_cache_hairpin_3_nucleotides();
+#endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+  void initialize_cache_hairpin_4_nucleotides();
+#endif
   VI hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const;
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos);
@@ -205,12 +209,16 @@ public:
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m);
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t) const;
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t);
-
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
+  void initialize_cache_internal_0x1_nucleotides();
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+  void initialize_cache_internal_1x1_nucleotides();
+#endif
   VVI internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j, uint max_l, uint max_m) const;
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos) const;
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos);
 
-  void initialize_cache_internal_nucleotides();
 #if PARAMS_HELIX_STACKING
   ValueT  helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
   ValueT& helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2);

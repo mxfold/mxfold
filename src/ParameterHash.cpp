@@ -19,16 +19,6 @@ const std::string ParameterHash<ValueT>::def_bases("ACGUP");
 template < class ValueT >
 const size_t ParameterHash<ValueT>::N = 5; //ParameterHash<ValueT>::def_bases.size();
 
-template<typename ... Args>
-std::string
-string_format( const std::string& format, Args ... args )
-{
-  size_t size = snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
-  std::unique_ptr<char[]> buf( new char[ size ] ); 
-  snprintf( buf.get(), size, format.c_str(), args ... );
-  return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
-}
-
 template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
@@ -45,8 +35,12 @@ ParameterHash()
 #if PARAMS_HAIRPIN_LENGTH
   , cache_hairpin_length_at_least_(D_MAX_HAIRPIN_LENGTH, -1)
 #endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
   , cache_hairpin_3_nucleotides_(N, VVI(N, VI(N, -1)))
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
   , cache_hairpin_4_nucleotides_(N, VVVI(N, VVI(N, VI(N, -1))))
+#endif
 #if PARAMS_HELIX_LENGTH
   , cache_helix_length_at_least_(D_MAX_HELIX_LENGTH, -1)
 #endif
@@ -68,8 +62,12 @@ ParameterHash()
 #if PARAMS_INTERNAL_ASYMMETRY
   , cache_internal_asymmetry_at_least_(D_MAX_INTERNAL_ASYMMETRY, -1)
 #endif
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
   , cache_internal_0x1_nucleotides_(N, -1)
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
   , cache_internal_1x1_nucleotides_(N, VI(N, -1))
+#endif
 #if PARAMS_HELIX_STACKING
   , cache_helix_stacking_(N, VVVI(N, VVI(N, VI(N, -1))))
 #endif
@@ -112,8 +110,12 @@ ParameterHash(ParameterHash&& other)
 #if PARAMS_HAIRPIN_LENGTH
   , cache_hairpin_length_at_least_(std::move(other.cache_hairpin_length_at_least_))
 #endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
   , cache_hairpin_3_nucleotides_(std::move(other.cache_hairpin_3_nucleotides_))
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
   , cache_hairpin_4_nucleotides_(std::move(other.cache_hairpin_4_nucleotides_))
+#endif
 #if PARAMS_HELIX_LENGTH
   , cache_helix_length_at_least_(std::move(other.cache_helix_length_at_least_))
 #endif
@@ -132,12 +134,15 @@ ParameterHash(ParameterHash&& other)
 #if PARAMS_INTERNAL_SYMMETRY
   , cache_internal_symmetric_length_at_least_(std::move(other.cache_internal_symmetric_length_at_least_))
 #endif
-
 #if PARAMS_INTERNAL_ASYMMETRY
   , cache_internal_asymmetry_at_least_(std::move(other.cache_internal_asymmetry_at_least_))
 #endif
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
   , cache_internal_0x1_nucleotides_(std::move(other.cache_internal_0x1_nucleotides_))
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
   , cache_internal_1x1_nucleotides_(std::move(other.cache_internal_1x1_nucleotides_))
+#endif
 #if PARAMS_HELIX_STACKING
   , cache_helix_stacking_(std::move(other.cache_helix_stacking_))
 #endif
@@ -182,8 +187,12 @@ operator=(ParameterHash&& other)
 #if PARAMS_HAIRPIN_LENGTH
   cache_hairpin_length_at_least_ = std::move(other.cache_hairpin_length_at_least_);
 #endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
   cache_hairpin_3_nucleotides_ = std::move(other.cache_hairpin_3_nucleotides_);
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
   cache_hairpin_4_nucleotides_ = std::move(other.cache_hairpin_4_nucleotides_);
+#endif
 #if PARAMS_HELIX_LENGTH
   cache_helix_length_at_least_ = std::move(other.cache_helix_length_at_least_);
 #endif
@@ -205,8 +214,12 @@ operator=(ParameterHash&& other)
 #if PARAMS_INTERNAL_ASYMMETRY
   cache_internal_asymmetry_at_least_ = std::move(other.cache_internal_asymmetry_at_least_);
 #endif
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
   cache_internal_0x1_nucleotides_ = std::move(other.cache_internal_0x1_nucleotides_);
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
   cache_internal_1x1_nucleotides_ = std::move(other.cache_internal_1x1_nucleotides_);
+#endif
 #if PARAMS_HELIX_STACKING
   cache_helix_stacking_ = std::move(other.cache_helix_stacking_);
 #endif
@@ -269,7 +282,12 @@ initialize_cache()
 #if PARAMS_HAIRPIN_LENGTH
   initialize_cache_hairpin_length_at_least();
 #endif
-  initialize_cache_hairpin_nucleotides();
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+  initialize_cache_hairpin_3_nucleotides();
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+  initialize_cache_hairpin_4_nucleotides();
+#endif
 #if PARAMS_HELIX_LENGTH
   initialize_cache_helix_length_at_least();
 #endif
@@ -291,7 +309,12 @@ initialize_cache()
 #if PARAMS_INTERNAL_ASYMMETRY
   initialize_cache_internal_asymmetry_at_least();
 #endif
-  initialize_cache_internal_nucleotides();
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
+  initialize_cache_internal_0x1_nucleotides();
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+  initialize_cache_internal_1x1_nucleotides();
+#endif
 #if PARAMS_HELIX_STACKING
   initialize_cache_helix_stacking();
 #endif
@@ -498,7 +521,7 @@ initialize_cache_base_pair()
 {
   for (auto i : def_bases)
     for (auto j : def_bases)
-      cache_base_pair_[is_base_[i]][is_base_[j]] = set_key_value(string_format(format_base_pair, i, j));
+      cache_base_pair_[is_base_[i]][is_base_[j]] = set_key_value(SPrintF(format_base_pair, i, j));
 }
 
 template < class ValueT >
@@ -511,7 +534,7 @@ base_pair(NUCL i, NUCL j) const
   if (ii>=0 && jj>=0)
     return values_[cache_base_pair_[ii][jj]];
   else
-    return get_by_key(string_format(format_base_pair, i, j));
+    return get_by_key(SPrintF(format_base_pair, i, j));
 }
 
 template < class ValueT >
@@ -524,7 +547,7 @@ base_pair(NUCL i, NUCL j)
   if (ii>=0 && jj>=0)
     return values_[cache_base_pair_[ii][jj]];
   else
-    return get_by_key(string_format(format_base_pair, i, j));
+    return get_by_key(SPrintF(format_base_pair, i, j));
 }
 #endif
 
@@ -538,7 +561,7 @@ ParameterHash<ValueT>::
 initialize_cache_base_pair_dist_at_least()
 {
   for (size_t i=0; i!=cache_base_pair_dist_at_least_.size(); ++i)
-    cache_base_pair_dist_at_least_[i] = set_key_value(string_format(format_base_pair_dist_at_least, i));
+    cache_base_pair_dist_at_least_[i] = set_key_value(SPrintF(format_base_pair_dist_at_least, i));
 }
 
 template <class ValueT>
@@ -550,7 +573,7 @@ base_pair_dist_at_least(uint l) const
   if (l<cache_base_pair_dist_at_least_.size())
     return values_[cache_base_pair_dist_at_least_[l]];
   else
-    return get_by_key(string_format(format_base_pair_dist_at_least, l));
+    return get_by_key(SPrintF(format_base_pair_dist_at_least, l));
 }
 
 template <class ValueT>
@@ -562,7 +585,7 @@ base_pair_dist_at_least(uint l)
   if (l<cache_base_pair_dist_at_least_.size())
     return values_[cache_base_pair_dist_at_least_[l]];
   else
-    return get_by_key(string_format(format_base_pair_dist_at_least, l));
+    return get_by_key(SPrintF(format_base_pair_dist_at_least, l));
 }
 #endif
 
@@ -588,7 +611,7 @@ initialize_cache_terminal_mismatch()
         {
           auto jj2 = is_base_[j2];
           cache_terminal_mismatch_[ii1][jj1][ii2][jj2]
-            = set_key_value(string_format(format_terminal_mismatch, i1, j1, i2, j2));
+            = set_key_value(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
         }
       }
     }
@@ -606,7 +629,7 @@ terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
     return values_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]];
   else
-    return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
+    return get_by_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 }
 
 template <class ValueT>
@@ -620,7 +643,7 @@ terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
     return values_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]];
   else
-    return get_by_key(string_format(format_terminal_mismatch, i1, j1, i2, j2));
+    return get_by_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 }
 #endif
 
@@ -634,7 +657,7 @@ ParameterHash<ValueT>::
 initialize_cache_hairpin_length_at_least()
 {
   for (size_t i=0; i!=cache_hairpin_length_at_least_.size(); ++i)
-    cache_hairpin_length_at_least_[i] = set_key_value(string_format(format_hairpin_length_at_least, i));
+    cache_hairpin_length_at_least_[i] = set_key_value(SPrintF(format_hairpin_length_at_least, i));
 }
 
 template <class ValueT>
@@ -646,7 +669,7 @@ hairpin_length_at_least(uint l) const
   if (l<cache_hairpin_length_at_least_.size())
     return values_[cache_hairpin_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_hairpin_length_at_least, l));
+    return get_by_key(SPrintF(format_hairpin_length_at_least, l));
 }
 
 template <class ValueT>
@@ -658,17 +681,18 @@ hairpin_length_at_least(uint l)
   if (l<cache_hairpin_length_at_least_.size())
     return values_[cache_hairpin_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_hairpin_length_at_least, l));
+    return get_by_key(SPrintF(format_hairpin_length_at_least, l));
 }
 #endif
 
 static const std::string format_hairpin_nucleotides("hairpin_nucleotides_");
 
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
 template <class ValueT>
 inline
 void
 ParameterHash<ValueT>::
-initialize_cache_hairpin_nucleotides()
+initialize_cache_hairpin_3_nucleotides()
 {
   for (auto i: def_bases)
   {
@@ -681,6 +705,29 @@ initialize_cache_hairpin_nucleotides()
         auto kk = is_base_[k];
         std::string key3 = format_hairpin_nucleotides+i+j+k;
         cache_hairpin_3_nucleotides_[ii][jj][kk] = set_key_value(key3);
+      }
+    }
+  }
+}
+#endif
+
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+template <class ValueT>
+inline
+void
+ParameterHash<ValueT>::
+initialize_cache_hairpin_4_nucleotides()
+{
+  for (auto i: def_bases)
+  {
+    auto ii = is_base_[i];
+    for (auto j: def_bases)
+    {
+      auto jj = is_base_[j];
+      for (auto k: def_bases)
+      {
+        auto kk = is_base_[k];
+        std::string key3 = format_hairpin_nucleotides+i+j+k;
         for (auto l: def_bases)
         {
           auto ll = is_base_[l];
@@ -689,8 +736,8 @@ initialize_cache_hairpin_nucleotides()
       }
     }
   }
-
 }
+#endif
 
 template <class ValueT>
 inline
@@ -698,6 +745,7 @@ ValueT
 ParameterHash<ValueT>::
 hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
 {
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
   if (l==3)
   {
     auto ii = is_base_[s[i+0]];
@@ -705,7 +753,9 @@ hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
     auto kk = is_base_[s[i+2]];
     return values_[cache_hairpin_3_nucleotides_[ii][jj][kk]];
   }
-  else if (l==4)
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+  if (l==4)
   {
     auto ii = is_base_[s[i+0]];
     auto jj = is_base_[s[i+1]];
@@ -713,6 +763,7 @@ hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
     auto ll = is_base_[s[i+3]];
     return values_[cache_hairpin_4_nucleotides_[ii][jj][kk][ll]];
   }
+#endif
 
   std::string h(l, ' ');
   std::copy(&s[i], &s[i]+l, h.begin());
@@ -725,6 +776,26 @@ ValueT&
 ParameterHash<ValueT>::
 hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
 {
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+  if (l==3)
+  {
+    auto ii = is_base_[s[i+0]];
+    auto jj = is_base_[s[i+1]];
+    auto kk = is_base_[s[i+2]];
+    return values_[cache_hairpin_3_nucleotides_[ii][jj][kk]];
+  }
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+  if (l==4)
+  {
+    auto ii = is_base_[s[i+0]];
+    auto jj = is_base_[s[i+1]];
+    auto kk = is_base_[s[i+2]];
+    auto ll = is_base_[s[i+3]];
+    return values_[cache_hairpin_4_nucleotides_[ii][jj][kk][ll]];
+  }
+#endif
+
   std::string h(l, ' ');
   auto x = std::copy(&s[i], &s[i+l], h.begin());
   return get_by_key(format_hairpin_nucleotides + h);
@@ -788,7 +859,7 @@ ParameterHash<ValueT>::
 initialize_cache_helix_length_at_least()
 {
   for (size_t i=0; i!=cache_helix_length_at_least_.size(); ++i)
-    cache_helix_length_at_least_[i] = set_key_value(string_format(format_helix_length_at_least, i));
+    cache_helix_length_at_least_[i] = set_key_value(SPrintF(format_helix_length_at_least, i));
 }
 
 template <class ValueT>
@@ -800,7 +871,7 @@ helix_length_at_least(uint l) const
   if (l<cache_helix_length_at_least_.size())
     return values_[cache_helix_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_helix_length_at_least, l));
+    return get_by_key(SPrintF(format_helix_length_at_least, l));
 }
 
 template <class ValueT>
@@ -812,7 +883,7 @@ helix_length_at_least(uint l)
   if (l<cache_helix_length_at_least_.size())
     return values_[cache_helix_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_helix_length_at_least, l));
+    return get_by_key(SPrintF(format_helix_length_at_least, l));
 }
 #endif
 
@@ -858,7 +929,7 @@ initialize_cache_internal_explicit()
 {
   for (size_t i=0; i!=cache_internal_explicit_.size(); ++i)
     for (size_t j=0; j!=cache_internal_explicit_[i].size(); ++j)
-      cache_internal_explicit_[i][j] = set_key_value(string_format(format_internal_explicit, i, j));
+      cache_internal_explicit_[i][j] = set_key_value(SPrintF(format_internal_explicit, i, j));
 }
 
 template <class ValueT>
@@ -870,7 +941,7 @@ internal_explicit(uint i, uint j) const
   if (i<cache_internal_explicit_.size() && j<cache_internal_explicit_[i].size())
     return values_[cache_internal_explicit_[i][j]];
   else
-    return get_by_key(string_format(format_internal_explicit, i, j));
+    return get_by_key(SPrintF(format_internal_explicit, i, j));
 }
 
 template <class ValueT>
@@ -882,7 +953,7 @@ internal_explicit(uint i, uint j)
   if (i<cache_internal_explicit_.size() && j<cache_internal_explicit_[i].size())
     return values_[cache_internal_explicit_[i][j]];
   else
-    return get_by_key(string_format(format_internal_explicit, i, j));
+    return get_by_key(SPrintF(format_internal_explicit, i, j));
 }
 #endif
 
@@ -896,7 +967,7 @@ ParameterHash<ValueT>::
 initialize_cache_bulge_length_at_least()
 {
   for (size_t i=0; i!=cache_bulge_length_at_least_.size(); ++i)
-    cache_bulge_length_at_least_[i] = set_key_value(string_format(format_bulge_length_at_least, i));
+    cache_bulge_length_at_least_[i] = set_key_value(SPrintF(format_bulge_length_at_least, i));
 }
 
 template <class ValueT>
@@ -908,7 +979,7 @@ bulge_length_at_least(uint l) const
   if (l<cache_bulge_length_at_least_.size())
     return values_[cache_bulge_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_bulge_length_at_least, l));
+    return get_by_key(SPrintF(format_bulge_length_at_least, l));
 }
 
 template <class ValueT>
@@ -920,7 +991,7 @@ bulge_length_at_least(uint l)
   if (l<cache_bulge_length_at_least_.size())
     return values_[cache_bulge_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_bulge_length_at_least, l));
+    return get_by_key(SPrintF(format_bulge_length_at_least, l));
 }
 #endif
 
@@ -934,7 +1005,7 @@ ParameterHash<ValueT>::
 initialize_cache_internal_length_at_least()
 {
   for (size_t i=0; i!=cache_internal_length_at_least_.size(); ++i)
-    cache_internal_length_at_least_[i] = set_key_value(string_format(format_internal_length_at_least, i));
+    cache_internal_length_at_least_[i] = set_key_value(SPrintF(format_internal_length_at_least, i));
 }
 
 template <class ValueT>
@@ -946,7 +1017,7 @@ internal_length_at_least(uint l) const
   if (l<cache_internal_length_at_least_.size())
     return values_[cache_internal_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_internal_length_at_least, l));
+    return get_by_key(SPrintF(format_internal_length_at_least, l));
 }
 
 template <class ValueT>
@@ -958,7 +1029,7 @@ internal_length_at_least(uint l)
   if (l<cache_internal_length_at_least_.size())
     return values_[cache_internal_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_internal_length_at_least, l));
+    return get_by_key(SPrintF(format_internal_length_at_least, l));
 }
 #endif
 
@@ -972,7 +1043,7 @@ ParameterHash<ValueT>::
 initialize_cache_internal_symmetric_length_at_least()
 {
   for (size_t i=0; i!=cache_internal_symmetric_length_at_least_.size(); ++i)
-    cache_internal_symmetric_length_at_least_[i] = set_key_value(string_format(format_internal_symmetric_length_at_least, i));
+    cache_internal_symmetric_length_at_least_[i] = set_key_value(SPrintF(format_internal_symmetric_length_at_least, i));
 }
 
 template <class ValueT>
@@ -984,7 +1055,7 @@ internal_symmetric_length_at_least(uint l) const
   if (l<cache_internal_symmetric_length_at_least_.size())
     return values_[cache_internal_symmetric_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_internal_symmetric_length_at_least, l));
+    return get_by_key(SPrintF(format_internal_symmetric_length_at_least, l));
 }
 
 template <class ValueT>
@@ -996,7 +1067,7 @@ internal_symmetric_length_at_least(uint l)
   if (l<cache_internal_symmetric_length_at_least_.size())
     return values_[cache_internal_symmetric_length_at_least_[l]];
   else
-    return get_by_key(string_format(format_internal_symmetric_length_at_least, l));
+    return get_by_key(SPrintF(format_internal_symmetric_length_at_least, l));
 }
 #endif
 
@@ -1010,7 +1081,7 @@ ParameterHash<ValueT>::
 initialize_cache_internal_asymmetry_at_least()
 {
   for (size_t i=0; i!=cache_internal_asymmetry_at_least_.size(); ++i)
-    cache_internal_asymmetry_at_least_[i] = set_key_value(string_format(format_internal_asymmetry_at_least, i));
+    cache_internal_asymmetry_at_least_[i] = set_key_value(SPrintF(format_internal_asymmetry_at_least, i));
 }
 
 template <class ValueT>
@@ -1022,7 +1093,7 @@ internal_asymmetry_at_least(uint l) const
   if (l<cache_internal_asymmetry_at_least_.size())
     return values_[cache_internal_asymmetry_at_least_[l]];
   else
-    return get_by_key(string_format(format_internal_asymmetry_at_least, l));
+    return get_by_key(SPrintF(format_internal_asymmetry_at_least, l));
 }
 
 template <class ValueT>
@@ -1034,29 +1105,46 @@ internal_asymmetry_at_least(uint l)
   if (l<cache_internal_asymmetry_at_least_.size())
     return values_[cache_internal_asymmetry_at_least_[l]];
   else
-    return get_by_key(string_format(format_internal_asymmetry_at_least, l));
+    return get_by_key(SPrintF(format_internal_asymmetry_at_least, l));
 }
 #endif
 
 static const std::string format_internal_nucleotides("internal_nucleotides_");
 
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
 template <class ValueT>
 inline
 void
 ParameterHash<ValueT>::
-initialize_cache_internal_nucleotides()
+initialize_cache_internal_0x1_nucleotides()
 {
   for (auto i1: def_bases)
   {
     auto ii1 = is_base_[i1];
     cache_internal_0x1_nucleotides_[ii1] = set_key_value(format_internal_nucleotides+"_"+i1);
+  }
+}
+#endif
+
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+template <class ValueT>
+inline
+void
+ParameterHash<ValueT>::
+initialize_cache_internal_1x1_nucleotides()
+{
+  for (auto i1: def_bases)
+  {
+    auto ii1 = is_base_[i1];
+    std::string key = format_internal_nucleotides+i1+"_";
     for (auto j1: def_bases)
     {
       auto jj1 = is_base_[j1];
-      cache_internal_1x1_nucleotides_[ii1][jj1] = set_key_value(format_internal_nucleotides+i1+"_"+j1);
+      cache_internal_1x1_nucleotides_[ii1][jj1] = set_key_value(key+j1);
     }
   }
 }
+#endif
 
 template <class ValueT>
 inline
@@ -1064,6 +1152,7 @@ ValueT
 ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
 {
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
   if (l==1 && m==0)
   {
     auto ii1 = is_base_[s[i]];
@@ -1074,12 +1163,15 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
     auto jj1 = is_base_[s[j]];
     return values_[cache_internal_0x1_nucleotides_[jj1]];
   }
-  else if (l==1 && m==1)
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+  if (l==1 && m==1)
   {
     auto ii1 = is_base_[s[i]];
     auto jj1 = is_base_[s[j]];
     return values_[cache_internal_1x1_nucleotides_[ii1][jj1]];
   }
+#endif
 
   std::string nuc(l+m+1, ' ');
   auto x = std::copy(&s[i], &s[i+l], nuc.begin());
@@ -1094,6 +1186,7 @@ ValueT&
 ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
 {
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
   if (l==1 && m==0)
   {
     auto ii1 = is_base_[s[i]];
@@ -1104,12 +1197,15 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
     auto jj1 = is_base_[s[j]];
     return values_[cache_internal_0x1_nucleotides_[jj1]];
   }
-  else if (l==1 && m==1)
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+  if (l==1 && m==1)
   {
     auto ii1 = is_base_[s[i]];
     auto jj1 = is_base_[s[j]];
     return values_[cache_internal_1x1_nucleotides_[ii1][jj1]];
   }
+#endif
 
   std::string nuc1(l+m+1, ' ');
   auto x = std::copy(&s[i], &s[i+l], nuc1.begin());
@@ -1255,7 +1351,7 @@ initialize_cache_helix_stacking()
         for (auto j2: def_bases)
         {
           auto jj2 = is_base_[j2];
-          cache_helix_stacking_[ii1][jj1][ii2][jj2] = set_key_value(string_format(format_helix_stacking, i1, j1, i2, j2));
+          cache_helix_stacking_[ii1][jj1][ii2][jj2] = set_key_value(SPrintF(format_helix_stacking, i1, j1, i2, j2));
         }
       }
     }
@@ -1273,7 +1369,7 @@ helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
     return values_[cache_helix_stacking_[ii1][jj1][ii2][jj2]];
   else
-    return get_by_key(string_format(format_helix_stacking, i1, j1, i2, j2));
+    return get_by_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 }
 
 template <class ValueT>
@@ -1287,7 +1383,7 @@ helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
     return values_[cache_helix_stacking_[ii1][jj1][ii2][jj2]];
   else
-    return get_by_key(string_format(format_helix_stacking, i1, j1, i2, j2));
+    return get_by_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 }
 #endif
 
@@ -1306,7 +1402,7 @@ initialize_cache_helix_closing()
     for (auto j: def_bases)
     {
       auto jj = is_base_[j];
-      cache_helix_closing_[ii][jj] = set_key_value(string_format(format_helix_closing, i, j));
+      cache_helix_closing_[ii][jj] = set_key_value(SPrintF(format_helix_closing, i, j));
     }
   }
 }
@@ -1321,7 +1417,7 @@ helix_closing(NUCL i, NUCL j) const
   if (ii>=0 && jj>=0)
     return values_[cache_helix_closing_[ii][jj]];
   else
-    return get_by_key(string_format(format_helix_closing, i, j));
+    return get_by_key(SPrintF(format_helix_closing, i, j));
 }
 
 template <class ValueT>
@@ -1334,7 +1430,7 @@ helix_closing(NUCL i, NUCL j)
   if (ii>=0 && jj>=0)
     return values_[cache_helix_closing_[ii][jj]];
   else
-    return get_by_key(string_format(format_helix_closing, i, j));
+    return get_by_key(SPrintF(format_helix_closing, i, j));
 }
 #endif
 
@@ -1445,7 +1541,7 @@ initialize_cache_dangle_left()
       for (auto i2: def_bases)
       {
         auto ii2 = is_base_[i2];
-        cache_dangle_left_[ii1][jj1][ii2] = set_key_value(string_format(format_dangle_left, i1, j1, i2));
+        cache_dangle_left_[ii1][jj1][ii2] = set_key_value(SPrintF(format_dangle_left, i1, j1, i2));
       }
     }
   }
@@ -1461,7 +1557,7 @@ dangle_left(NUCL i1, NUCL j1, NUCL i2) const
   if (ii1>=0 && jj1>=0 && ii2>=0)
     return values_[cache_dangle_left_[ii1][jj1][ii2]];
   else
-    return get_by_key(string_format(format_dangle_left, i1, j1, i2));
+    return get_by_key(SPrintF(format_dangle_left, i1, j1, i2));
 }
 
 template <class ValueT>
@@ -1474,7 +1570,7 @@ dangle_left(NUCL i1, NUCL j1, NUCL i2)
   if (ii1>=0 && jj1>=0 && ii2>=0)
     return values_[cache_dangle_left_[ii1][jj1][ii2]];
   else
-    return get_by_key(string_format(format_dangle_left, i1, j1, i2));
+    return get_by_key(SPrintF(format_dangle_left, i1, j1, i2));
 }
 
 static const char* format_dangle_right = "dangle_right_%c%c%c";
@@ -1494,7 +1590,7 @@ initialize_cache_dangle_right()
       for (auto j2: def_bases)
       {
         auto jj2 = is_base_[j2];
-        cache_dangle_right_[ii1][jj1][jj2] = set_key_value(string_format(format_dangle_right, i1, j1, j2));
+        cache_dangle_right_[ii1][jj1][jj2] = set_key_value(SPrintF(format_dangle_right, i1, j1, j2));
       }
     }
   }
@@ -1510,7 +1606,7 @@ dangle_right(NUCL i1, NUCL j1, NUCL j2) const
   if (ii1>=0 && jj1>=0 && jj2>=0)
     return values_[cache_dangle_right_[ii1][jj1][jj2]];
   else
-    return get_by_key(string_format(format_dangle_right, i1, j1, j2));
+    return get_by_key(SPrintF(format_dangle_right, i1, j1, j2));
 }
 
 template <class ValueT>
@@ -1523,7 +1619,7 @@ dangle_right(NUCL i1, NUCL j1, NUCL j2)
   if (ii1>=0 && jj1>=0 && jj2>=0)
     return values_[cache_dangle_right_[ii1][jj1][jj2]];
   else
-    return get_by_key(string_format(format_dangle_right, i1, j1, j2));
+    return get_by_key(SPrintF(format_dangle_right, i1, j1, j2));
 }
 #endif
 
