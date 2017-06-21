@@ -159,6 +159,7 @@ public:
 
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
+  void initialize_cache_hairpin_nucleotides();
 
   VI hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const;
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos) const;
@@ -209,6 +210,7 @@ public:
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos) const;
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos);
 
+  void initialize_cache_internal_nucleotides();
 #if PARAMS_HELIX_STACKING
   ValueT  helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
   ValueT& helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
@@ -275,6 +277,8 @@ private:
 #if PARAMS_HAIRPIN_LENGTH
   VI cache_hairpin_length_at_least_;
 #endif
+  VVVI cache_hairpin_3_nucleotides_;
+  VVVVI cache_hairpin_4_nucleotides_;
 #if PARAMS_HELIX_LENGTH
   VI cache_helix_length_at_least_;
 #endif
@@ -296,6 +300,8 @@ private:
 #if PARAMS_INTERNAL_ASYMMETRY
   VI cache_internal_asymmetry_at_least_;
 #endif
+  VI cache_internal_0x1_nucleotides_;
+  VVI cache_internal_1x1_nucleotides_;
 #if PARAMS_HELIX_STACKING
   VVVVI cache_helix_stacking_;
 #endif

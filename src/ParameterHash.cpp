@@ -45,6 +45,8 @@ ParameterHash()
 #if PARAMS_HAIRPIN_LENGTH
   , cache_hairpin_length_at_least_(D_MAX_HAIRPIN_LENGTH, -1)
 #endif
+  , cache_hairpin_3_nucleotides_(N, VVI(N, VI(N, -1)))
+  , cache_hairpin_4_nucleotides_(N, VVVI(N, VVI(N, VI(N, -1))))
 #if PARAMS_HELIX_LENGTH
   , cache_helix_length_at_least_(D_MAX_HELIX_LENGTH, -1)
 #endif
@@ -66,6 +68,8 @@ ParameterHash()
 #if PARAMS_INTERNAL_ASYMMETRY
   , cache_internal_asymmetry_at_least_(D_MAX_INTERNAL_ASYMMETRY, -1)
 #endif
+  , cache_internal_0x1_nucleotides_(N, -1)
+  , cache_internal_1x1_nucleotides_(N, VI(N, -1))
 #if PARAMS_HELIX_STACKING
   , cache_helix_stacking_(N, VVVI(N, VVI(N, VI(N, -1))))
 #endif
@@ -108,6 +112,8 @@ ParameterHash(ParameterHash&& other)
 #if PARAMS_HAIRPIN_LENGTH
   , cache_hairpin_length_at_least_(std::move(other.cache_hairpin_length_at_least_))
 #endif
+  , cache_hairpin_3_nucleotides_(std::move(other.cache_hairpin_3_nucleotides_))
+  , cache_hairpin_4_nucleotides_(std::move(other.cache_hairpin_4_nucleotides_))
 #if PARAMS_HELIX_LENGTH
   , cache_helix_length_at_least_(std::move(other.cache_helix_length_at_least_))
 #endif
@@ -126,9 +132,12 @@ ParameterHash(ParameterHash&& other)
 #if PARAMS_INTERNAL_SYMMETRY
   , cache_internal_symmetric_length_at_least_(std::move(other.cache_internal_symmetric_length_at_least_))
 #endif
+
 #if PARAMS_INTERNAL_ASYMMETRY
   , cache_internal_asymmetry_at_least_(std::move(other.cache_internal_asymmetry_at_least_))
 #endif
+  , cache_internal_0x1_nucleotides_(std::move(other.cache_internal_0x1_nucleotides_))
+  , cache_internal_1x1_nucleotides_(std::move(other.cache_internal_1x1_nucleotides_))
 #if PARAMS_HELIX_STACKING
   , cache_helix_stacking_(std::move(other.cache_helix_stacking_))
 #endif
@@ -173,6 +182,8 @@ operator=(ParameterHash&& other)
 #if PARAMS_HAIRPIN_LENGTH
   cache_hairpin_length_at_least_ = std::move(other.cache_hairpin_length_at_least_);
 #endif
+  cache_hairpin_3_nucleotides_ = std::move(other.cache_hairpin_3_nucleotides_);
+  cache_hairpin_4_nucleotides_ = std::move(other.cache_hairpin_4_nucleotides_);
 #if PARAMS_HELIX_LENGTH
   cache_helix_length_at_least_ = std::move(other.cache_helix_length_at_least_);
 #endif
@@ -194,6 +205,8 @@ operator=(ParameterHash&& other)
 #if PARAMS_INTERNAL_ASYMMETRY
   cache_internal_asymmetry_at_least_ = std::move(other.cache_internal_asymmetry_at_least_);
 #endif
+  cache_internal_0x1_nucleotides_ = std::move(other.cache_internal_0x1_nucleotides_);
+  cache_internal_1x1_nucleotides_ = std::move(other.cache_internal_1x1_nucleotides_);
 #if PARAMS_HELIX_STACKING
   cache_helix_stacking_ = std::move(other.cache_helix_stacking_);
 #endif
@@ -256,6 +269,7 @@ initialize_cache()
 #if PARAMS_HAIRPIN_LENGTH
   initialize_cache_hairpin_length_at_least();
 #endif
+  initialize_cache_hairpin_nucleotides();
 #if PARAMS_HELIX_LENGTH
   initialize_cache_helix_length_at_least();
 #endif
@@ -277,6 +291,7 @@ initialize_cache()
 #if PARAMS_INTERNAL_ASYMMETRY
   initialize_cache_internal_asymmetry_at_least();
 #endif
+  initialize_cache_internal_nucleotides();
 #if PARAMS_HELIX_STACKING
   initialize_cache_helix_stacking();
 #endif
@@ -380,7 +395,7 @@ ValueT
 ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
-  auto i = trie_.template exactMatchSearch<int>(key.c_str());
+  auto i = trie_.exactMatchSearch<int>(key.c_str());
   return i==trie_t::CEDAR_NO_VALUE ? static_cast<ValueT>(0) : values_[i];
 }
 
@@ -390,7 +405,7 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  auto i = trie_.template exactMatchSearch<int>(key.c_str());
+  auto i = trie_.exactMatchSearch<int>(key.c_str());
   if (i!=trie_t::CEDAR_NO_VALUE)
     return values_[i];
 
@@ -417,7 +432,7 @@ uint
 ParameterHash<ValueT>::
 set_key_value(const std::string& key)
 {
-  auto i = trie_.template exactMatchSearch<int>(key.c_str());
+  auto i = trie_.exactMatchSearch<int>(key.c_str());
   if (i!=trie_t::CEDAR_NO_VALUE)
     return i;
 
@@ -425,10 +440,10 @@ set_key_value(const std::string& key)
   trie_.update(key.c_str()) = values_.size();
 
   // symmetric features
-  std::string s_internal_nucleotides("internal_nucleotides_");
-  std::string s_base_pair("base_pair_");
-  std::string s_helix_stacking("helix_stacking_");
-  std::string s_internal_explicit("internal_explicit_");
+  const std::string s_internal_nucleotides("internal_nucleotides_");
+  const std::string s_base_pair("base_pair_");
+  const std::string s_helix_stacking("helix_stacking_");
+  const std::string s_internal_explicit("internal_explicit_");
   if (key.find(s_internal_nucleotides) == 0)
   {
     size_t pos=key.find("_", s_internal_nucleotides.size());
@@ -651,10 +666,54 @@ static const std::string format_hairpin_nucleotides("hairpin_nucleotides_");
 
 template <class ValueT>
 inline
+void
+ParameterHash<ValueT>::
+initialize_cache_hairpin_nucleotides()
+{
+  for (auto i: def_bases)
+  {
+    auto ii = is_base_[i];
+    for (auto j: def_bases)
+    {
+      auto jj = is_base_[j];
+      for (auto k: def_bases)
+      {
+        auto kk = is_base_[k];
+        std::string key3 = format_hairpin_nucleotides+i+j+k;
+        cache_hairpin_3_nucleotides_[ii][jj][kk] = set_key_value(key3);
+        for (auto l: def_bases)
+        {
+          auto ll = is_base_[l];
+          cache_hairpin_4_nucleotides_[ii][jj][kk][ll] = set_key_value(key3+l);
+        }
+      }
+    }
+  }
+
+}
+
+template <class ValueT>
+inline
 ValueT
 ParameterHash<ValueT>::
 hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
 {
+  if (l==3)
+  {
+    auto ii = is_base_[s[i+0]];
+    auto jj = is_base_[s[i+1]];
+    auto kk = is_base_[s[i+2]];
+    return values_[cache_hairpin_3_nucleotides_[ii][jj][kk]];
+  }
+  else if (l==4)
+  {
+    auto ii = is_base_[s[i+0]];
+    auto jj = is_base_[s[i+1]];
+    auto kk = is_base_[s[i+2]];
+    auto ll = is_base_[s[i+3]];
+    return values_[cache_hairpin_4_nucleotides_[ii][jj][kk][ll]];
+  }
+
   std::string h(l, ' ');
   std::copy(&s[i], &s[i]+l, h.begin());
   return get_by_key(format_hairpin_nucleotides + h);
@@ -983,10 +1042,45 @@ static const std::string format_internal_nucleotides("internal_nucleotides_");
 
 template <class ValueT>
 inline
+void
+ParameterHash<ValueT>::
+initialize_cache_internal_nucleotides()
+{
+  for (auto i1: def_bases)
+  {
+    auto ii1 = is_base_[i1];
+    cache_internal_0x1_nucleotides_[ii1] = set_key_value(format_internal_nucleotides+"_"+i1);
+    for (auto j1: def_bases)
+    {
+      auto jj1 = is_base_[j1];
+      cache_internal_1x1_nucleotides_[ii1][jj1] = set_key_value(format_internal_nucleotides+i1+"_"+j1);
+    }
+  }
+}
+
+template <class ValueT>
+inline
 ValueT
 ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
 {
+  if (l==1 && m==0)
+  {
+    auto ii1 = is_base_[s[i]];
+    return values_[cache_internal_0x1_nucleotides_[ii1]];
+  }
+  else if (l==0 && m==1)
+  {
+    auto jj1 = is_base_[s[j]];
+    return values_[cache_internal_0x1_nucleotides_[jj1]];
+  }
+  else if (l==1 && m==1)
+  {
+    auto ii1 = is_base_[s[i]];
+    auto jj1 = is_base_[s[j]];
+    return values_[cache_internal_1x1_nucleotides_[ii1][jj1]];
+  }
+
   std::string nuc(l+m+1, ' ');
   auto x = std::copy(&s[i], &s[i+l], nuc.begin());
   *(x++) = '_';
@@ -1000,13 +1094,30 @@ ValueT&
 ParameterHash<ValueT>::
 internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
 {
+  if (l==1 && m==0)
+  {
+    auto ii1 = is_base_[s[i]];
+    return values_[cache_internal_0x1_nucleotides_[ii1]];
+  }
+  else if (l==0 && m==1)
+  {
+    auto jj1 = is_base_[s[j]];
+    return values_[cache_internal_0x1_nucleotides_[jj1]];
+  }
+  else if (l==1 && m==1)
+  {
+    auto ii1 = is_base_[s[i]];
+    auto jj1 = is_base_[s[j]];
+    return values_[cache_internal_1x1_nucleotides_[ii1][jj1]];
+  }
+
   std::string nuc1(l+m+1, ' ');
   auto x = std::copy(&s[i], &s[i+l], nuc1.begin());
   *(x++) = '_';
   std::reverse_copy(&s[j-m+1], &s[j+1], x);
 
   auto key1 = format_internal_nucleotides+nuc1;
-  auto k = trie_.template exactMatchSearch<int>(key1.c_str());
+  auto k = trie_.exactMatchSearch<int>(key1.c_str());
   if (k!=trie_t::CEDAR_NO_VALUE)
     return values_[k];
 
