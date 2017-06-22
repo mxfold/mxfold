@@ -15,8 +15,8 @@
 #include "SStruct.hpp"
 #include "adagrad.hpp"
 
-extern std::unordered_map<std::string, double> default_params_complementary;
-extern std::unordered_map<std::string, double> default_params_noncomplementary;
+extern std::unordered_map<std::string, param_value_type> default_params_complementary;
+extern std::unordered_map<std::string, param_value_type> default_params_noncomplementary;
 
 class NGSfold
 {
@@ -41,7 +41,7 @@ private:
   int validate();
   int count_features();
   std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
-  std::unordered_map<std::string,double> compute_gradients(const SStruct& s, const ParameterHash<double>* pm);
+  std::unordered_map<std::string,param_value_type> compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm);
   
 
 private:
@@ -191,12 +191,12 @@ read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int
   return pos;
 }
 
-std::unordered_map<std::string,double>
+std::unordered_map<std::string,param_value_type>
 NGSfold::
-compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
+compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
 {
   double starting_time = GetSystemTime();
-  std::unordered_map<std::string,double> grad;
+  std::unordered_map<std::string,param_value_type> grad;
   int np=1;
 
   // count the occurence of parameters in the correct structure
@@ -206,7 +206,7 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
     max_single_length = std::max<int>(s.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH);
   else
     max_span = max_span_;
-  InferenceEngine<double> inference_engine1(noncomplementary_, max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
+  InferenceEngine<param_value_type> inference_engine1(noncomplementary_, max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
   inference_engine1.LoadValues(pm);
   inference_engine1.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
@@ -232,12 +232,12 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
 
   auto loss1 = inference_engine1.GetViterbiScore();
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
-  for (auto e : corr)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second -= e.second;
+  for (auto p=corr.begin(); p!=corr.end(); ++p)
+    grad.insert(std::make_pair(p.key(), 0.0)).first->second -= p.value();
 
 
   // count the occurence of parameters in the predicted structure
-  InferenceEngine<double> inference_engine0(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
+  InferenceEngine<param_value_type> inference_engine0(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine0.LoadValues(pm);
   inference_engine0.LoadSequence(s);
   switch (s.GetType())
@@ -259,8 +259,8 @@ compute_gradients(const SStruct& s, const ParameterHash<double>* pm)
   inference_engine0.ComputeViterbi();
   auto loss0 = inference_engine0.GetViterbiScore();
   auto pred = inference_engine0.ComputeViterbiFeatureCounts();
-  for (auto e : pred)
-    grad.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+  for (auto p=pred.begin(); p!=pred.end(); ++p)
+    grad.insert(std::make_pair(p.key(), 0.0)).first->second += p.value();
 
 
   if (verbose_>0)
@@ -296,12 +296,13 @@ NGSfold::train()
 
   //AdaGradRDAUpdater optimizer(eta0_, lambda_);
   AdaGradFobosUpdater optimizer(eta0_, lambda_);
-  ParameterHash<double> pm;
+  ParameterHash<param_value_type> pm;
   if (!param_file_.empty())
   {
     pm.ReadFromFile(param_file_);
     optimizer.read_from_file(param_file_);
   }
+  pm.initialize_cache();
 
   // run max-margin training
   for (uint t=0, k=0; t!=t_max_; ++t)
@@ -347,16 +348,18 @@ NGSfold::train()
             optimizer.update(g.first, pm.get_by_key(g.first), g.second*w, eta_w);
 
       // regularize
-      for (auto p=pm.begin(); p!=pm.end(); )
+      for (auto p=pm.begin(); p!=pm.end(); ++p)
       {
         if (true /*!is_weak_label || pm.is_context_feature(p->first) ||
                    (use_bp_context_ && pm.is_basepair_context_feature(p->first)) */)
         {
-          optimizer.regularize(p->first, p->second, eta_w);
-          if (p->second==0.0)
+          optimizer.regularize(p.key(), p.value(), eta_w);
+#if 0
+          if (*p==0.0)
             p = pm.erase(p);
           else
             ++p;
+#endif
         }
         else
           ++p;
@@ -381,17 +384,17 @@ int
 NGSfold::predict()
 {
   // set parameters
-  ParameterHash<double> pm;
-
+  ParameterHash<param_value_type> pm;
   if (!param_file_.empty())
     pm.ReadFromFile(param_file_);
   else if (noncomplementary_)
     pm.LoadFromHash(default_params_noncomplementary);
   else
     pm.LoadFromHash(default_params_complementary);
-  
+  pm.initialize_cache();
+
   // predict ss
-  InferenceEngine<double> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
+  InferenceEngine<param_value_type> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine.LoadValues(&pm);
   for (auto s : args_)
   {
@@ -433,20 +436,21 @@ int
 NGSfold::validate()
 {
   // set parameters
-  ParameterHash<double> pm;
+  ParameterHash<param_value_type> pm;
   if (!param_file_.empty())
     pm.ReadFromFile(param_file_);
   else if (noncomplementary_)
     pm.LoadFromHash(default_params_noncomplementary);
   else
     pm.LoadFromHash(default_params_complementary);
+  pm.initialize_cache();
   
   for (auto s : args_)
   {
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    InferenceEngine<double> inference_engine(noncomplementary_, 
+    InferenceEngine<param_value_type> inference_engine(noncomplementary_, 
                                              std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
     inference_engine.LoadValues(&pm);
     inference_engine.LoadSequence(sstruct);
@@ -470,30 +474,31 @@ int
 NGSfold::count_features()
 {
   // set parameters
-  ParameterHash<double> pm;
+  ParameterHash<param_value_type> pm;
   if (!param_file_.empty())
     pm.ReadFromFile(param_file_);
   else if (noncomplementary_)
     pm.LoadFromHash(default_params_noncomplementary);
   else
     pm.LoadFromHash(default_params_complementary);
+  pm.initialize_cache();
   
-  std::unordered_map<std::string, double> cnt;
+  std::unordered_map<std::string, param_value_type> cnt;
   for (auto s : args_)
   {
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    InferenceEngine<double> inference_engine(noncomplementary_, 
-                                             std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+    InferenceEngine<param_value_type> inference_engine(noncomplementary_,
+                                                       std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
     inference_engine.LoadValues(&pm);
     inference_engine.LoadSequence(sstruct);
     inference_engine.UseConstraints(sstruct.GetMapping());
     inference_engine.ComputeViterbi();
     auto corr = inference_engine.ComputeViterbiFeatureCounts();
-    for (auto e: corr)
-      if (e.second!=0.0)
-        cnt.insert(std::make_pair(e.first, 0.0)).first->second += e.second;
+    for (auto p=corr.begin(); p!=corr.end(); ++p)
+      if (p.value()!=0.0)
+        cnt.insert(std::make_pair(p.key(), 0.0)).first->second += p.value();
   }
 
   std::vector<std::string> keys;

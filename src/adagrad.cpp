@@ -11,9 +11,10 @@
 #include <cassert>
 #include "adagrad.hpp"
 
+template < class T >
 inline
-double
-clip(double w, double c)
+T
+clip(T w, T c)
 {
   if (w>=0.0)
     return w>c ? w-c : 0.0;
@@ -22,14 +23,14 @@ clip(double w, double c)
 }
 
 AdaGradRDAUpdater::
-AdaGradRDAUpdater(double eta, double lambda, double eps)
+AdaGradRDAUpdater(float eta, float lambda, float eps)
   : eta_(eta), lambda_(lambda), eps_(eps), t_(1), sum_grad_(), sum_squared_grad_()
 {
 }
 
 void
 AdaGradRDAUpdater::
-update(const std::string& fname, double& w, double grad, double weight)
+update(const std::string& fname, param_value_type& w, param_value_type grad, param_value_type weight)
 {
   auto u = sum_grad_.insert(std::make_pair(fname, 0.0));
   u.first->second += grad;
@@ -40,11 +41,11 @@ update(const std::string& fname, double& w, double grad, double weight)
 
 void
 AdaGradRDAUpdater::
-regularize(const std::string& fname, double& w, double weight) const
+regularize(const std::string& fname, param_value_type& w, param_value_type weight) const
 {
   auto u = sum_grad_.find(fname);
   auto g = sum_squared_grad_.find(fname);
-  w = - weight * eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, lambda_);
+  w = - weight * eta_ * t_ / std::sqrt(g->second) * clip(u->second/t_, static_cast<param_value_type>(lambda_));
 }
 
 void
@@ -69,7 +70,7 @@ read_from_file(const std::string& filename)
 
 void
 AdaGradRDAUpdater::
-write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool sort) const
+write_to_file(const std::string& filename, const ParameterHash<param_value_type>* pm, bool sort) const
 {
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
@@ -102,14 +103,14 @@ write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool
 
 
 AdaGradFobosUpdater::
-AdaGradFobosUpdater(double eta, double lambda, double eps)
+AdaGradFobosUpdater(float eta, float lambda, float eps)
   : eta_(eta), lambda_(lambda), eps_(eps), sum_squared_grad_()
 {
 }
 
 void
 AdaGradFobosUpdater::
-update(const std::string& fname, double& w, double grad, double weight)
+update(const std::string& fname, param_value_type& w, param_value_type grad, param_value_type weight)
 {
   auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
   g.first->second += grad*grad;
@@ -120,7 +121,7 @@ update(const std::string& fname, double& w, double grad, double weight)
 
 void
 AdaGradFobosUpdater::
-regularize(const std::string& fname, double& w, double weight) const
+regularize(const std::string& fname, param_value_type& w, param_value_type weight) const
 {
   auto g = sum_squared_grad_.find(fname);
   if (g!=sum_squared_grad_.end() && g->second>0.0) 
@@ -158,7 +159,7 @@ read_from_file(const std::string& filename)
 
 void
 AdaGradFobosUpdater::
-write_to_file(const std::string& filename, const ParameterHash<double>* pm, bool sort) const
+write_to_file(const std::string& filename, const ParameterHash<param_value_type>* pm, bool sort) const
 {
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);

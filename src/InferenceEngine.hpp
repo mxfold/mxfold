@@ -37,7 +37,7 @@ private:
     int L, SIZE;
 
     // sequence data
-    std::vector<char> s;
+    std::vector<NUCL> s;
     std::vector<int> offset;
     std::vector<int> allow_unpaired_position;
     std::vector<int> allow_unpaired, allow_paired;
@@ -121,9 +121,12 @@ private:
     RealT ScoreJunctionB(int i, int j) const;
     RealT ScoreBasePair(int i, int j) const;
     RealT ScoreHairpin(int i, int j) const;
+    RealT ScoreHairpin(int i, int j, const std::vector<int>& pos) const;
     RealT ScoreHelix(int i, int j, int m) const;
     RealT ScoreSingleNucleotides(int i, int j, int p, int q) const;
+    RealT ScoreSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const;
     RealT ScoreSingle(int i, int j, int p, int q) const;
+    RealT ScoreSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const;
     
     void CountUnpairedPosition(int i, RealT v);
     void CountUnpaired(int i,int j, RealT v);
@@ -139,9 +142,12 @@ private:
     void CountJunctionB(int i, int j, RealT value);
     void CountBasePair(int i, int j, RealT value);
     void CountHairpin(int i, int j, RealT value);
+    void CountHairpin(int i, int j, const std::vector<int>& pos, RealT value);
     void CountHelix(int i, int j, int m, RealT value);
     void CountSingleNucleotides(int i, int j, int p, int q, RealT value);
+    void CountSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value);
     void CountSingle(int i, int j, int p, int q, RealT value);
+    void CountSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value);
 
     int EncodeTraceback(int i, int j) const;
     std::pair<int,int> DecodeTraceback(int s) const;
@@ -187,7 +193,7 @@ public:
     void ComputeOutside();
     ParameterHash<RealT> ComputeFeatureCountExpectations();
     void ComputePosterior();
-    template <int GCE> std::vector<int> PredictPairingsPosterior(const RealT gamma) const;
+    template <int GCE> std::vector<int> PredictPairingsPosterior(const float gamma) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;
 };
 
