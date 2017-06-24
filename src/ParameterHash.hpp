@@ -9,6 +9,8 @@
 #include <array>
 #include "cedar.h"
 
+#define USE_CACHE
+
 template < class ValueT >
 class ParameterHash
 {
@@ -273,6 +275,7 @@ private:
   std::array<int, 256> is_base_;
 
   // cache
+#ifdef USE_CACHE
 #if PARAMS_BASE_PAIR
   VVI cache_base_pair_;
 #endif
@@ -285,15 +288,13 @@ private:
 #if PARAMS_HAIRPIN_LENGTH
   VI cache_hairpin_length_at_least_;
 #endif
-  VVVI cache_hairpin_3_nucleotides_;
-  VVVVI cache_hairpin_4_nucleotides_;
 #if PARAMS_HELIX_LENGTH
   VI cache_helix_length_at_least_;
 #endif
 #if PARAMS_ISOLATED_BASE_PAIR
   int cache_isolated_base_pair_;
 #endif
-#if PARAMS_INTERNAL_EXPLICIT 
+#if PARAMS_INTERNAL_EXPLICIT
   VVI cache_internal_explicit_;
 #endif
 #if PARAMS_BULGE_LENGTH
@@ -308,8 +309,6 @@ private:
 #if PARAMS_INTERNAL_ASYMMETRY
   VI cache_internal_asymmetry_at_least_;
 #endif
-  VI cache_internal_0x1_nucleotides_;
-  VVI cache_internal_1x1_nucleotides_;
 #if PARAMS_HELIX_STACKING
   VVVVI cache_helix_stacking_;
 #endif
@@ -328,6 +327,7 @@ private:
 #if PARAMS_EXTERNAL_LENGTH
   int cache_external_unpaired_;
   int cache_external_paired_;
+#endif
 #endif
 };
 
