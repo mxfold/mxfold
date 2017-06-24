@@ -233,7 +233,7 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   auto loss1 = inference_engine1.GetViterbiScore();
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
   for (auto p=corr.begin(); p!=corr.end(); ++p)
-    grad.insert(std::make_pair(p.key(), 0.0)).first->second -= p.value();
+    grad.insert(std::make_pair(p->first, 0.0)).first->second -= p->second;
 
 
   // count the occurence of parameters in the predicted structure
@@ -260,7 +260,7 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   auto loss0 = inference_engine0.GetViterbiScore();
   auto pred = inference_engine0.ComputeViterbiFeatureCounts();
   for (auto p=pred.begin(); p!=pred.end(); ++p)
-    grad.insert(std::make_pair(p.key(), 0.0)).first->second += p.value();
+    grad.insert(std::make_pair(p->first, 0.0)).first->second += p->second;
 
 
   if (verbose_>0)
@@ -353,7 +353,7 @@ NGSfold::train()
         if (true /*!is_weak_label || pm.is_context_feature(p->first) ||
                    (use_bp_context_ && pm.is_basepair_context_feature(p->first)) */)
         {
-          optimizer.regularize(p.key(), p.value(), eta_w);
+          optimizer.regularize(p->first, p->second, eta_w);
 #if 0
           if (*p==0.0)
             p = pm.erase(p);
@@ -497,8 +497,8 @@ NGSfold::count_features()
     inference_engine.ComputeViterbi();
     auto corr = inference_engine.ComputeViterbiFeatureCounts();
     for (auto p=corr.begin(); p!=corr.end(); ++p)
-      if (p.value()!=0.0)
-        cnt.insert(std::make_pair(p.key(), 0.0)).first->second += p.value();
+      if (p->second!=0.0)
+        cnt.insert(std::make_pair(p->first, 0.0)).first->second += p->second;
   }
 
   std::vector<std::string> keys;

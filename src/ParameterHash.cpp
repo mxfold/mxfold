@@ -36,7 +36,7 @@ itos(uint n)
 template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash()
-  : trie_(), keys_(), values_()
+  : hash_(), keyval_()
 #ifdef USE_CACHE
 #if PARAMS_BASE_PAIR
   , cache_base_pair_(N, VI(N, -1))
@@ -99,9 +99,8 @@ ParameterHash()
 template < class ValueT >
 ParameterHash<ValueT>::
 ParameterHash(ParameterHash&& other)
-  : trie_(std::move(other.trie_)),
-    keys_(std::move(other.keys_)),
-    values_(std::move(other.values_))
+  : hash_(std::move(other.hash_)),
+    keyval_(std::move(other.keyval_))
 #ifdef USE_CACHE
 #if PARAMS_BASE_PAIR
   , cache_base_pair_(std::move(other.cache_base_pair_))
@@ -166,9 +165,8 @@ ParameterHash<ValueT>&
 ParameterHash<ValueT>::
 operator=(ParameterHash&& other)
 {
-  trie_ = std::move(other.trie_);
-  keys_ = std::move(other.keys_);
-  values_ = std::move(other.values_);
+  hash_ = std::move(other.hash_);
+  keyval_ = std::move(other.keyval_);
 #ifdef USE_CACHE
 #if PARAMS_BASE_PAIR
   cache_base_pair_ = std::move(other.cache_base_pair_);
@@ -332,9 +330,8 @@ void
 ParameterHash<ValueT>::
 LoadFromHash(const std::unordered_map<std::string, ValueT>& hash)
 {
-  trie_.clear();
-  keys_.clear();
-  values_.clear();
+  hash_.clear();
+  keyval_.clear();
   for (auto e: hash)
     set_key_value(e.first, e.second);
 }
@@ -344,9 +341,8 @@ void
 ParameterHash<ValueT>::
 ReadFromFile(const std::string& filename)
 {
-  trie_.clear();
-  keys_.clear();
-  values_.clear();
+  hash_.clear();
+  keyval_.clear();
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
@@ -377,13 +373,13 @@ WriteToFile(const std::string& filename) const
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
-  std::vector<size_t> idx(keys_.size());
+  std::vector<size_t> idx(keyval_.size());
   std::iota(idx.begin(), idx.end(), 0);
   std::sort(idx.begin(), idx.end(),
-            [&](size_t i, size_t j) { return keys_[i] < keys_[j]; });
+            [&](size_t i, size_t j) { return keyval_[i].first < keyval_[j].first; });
   for (auto i: idx)
-    if (values_[i]!=0.0)
-      os << keys_[i] << " " << values_[i] << std::endl;
+    if (keyval_[i].second!=0.0)
+      os << keyval_[i].first << " " << keyval_[i].second << std::endl;
 }
 
 template < class ValueT >
@@ -392,8 +388,8 @@ ValueT
 ParameterHash<ValueT>::
 get_by_key(const std::string& key) const
 {
-  auto i = trie_.exactMatchSearch<int>(key.c_str());
-  return i==trie_t::CEDAR_NO_VALUE ? static_cast<ValueT>(0) : values_[i];
+  auto itr = hash_.find(key);
+  return itr == hash_.end() ? static_cast<ValueT>(0) : keyval_[itr->second].second;
 }
 
 template < class ValueT >
@@ -402,14 +398,16 @@ ValueT&
 ParameterHash<ValueT>::
 get_by_key(const std::string& key)
 {
-  auto i = trie_.exactMatchSearch<int>(key.c_str());
-  if (i!=trie_t::CEDAR_NO_VALUE)
-    return values_[i];
-
-  trie_.update(key.c_str()) = values_.size();
-  keys_.push_back(key);
-  values_.push_back(static_cast<ValueT>(0.0));
-  return values_.back();
+  auto r = hash_.insert(std::make_pair(key, keyval_.size()));
+  if (r.second)
+  {
+    keyval_.emplace_back(std::make_pair(key, static_cast<ValueT>(0.0)));
+    return keyval_.back().second;
+  }
+  else
+  {
+    return keyval_[r.first->second].second;
+  }
 }
 
 template < class ValueT >
@@ -419,7 +417,7 @@ ParameterHash<ValueT>::
 set_key_value(const std::string& key, ValueT val)
 {
   auto i = set_key_value(key);
-  values_[i] = val;
+  keyval_[i].second = val;
   return i;
 }
 
@@ -429,12 +427,9 @@ uint
 ParameterHash<ValueT>::
 set_key_value(const std::string& key)
 {
-  auto i = trie_.exactMatchSearch<int>(key.c_str());
-  if (i!=trie_t::CEDAR_NO_VALUE)
-    return i;
-
-  keys_.push_back(key);
-  trie_.update(key.c_str()) = values_.size();
+  auto r = hash_.insert(std::make_pair(key, keyval_.size()));
+  if (!r.second) return r.first->second;
+  auto k = key;
 
   // symmetric features
   const std::string s_internal_nucleotides("internal_nucleotides_");
@@ -449,16 +444,16 @@ set_key_value(const std::string& key)
     std::reverse(nuc1.begin(), nuc1.end());
     std::reverse(nuc2.begin(), nuc2.end());
     std::string key2 = s_internal_nucleotides + nuc2 + "_" + nuc1;
-    trie_.update(key2.c_str()) = values_.size();
-    if (keys_.back()>key2) keys_.back() = key2;
+    hash_[key2] = keyval_.size();
+    if (k>key2) k = key2;
   }
   else if (key.find(s_base_pair) == 0 && key.size() == s_base_pair.size()+2)
   {
     std::string nuc1 = key.substr(s_base_pair.size()+0, 1);
     std::string nuc2 = key.substr(s_base_pair.size()+1, 1);
     std::string key2 = s_base_pair + nuc2 + nuc1;
-    trie_.update(key2.c_str()) = values_.size();
-    if (keys_.back()>key2) keys_.back() = key2;
+    hash_[key2] = keyval_.size();
+    if (k>key2) k = key2;
   }
   else if (key.find(s_helix_stacking) == 0)
   {
@@ -467,8 +462,8 @@ set_key_value(const std::string& key)
     std::string nuc3 = key.substr(s_helix_stacking.size()+2, 1);
     std::string nuc4 = key.substr(s_helix_stacking.size()+3, 1);
     std::string key2 = s_helix_stacking + nuc4 + nuc3 + nuc2 + nuc1;
-    trie_.update(key2.c_str()) = values_.size();
-    if (keys_.back()>key2) keys_.back() = key2;
+    hash_[key2] = keyval_.size();
+    if (k>key2) k = key2;
   }
   else if (key.find(s_internal_explicit) == 0)
   {
@@ -476,12 +471,12 @@ set_key_value(const std::string& key)
     std::string l1 = key.substr(s_internal_explicit.size(), pos-s_internal_explicit.size());
     std::string l2 = key.substr(pos+1);
     std::string key2 = s_internal_explicit + l2 + "_" + l1;
-    trie_.update(key2.c_str()) = values_.size();
-    if (keys_.back()>key2) keys_.back() = key2;
+    hash_[key2] = keyval_.size();
+    if (k>key2) k = key2;
   }
 
-  values_.push_back(static_cast<ValueT>(0));
-  return values_.size()-1;
+  keyval_.emplace_back(std::make_pair(k, static_cast<ValueT>(0)));
+  return keyval_.size()-1;
 }
 
 #if PARAMS_BASE_PAIR
@@ -509,7 +504,7 @@ base_pair(NUCL i, NUCL j) const
 #ifdef USE_CACHE
   auto ii=is_base_[i], jj=is_base_[j];
   if (ii>=0 && jj>=0)
-    return values_[cache_base_pair_[ii][jj]];
+    return keyval_[cache_base_pair_[ii][jj]].second;
   else
     return get_by_key(SPrintF(format_base_pair, i, j));
 #else
@@ -526,7 +521,7 @@ base_pair(NUCL i, NUCL j)
 #ifdef USE_CACHE
   auto ii=is_base_[i], jj=is_base_[j];
   if (ii>=0 && jj>=0)
-    return values_[cache_base_pair_[ii][jj]];
+    return keyval_[cache_base_pair_[ii][jj]].second;
   else
     return get_by_key(SPrintF(format_base_pair, i, j));
 #else
@@ -558,7 +553,7 @@ base_pair_dist_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_base_pair_dist_at_least_.size())
-    return values_[cache_base_pair_dist_at_least_[l]];
+    return keyval_[cache_base_pair_dist_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_base_pair_dist_at_least, l));
 #else
@@ -574,7 +569,7 @@ base_pair_dist_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_base_pair_dist_at_least_.size())
-    return values_[cache_base_pair_dist_at_least_[l]];
+    return keyval_[cache_base_pair_dist_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_base_pair_dist_at_least, l));
 #else
@@ -624,7 +619,7 @@ terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
   auto ii1 = is_base_[i1], jj1 = is_base_[j1];
   auto ii2 = is_base_[i2], jj2 = is_base_[j2];
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return values_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]];
+    return keyval_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]].second;
   else
     return get_by_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 #else
@@ -642,7 +637,7 @@ terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
   auto ii1 = is_base_[i1], jj1 = is_base_[j1];
   auto ii2 = is_base_[i2], jj2 = is_base_[j2];
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return values_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]];
+    return keyval_[cache_terminal_mismatch_[ii1][jj1][ii2][jj2]].second;
   else
     return get_by_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 #else
@@ -674,7 +669,7 @@ hairpin_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_hairpin_length_at_least_.size())
-    return values_[cache_hairpin_length_at_least_[l]];
+    return keyval_[cache_hairpin_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_hairpin_length_at_least, l));
 #else
@@ -690,7 +685,7 @@ hairpin_length_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_hairpin_length_at_least_.size())
-    return values_[cache_hairpin_length_at_least_[l]];
+    return keyval_[cache_hairpin_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_hairpin_length_at_least, l));
 #else
@@ -723,54 +718,6 @@ hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
   return get_by_key(format_hairpin_nucleotides + h);
 }
 
-template <class ValueT>
-inline
-VI
-ParameterHash<ValueT>::
-hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const
-{
-  static size_t head = -1u;
-  VI v(max_l, trie_t::CEDAR_NO_VALUE);
-  size_t node_pos=0, key_pos=0;
-  if (head == -1u)
-  {
-    auto r = trie_.traverse(format_hairpin_nucleotides.c_str(), node_pos, key_pos, 
-                            format_hairpin_nucleotides.size());
-    if (r == trie_t::CEDAR_NO_PATH) return v;
-    head = node_pos;
-  }
-
-  node_pos = head;
-  for (size_t j=0; j!=max_l; ++j)
-  {
-    v[j] = trie_.traverse(&s[i], node_pos, key_pos, j+1);
-    if (v[j]==trie_t::CEDAR_NO_PATH) break;
-  }
-  return v;
-}
-
-template <class ValueT>
-inline
-ValueT
-ParameterHash<ValueT>::
-hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos) const
-{
-  return pos[l]>=0 ? values_[pos[l]] : static_cast<ValueT>(0);
-}
-
-template <class ValueT>
-inline
-ValueT&
-ParameterHash<ValueT>::
-hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos)
-{
-#ifdef TEST_TRIE_CACHE
-  auto v = pos[l]>=0 ? values_[pos[l]] : hairpin_nucleotides(s, i, l);
-  assert(v == hairpin_nucleotides(s, i, l));
-#endif
-  return pos[l]>=0 ? values_[pos[l]] : hairpin_nucleotides(s, i, l);
-}
-
 #if PARAMS_HELIX_LENGTH
 static const char* format_helix_length_at_least = "helix_length_at_least_%d";
 
@@ -794,7 +741,7 @@ helix_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_helix_length_at_least_.size())
-    return values_[cache_helix_length_at_least_[l]];
+    return keyval_[cache_helix_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_helix_length_at_least, l));
 #else
@@ -810,7 +757,7 @@ helix_length_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_helix_length_at_least_.size())
-    return values_[cache_helix_length_at_least_[l]];
+    return keyval_[cache_helix_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_helix_length_at_least, l));
 #else
@@ -840,7 +787,7 @@ ParameterHash<ValueT>::
 isolated_base_pair() const
 {
 #ifdef USE_CACHE
-  return values_[cache_isolated_base_pair_];
+  return keyval_[cache_isolated_base_pair_].second;
 #else
   return get_by_key(format_isolated_base_pair);
 #endif
@@ -853,7 +800,7 @@ ParameterHash<ValueT>::
 isolated_base_pair()
 {
 #ifdef USE_CACHE
-  return values_[cache_isolated_base_pair_];
+  return keyval_[cache_isolated_base_pair_].second;
 #else
   return get_by_key(format_isolated_base_pair);
 #endif
@@ -884,7 +831,7 @@ internal_explicit(uint i, uint j) const
 {
 #ifdef USE_CACHE
   if (i<cache_internal_explicit_.size() && j<cache_internal_explicit_[i].size())
-    return values_[cache_internal_explicit_[i][j]];
+    return keyval_[cache_internal_explicit_[i][j]].second;
   else
     return get_by_key(SPrintF(format_internal_explicit, i, j));
 #else
@@ -900,7 +847,7 @@ internal_explicit(uint i, uint j)
 {
 #ifdef USE_CACHE
   if (i<cache_internal_explicit_.size() && j<cache_internal_explicit_[i].size())
-    return values_[cache_internal_explicit_[i][j]];
+    return keyval_[cache_internal_explicit_[i][j]].second;
   else
     return get_by_key(SPrintF(format_internal_explicit, i, j));
 #else
@@ -932,7 +879,7 @@ bulge_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_bulge_length_at_least_.size())
-    return values_[cache_bulge_length_at_least_[l]];
+    return keyval_[cache_bulge_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_bulge_length_at_least, l));
 #else
@@ -948,7 +895,7 @@ bulge_length_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_bulge_length_at_least_.size())
-    return values_[cache_bulge_length_at_least_[l]];
+    return keyval_[cache_bulge_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_bulge_length_at_least, l));
 #else
@@ -980,7 +927,7 @@ internal_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_internal_length_at_least_.size())
-    return values_[cache_internal_length_at_least_[l]];
+    return keyval_[cache_internal_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_internal_length_at_least, l));
 #else
@@ -996,7 +943,7 @@ internal_length_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_internal_length_at_least_.size())
-    return values_[cache_internal_length_at_least_[l]];
+    return keyval_[cache_internal_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_internal_length_at_least, l));
 #else
@@ -1028,7 +975,7 @@ internal_symmetric_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_internal_symmetric_length_at_least_.size())
-    return values_[cache_internal_symmetric_length_at_least_[l]];
+    return keyval_[cache_internal_symmetric_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_internal_symmetric_length_at_least, l));
 #else
@@ -1044,7 +991,7 @@ internal_symmetric_length_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_internal_symmetric_length_at_least_.size())
-    return values_[cache_internal_symmetric_length_at_least_[l]];
+    return keyval_[cache_internal_symmetric_length_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_internal_symmetric_length_at_least, l));
 #else
@@ -1076,7 +1023,7 @@ internal_asymmetry_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_internal_asymmetry_at_least_.size())
-    return values_[cache_internal_asymmetry_at_least_[l]];
+    return keyval_[cache_internal_asymmetry_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_internal_asymmetry_at_least, l));
 #else
@@ -1092,7 +1039,7 @@ internal_asymmetry_at_least(uint l)
 {
 #ifdef USE_CACHE
   if (l<cache_internal_asymmetry_at_least_.size())
-    return values_[cache_internal_asymmetry_at_least_[l]];
+    return keyval_[cache_internal_asymmetry_at_least_[l]].second;
   else
     return get_by_key(SPrintF(format_internal_asymmetry_at_least, l));
 #else
@@ -1126,124 +1073,22 @@ internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
   auto x = std::copy(&s[i], &s[i+l], nuc1.begin());
   *(x++) = '_';
   std::reverse_copy(&s[j-m+1], &s[j+1], x);
-
   auto key1 = format_internal_nucleotides+nuc1;
-  auto k = trie_.exactMatchSearch<int>(key1.c_str());
-  if (k!=trie_t::CEDAR_NO_VALUE)
-    return values_[k];
-
-  keys_.push_back(key1);
-  trie_.update(key1.c_str()) = values_.size();
+  auto r = hash_.insert(std::make_pair(key1, keyval_.size()));
+  if (!r.second) return keyval_[r.first->second].second;
+  auto k = key1;
 
   std::string nuc2(l+m+1, ' ');
   x = std::copy(&s[j-m+1], &s[j+1], nuc2.begin());
   *(x++) = '_';
   std::reverse_copy(&s[i], &s[i+l], x);
   auto key2 = format_internal_nucleotides+nuc2;
-  trie_.update(key2.c_str()) = values_.size();
-  if (keys_.back()>key2) keys_.back() = key2;
+  hash_[key2] = keyval_.size();
+  if (k>key2) k = key2;
 
-  values_.push_back(static_cast<ValueT>(0.0));
-  return values_.back();
+  keyval_.emplace_back(std::make_pair(k, static_cast<ValueT>(0.0)));
+  return keyval_.back().second;
 }
-
-template <class ValueT>
-VVI
-ParameterHash<ValueT>::
-internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j,
-                           uint max_l, uint max_m) const
-{
-  static size_t head = -1u;
-
-  VVI ret(max_l+1, VI(max_m+1, trie_t::CEDAR_NO_VALUE));
-
-  size_t node_pos=0, key_pos=0;
-  int k;
-  if (head == -1u)
-  {
-    k = trie_.traverse(format_internal_nucleotides.c_str(), node_pos, key_pos, 
-                       format_internal_nucleotides.size());
-    head = node_pos;
-  }
-  node_pos = head;
-
-  for (uint l=0; l<=max_l && i+l-1<s.size(); ++l)
-  {
-    if (l>0)
-    {
-      key_pos = 0;
-      k = trie_.traverse(&s[i+l-1], node_pos, key_pos, 1);
-#ifdef TEST_TRIE_CACHE
-      std::string s2 = format_internal_nucleotides;
-      for (uint kk=i; kk<i+l; ++kk) s2.push_back(s[kk]);
-      size_t np=0, kp=0;
-      auto k2 = trie_.traverse(s2.c_str(), np, kp, s2.size());
-      assert(k == k2);
-#endif
-      if (k==trie_t::CEDAR_NO_PATH) break;
-    }
-
-    auto node_pos2 = node_pos;
-    key_pos = 0;
-    k = trie_.traverse("_", node_pos2, key_pos, 1);
-
-    for (uint m=0; m<=max_m && j+1>=m && l+m<=DEFAULT_C_MAX_SINGLE_LENGTH; ++m)
-    {
-      if (l+m<1) continue;
-      if (m>0)
-      {
-        key_pos = 0;
-        k = trie_.traverse(&s[j-m+1], node_pos2, key_pos, 1);
-#ifdef TEST_TRIE_CACHE
-        std::string s2 = format_internal_nucleotides;
-        for (uint kk=i; kk<i+l; ++kk) s2.push_back(s[kk]);
-        s2.push_back('_');
-        for (uint kk=j; j+1<=kk+m && kk!=-1u; --kk) s2.push_back(s[kk]);
-        size_t np=0, kp=0;
-        auto k2 = trie_.traverse(s2.c_str(), np, kp, s2.size());
-        assert(k == k2);
-#endif
-      }
-      if (k==trie_t::CEDAR_NO_PATH) break;
-      ret[l][m] = k;
-    }
-  }
-  return ret;
-}
-
-
-template <class ValueT>
-inline
-ValueT
-ParameterHash<ValueT>::
-internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos) const
-{
-#ifdef TEST_TRIE_CACHE
-  ValueT v;
-  if (l<pos.size() && m<pos[l].size())
-    v = pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
-  else
-    v = internal_nucleotides(s, i, l, j, m);
-  assert(v == internal_nucleotides(s, i, l, j, m));
-#endif
-  if (l<pos.size() && m<pos[l].size())
-        return pos[l][m]>=0 ? values_[pos[l][m]] : static_cast<ValueT>(0);
-  else
-    return internal_nucleotides(s, i, l, j, m);
-}
-
-template <class ValueT>
-inline
-ValueT&
-ParameterHash<ValueT>::
-internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos)
-{
-  if (l<pos.size() && m<pos[l].size())
-    return pos[l][m]>=0 ? values_[pos[l][m]] : internal_nucleotides(s, i, l, j, m);
-  else
-    return internal_nucleotides(s, i, l, j, m);
-}
-
 
 #if PARAMS_HELIX_STACKING
 static const char* format_helix_stacking = "helix_stacking_%c%c%c%c";
@@ -1285,7 +1130,7 @@ helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
   auto ii1=is_base_[i1], jj1=is_base_[j1];
   auto ii2=is_base_[i2], jj2=is_base_[j2];
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return values_[cache_helix_stacking_[ii1][jj1][ii2][jj2]];
+    return keyval_[cache_helix_stacking_[ii1][jj1][ii2][jj2]].second;
   else
     return get_by_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 #else
@@ -1303,7 +1148,7 @@ helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
   auto ii1=is_base_[i1], jj1=is_base_[j1];
   auto ii2=is_base_[i2], jj2=is_base_[j2];
   if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return values_[cache_helix_stacking_[ii1][jj1][ii2][jj2]];
+    return keyval_[cache_helix_stacking_[ii1][jj1][ii2][jj2]].second;
   else
     return get_by_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 #else
@@ -1343,7 +1188,7 @@ helix_closing(NUCL i, NUCL j) const
 #ifdef USE_CACHE
   auto ii=is_base_[i], jj=is_base_[j];
   if (ii>=0 && jj>=0)
-    return values_[cache_helix_closing_[ii][jj]];
+    return keyval_[cache_helix_closing_[ii][jj]].second;
   else
     return get_by_key(SPrintF(format_helix_closing, i, j));
 #else
@@ -1360,7 +1205,7 @@ helix_closing(NUCL i, NUCL j)
 #ifdef USE_CACHE
   auto ii=is_base_[i], jj=is_base_[j];
   if (ii>=0 && jj>=0)
-    return values_[cache_helix_closing_[ii][jj]];
+    return keyval_[cache_helix_closing_[ii][jj]].second;
   else
     return get_by_key(SPrintF(format_helix_closing, i, j));
 #else
@@ -1390,7 +1235,7 @@ ParameterHash<ValueT>::
 multi_base() const
 {
 #ifdef USE_CACHE
-  return values_[cache_multi_base_];
+  return keyval_[cache_multi_base_].second;
 #else
   return get_by_key(format_multi_base);
 #endif
@@ -1403,7 +1248,7 @@ ParameterHash<ValueT>::
 multi_base()
 {
 #ifdef USE_CACHE
-  return values_[cache_multi_base_];
+  return keyval_[cache_multi_base_].second;
 #else
   return get_by_key(format_multi_base);
 #endif
@@ -1429,7 +1274,7 @@ ParameterHash<ValueT>::
 multi_unpaired() const
 {
 #ifdef USE_CACHE
-  return values_[cache_multi_unpaired_];
+  return keyval_[cache_multi_unpaired_].second;
 #else
   return get_by_key(format_multi_unpaired);
 #endif
@@ -1442,7 +1287,7 @@ ParameterHash<ValueT>::
 multi_unpaired()
 {
 #ifdef USE_CACHE
-  return values_[cache_multi_unpaired_];
+  return keyval_[cache_multi_unpaired_].second;
 #else
   return get_by_key(format_multi_unpaired);
 #endif
@@ -1468,7 +1313,7 @@ ParameterHash<ValueT>::
 multi_paired() const
 {
 #ifdef USE_CACHE
-  return values_[cache_multi_paired_];
+  return keyval_[cache_multi_paired_].second;
 #else
   return get_by_key(format_multi_paired);
 #endif
@@ -1481,7 +1326,7 @@ ParameterHash<ValueT>::
 multi_paired()
 {
 #ifdef USE_CACHE
-  return values_[cache_multi_paired_];
+  return keyval_[cache_multi_paired_].second;
 #else
   return get_by_key(format_multi_paired);
 #endif
@@ -1523,7 +1368,7 @@ dangle_left(NUCL i1, NUCL j1, NUCL i2) const
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1], ii2=is_base_[i2];
   if (ii1>=0 && jj1>=0 && ii2>=0)
-    return values_[cache_dangle_left_[ii1][jj1][ii2]];
+    return keyval_[cache_dangle_left_[ii1][jj1][ii2]].second;
   else
     return get_by_key(SPrintF(format_dangle_left, i1, j1, i2));
 #else
@@ -1540,7 +1385,7 @@ dangle_left(NUCL i1, NUCL j1, NUCL i2)
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1], ii2=is_base_[i2];
   if (ii1>=0 && jj1>=0 && ii2>=0)
-    return values_[cache_dangle_left_[ii1][jj1][ii2]];
+    return keyval_[cache_dangle_left_[ii1][jj1][ii2]].second;
   else
     return get_by_key(SPrintF(format_dangle_left, i1, j1, i2));
 #else
@@ -1582,7 +1427,7 @@ dangle_right(NUCL i1, NUCL j1, NUCL j2) const
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1], jj2=is_base_[j2];
   if (ii1>=0 && jj1>=0 && jj2>=0)
-    return values_[cache_dangle_right_[ii1][jj1][jj2]];
+    return keyval_[cache_dangle_right_[ii1][jj1][jj2]].second;
   else
     return get_by_key(SPrintF(format_dangle_right, i1, j1, j2));
 #else
@@ -1599,7 +1444,7 @@ dangle_right(NUCL i1, NUCL j1, NUCL j2)
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1], jj2=is_base_[j2];
   if (ii1>=0 && jj1>=0 && jj2>=0)
-    return values_[cache_dangle_right_[ii1][jj1][jj2]];
+    return keyval_[cache_dangle_right_[ii1][jj1][jj2]].second;
   else
     return get_by_key(SPrintF(format_dangle_right, i1, j1, j2));
 #else
@@ -1629,7 +1474,7 @@ ParameterHash<ValueT>::
 external_unpaired() const
 {
 #ifdef USE_CACHE
-  return values_[cache_external_unpaired_];
+  return keyval_[cache_external_unpaired_].second;
 #else
   return get_by_key(format_external_unpaired);
 #endif
@@ -1642,7 +1487,7 @@ ParameterHash<ValueT>::
 external_unpaired()
 {
 #ifdef USE_CACHE
-  return values_[cache_external_unpaired_];
+  return keyval_[cache_external_unpaired_].second;
 #else
   return get_by_key(format_external_unpaired);
 #endif
@@ -1668,7 +1513,7 @@ ParameterHash<ValueT>::
 external_paired() const
 {
 #ifdef USE_CACHE
-  return values_[cache_external_paired_];
+  return keyval_[cache_external_paired_].second;
 #else
   return get_by_key(format_external_paired);
 #endif
@@ -1681,7 +1526,7 @@ ParameterHash<ValueT>::
 external_paired()
 {
 #ifdef USE_CACHE
-  return values_[cache_external_paired_];
+  return keyval_[cache_external_paired_].second;
 #else
   return get_by_key(format_external_paired);
 #endif

@@ -7,7 +7,6 @@
 #include <unordered_map>
 #include <iterator>
 #include <array>
-#include "cedar.h"
 
 #define USE_CACHE
 
@@ -16,9 +15,8 @@ class ParameterHash
 {
 public:
   //typedef typename ValueT ValueT;
-
-private:
-  typedef cedar::da<int> trie_t;
+  typedef typename std::vector<std::pair<std::string,ValueT>>::iterator iterator;
+  typedef typename std::vector<std::pair<std::string,ValueT>>::const_iterator const_iterator;
 
 public:
   ParameterHash();
@@ -48,93 +46,24 @@ public:
   bool is_context_feature(const std::string& f) const;
   bool is_basepair_context_feature(const std::string& f) const;
 
-  // read-only iterator
-  class iterator : public std::iterator<std::forward_iterator_tag, ValueT >
-  {
-  public:
-    iterator(const std::vector<std::string>* keys, const std::vector<ValueT>* values)
-      : keys_(const_cast<std::vector<std::string>*>(keys)), values_(const_cast<std::vector<ValueT>*>(values))
-    {  }
-
-    iterator(std::vector<std::string>* keys, std::vector<ValueT>* values)
-      : keys_(keys), values_(values)
-    {  }
-
-    iterator& begin()
-    {
-      i_ = 0;
-      return *this;
-    }
-
-    iterator& end()
-    {
-      i_ = values_->size();
-      return *this;
-    }
-
-    const std::string& key() const
-    {
-      return (*keys_)[i_];
-    }
-
-    ValueT value() const
-    {
-      return (*values_)[i_];
-    }
-
-    ValueT& value()
-    {
-      return (*values_)[i_];
-    }
-
-    iterator& operator++()
-    {
-      i_++;
-      return *this;
-    }
-
-    iterator operator++(int)
-    {
-      iterator temp = *this;
-      ++i_;
-      return temp;
-    }
-
-    bool operator!=(const iterator& x) const
-    {
-      return i_!=x.i_;
-    }
-
-    bool operator==(const iterator& x) const
-    {
-      return i_==x.i_;
-    }
-
-  private:
-    trie_t* trie_;
-    std::vector<std::string>* keys_;
-    std::vector<ValueT>* values_;
-    int i_;
-  };
-
   iterator begin()
   {
-    return iterator(&keys_, &values_).begin();
+    return keyval_.begin();
   }
 
   iterator end()
   {
-    return iterator(&keys_, &values_).end();
+    return keyval_.end();
   }
 
-  iterator cbegin() const
+  const_iterator begin() const
   {
-    return iterator(&keys_, &values_).begin();
+    return keyval_.begin();
   }
 
-  iterator cend() const
+  const_iterator end() const
   {
-    return iterator(&keys_, &values_).end();
+    return keyval_.end();
   }
 
   // access to parameters
@@ -161,15 +90,6 @@ public:
 
   ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-  void initialize_cache_hairpin_3_nucleotides();
-#endif
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-  void initialize_cache_hairpin_4_nucleotides();
-#endif
-  VI hairpin_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint max_l) const;
-  ValueT  hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos) const;
-  ValueT& hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l, const VI& pos);
 
 #if PARAMS_HELIX_LENGTH
   ValueT  helix_length_at_least(uint l) const;
@@ -209,17 +129,6 @@ public:
 
   ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const;
   ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m);
-  ValueT  internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t) const;
-  ValueT& internal_nucleotides(const std::vector<NUCL>& s, const std::vector<NUCL>& t);
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-  void initialize_cache_internal_0x1_nucleotides();
-#endif
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-  void initialize_cache_internal_1x1_nucleotides();
-#endif
-  VVI internal_nucleotides_cache(const std::vector<NUCL>& s, uint i, uint j, uint max_l, uint max_m) const;
-  ValueT  internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos) const;
-  ValueT& internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m, const VVI& pos);
 
 #if PARAMS_HELIX_STACKING
   ValueT  helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
@@ -267,10 +176,8 @@ private:
   static const std::string def_bases;
   static const size_t N;
 
-  //std::unordered_map<std::string, ValueT> param_;
-  trie_t trie_;
-  std::vector<std::string> keys_;
-  std::vector<ValueT> values_;
+  std::unordered_map<std::string,uint> hash_;
+  std::vector<std::pair<std::string,ValueT>> keyval_;
   std::array<std::array<int, 256>, 256> is_complementary_;
   std::array<int, 256> is_base_;
 

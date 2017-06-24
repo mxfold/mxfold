@@ -1184,46 +1184,6 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
       ;
 }
 
-#if 0
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j, const std::vector<int>& pos) const
-{
-    // The constraints i > 0 && j < L ensure that s[i] and s[j+1] refer to
-    // nucleotides which could base-pair.  The remaining constraint ensures
-    // that only valid hairpins are considered.
-    
-    Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
-    const auto& pm = *parameter_manager;
-    
-    return 
-        ScoreUnpaired(i,j)
-        + ScoreJunctionB(i,j)
-#if PARAMS_HAIRPIN_LENGTH
-        + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
-#endif
-#if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
-        + pm.hairpin_nucleotides(s, i+1, j-i, pos)
-#else
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-        + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
-#endif
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-        + (j - i == 4 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
-#endif
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-        + (j - i == 5 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
-#endif
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-        + (j - i == 6 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
-#endif
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-        + (j - i == 7 ? pm.hairpin_nucleotides(s, i+1, j-i, pos) : RealT(0))
-#endif
-#endif
-      ;
-}
-#endif
-
 template<class RealT>
 inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 {
@@ -1255,40 +1215,6 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #endif
 #endif
 }
-
-#if 0
-template<class RealT>
-inline void InferenceEngine<RealT>::CountHairpin(int i, int j, const std::vector<int>& pos, RealT value)
-{
-    Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
-    auto& pc = *parameter_count;
-    
-    CountUnpaired(i,j,value);
-    CountJunctionB(i,j,value);
-#if PARAMS_HAIRPIN_LENGTH
-    cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
-#endif
-#if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
-    pc.hairpin_nucleotides(s, i+1, j-i, pos) += value;
-#else
-#if PARAMS_HAIRPIN_3_NUCLEOTIDES
-    if (j - i == 3) pc.hairpin_nucleotides(s, i+1, j-i, pos) += value;
-#endif
-#if PARAMS_HAIRPIN_4_NUCLEOTIDES
-    if (j - i == 4) pc.hairpin_nucleotides(s, i+1, j-i, pos) += value;
-#endif
-#if PARAMS_HAIRPIN_5_NUCLEOTIDES
-    if (j - i == 5) pc.hairpin_nucleotides(s, i+1, j-i, pos) += value;
-#endif
-#if PARAMS_HAIRPIN_6_NUCLEOTIDES
-    if (j - i == 6) pc.hairpin_nucleotides(s, i+1, j-i, pos) += value;
-#endif
-#if PARAMS_HAIRPIN_7_NUCLEOTIDES
-    if (j - i == 7) pc.hairpin_nucleotides(s, i+1, j-i, pos) += value;
-#endif
-#endif
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::ScoreHelix()
@@ -1492,98 +1418,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 }
 
 template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const
-{
-    // Nucleotides s[i] and s[j+1] must exist, hence the conditions i > 0 and j < L.
-    // the condition p+2 <= q comes from the fact that there must be enough room for
-    // at least one nucleotide on the other side of the single-branch loop.  This
-    // loop should only be used for dealing with single-branch loops, not stacking pairs.
-    
-    Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    const auto& pm = *parameter_manager;
-
-#if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES ||  PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES ||PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES )
-    const int l1 = p - i;
-    const int l2 = j - q;
-    
-    Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
-#endif
-    
-    return 
-        ScoreUnpaired(i,p)
-        + ScoreUnpaired(q,j)
-#if PARAMS_INTERNAL_ANY_NUCLEOTIDES
-        + pm.internal_nucleotides(s, i+1, l1, j, l2)
-#else
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-        + (l1 == 0 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 1 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_BULGE_0x2_NUCLEOTIDES
-        + (l1 == 0 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 2 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_BULGE_0x3_NUCLEOTIDES
-        + (l1 == 0 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 3 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_BULGE_0x4_NUCLEOTIDES
-        + (l1 == 0 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 4 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_BULGE_0x5_NUCLEOTIDES
-        + (l1 == 0 && l2 == 5 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 5 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_BULGE_0x6_NUCLEOTIDES
-        + (l1 == 0 && l2 == 6 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 6 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_BULGE_0x7_NUCLEOTIDES
-        + (l1 == 0 && l2 == 7 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 7 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-        + (l1 == 1 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-        + (l1 == 1 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 2 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-        + (l1 == 2 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-        + (l1 == 1 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 3 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-        + (l1 == 2 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 3 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-        + (l1 == 3 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-        + (l1 == 1 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 4 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-        + (l1 == 2 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 4 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-        + (l1 == 3 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-        + (l1 == 4 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-        + (l1 == 4 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2, pos) : RealT(0))
-#endif
-#endif
-      ;
-}
-
-template<class RealT>
 inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, RealT value)
 {
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
@@ -1660,86 +1494,6 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
     if (l1 == 4 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-#endif
-#endif
-}
-template<class RealT>
-inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value)
-{
-    Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    auto& pc = *parameter_count;
-    
-#if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES || PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES || PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES)
-    const int l1 = p - i;
-    const int l2 = j - q;
-    
-    Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
-#endif
-    
-    CountUnpaired(i,p,value);
-    CountUnpaired(q,j,value);
-#if PARAMS_INTERNAL_ANY_NUCLEOTIDES
-    pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-#else
-#if PARAMS_BULGE_0x1_NUCLEOTIDES
-    if (l1 == 0 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 1 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_BULGE_0x2_NUCLEOTIDES
-    if (l1 == 0 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 2 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_BULGE_0x3_NUCLEOTIDES
-    if (l1 == 0 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 3 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_BULGE_0x4_NUCLEOTIDES
-    if (l1 == 0 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 4 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_BULGE_0x5_NUCLEOTIDES
-    if (l1 == 0 && l2 == 5) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 5 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_BULGE_0x6_NUCLEOTIDES
-    if (l1 == 0 && l2 == 6) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 6 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-    if (l1 == 1 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-    if (l1 == 1 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 2 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-    if (l1 == 2 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-    if (l1 == 1 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 3 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-    if (l1 == 2 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 3 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-    if (l1 == 3 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-    if (l1 == 1 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 4 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-    if (l1 == 2 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 4 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-    if (l1 == 3 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-    if (l1 == 4 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
-#endif
-#if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-    if (l1 == 4 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2, pos) += value;
 #endif
 #endif
 }
@@ -1916,7 +1670,6 @@ void InferenceEngine<RealT>::ComputeViterbi()
 #if CANDIDATE_LIST
         candidates.clear();
 #endif
-        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
 
         for (int j = i; j <= L; j++)
         {
@@ -1988,8 +1741,6 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 
                 // compute MAX (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
@@ -2147,11 +1898,9 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j,hairpin_pos), EncodeTraceback(TB_FC_HAIRPIN,0));
+                    UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j), EncodeTraceback(TB_FC_HAIRPIN,0));
                 
                 // compute MAX (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -2737,8 +2486,6 @@ void InferenceEngine<RealT>::ComputeInside()
 
     for (int i = L; i >= 0; i--)
     {
-        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
-
         for (int j = i; j <= L; j++)
         {
             
@@ -2793,7 +2540,6 @@ void InferenceEngine<RealT>::ComputeInside()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
                 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 
@@ -2930,12 +2676,10 @@ void InferenceEngine<RealT>::ComputeInside()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    Fast_LogPlusEquals(sum_i, ScoreHairpin(i,j,hairpin_pos));
+                    Fast_LogPlusEquals(sum_i, ScoreHairpin(i,j));
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-
 #if !FAST_SINGLE_BRANCH_LOOPS
                 
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3276,8 +3020,6 @@ void InferenceEngine<RealT>::ComputeOutside()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-
 #if !FAST_SINGLE_BRANCH_LOOPS
                 {
                     RealT temp = FNo[offset[i]+j];
@@ -3341,8 +3083,6 @@ void InferenceEngine<RealT>::ComputeOutside()
                 // compute ScoreHairpin(i,j) -- do nothing
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
 
 #if !FAST_SINGLE_BRANCH_LOOPS
                 {
@@ -3471,8 +3211,6 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     
     for (int i = L; i >= 0; i--)
     {
-        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
-
         for (int j = i; j <= L; j++)
         {
 
@@ -3527,8 +3265,6 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
@@ -3666,12 +3402,10 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    CountHairpin(i,j,hairpin_pos,Fast_Exp(outside + ScoreHairpin(i,j,hairpin_pos)));
+                    CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-                
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
@@ -3861,8 +3595,6 @@ void InferenceEngine<RealT>::ComputePosterior()
     
     for (int i = L; i >= 0; i--)
     {
-        //auto hairpin_pos = parameter_manager->hairpin_nucleotides_cache(s, i, std::min(7, L-i));
-        
         for (int j = i; j <= L; j++)
         {
             
@@ -3916,8 +3648,6 @@ void InferenceEngine<RealT>::ComputePosterior()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
@@ -4047,12 +3777,10 @@ void InferenceEngine<RealT>::ComputePosterior()
                 // compute ScoreHairpin(i,j)
                 
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    CountHairpin(i,j,hairpin_pos,Fast_Exp(outside + ScoreHairpin(i,j,hairpin_pos)));
+                    CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-                //auto internal_pos = parameter_manager->internal_nucleotides_cache(s, i+1, j, 7, 7);
-
 #if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
