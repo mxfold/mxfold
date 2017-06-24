@@ -21,9 +21,6 @@ public:
 public:
   ParameterHash();
   ~ParameterHash() { }
-  ParameterHash(ParameterHash&& other);
-  
-  ParameterHash& operator=(ParameterHash&& other);
 
   void initialize();
   void initialize_cache();
