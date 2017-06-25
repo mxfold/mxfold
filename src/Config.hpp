@@ -9,7 +9,7 @@
 
 #include <vector>
 
-typedef double param_value_type;
+typedef float param_value_type;
 
 typedef std::vector<int> VI;
 typedef std::vector<VI> VVI;
@@ -28,9 +28,6 @@ typedef std::vector<VVVI> VVVVI;
 
 // use candidate list optimization for Viterbi parsing
 #define CANDIDATE_LIST                             1
-
-// use unrolled computation for single branch loops
-#define FAST_SINGLE_BRANCH_LOOPS                   1
 
 // use caching algorithm for fast helix length scores
 #define FAST_HELIX_LENGTHS                         1
@@ -110,7 +107,10 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_INTERNAL_1x4_NUCLEOTIDES            1
 #define PARAMS_INTERNAL_2x4_NUCLEOTIDES            1
 #define PARAMS_INTERNAL_3x4_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_4x4_NUCLEOTIDES            1
+#define PARAMS_INTERNAL_4x4_NUCLEOTIDES            0
+
+#define PARAMS_INTERNAL_ANY_NUCLEOTIDES            7
+#define PARAMS_HAIRPIN_ANY_NUCLEOTIDES             7
 
 #endif  // CONTRAFOLD_MODEL
 

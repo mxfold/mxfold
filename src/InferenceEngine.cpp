@@ -270,6 +270,8 @@ void InferenceEngine<RealT>::InitializeCache()
 #if PARAMS_BASE_PAIR_DIST
     for (int j = 0; j <= BP_DIST_LAST_THRESHOLD; j++)
         cache_score_base_pair_dist[j].first = RealT(0);
+    for (int j = 0; j < BP_DIST_THRESHOLDS[0]; j++)
+        cache_score_base_pair_dist[j].first = NEG_INF;
     for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
         for (int j = BP_DIST_THRESHOLDS[i]; j <= BP_DIST_LAST_THRESHOLD; j++)
             cache_score_base_pair_dist[j].first += pm.base_pair_dist_at_least(i);
@@ -1163,7 +1165,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
 #if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
-        + pm.hairpin_nucleotides(s, i+1, j-i)
+        + (j-i >= 3 && j-i <= PARAMS_HAIRPIN_ANY_NUCLEOTIDES ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
 #else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
         + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
@@ -1196,7 +1198,7 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
     cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
 #endif
 #if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
-    pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j-i >= 3 && j-i <= PARAMS_HAIRPIN_ANY_NUCLEOTIDES) pc.hairpin_nucleotides(s, i+1, j-i) += value;
 #else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
     if (j - i == 3) pc.hairpin_nucleotides(s, i+1, j-i) += value;
@@ -1347,7 +1349,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         ScoreUnpaired(i,p)
         + ScoreUnpaired(q,j)
 #if PARAMS_INTERNAL_ANY_NUCLEOTIDES
-        + pm.internal_nucleotides(s, i+1, l1, j, l2)
+        + (l1+l2 <= PARAMS_INTERNAL_ANY_NUCLEOTIDES ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
 #else
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
         + (l1 == 0 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
@@ -1433,7 +1435,7 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     CountUnpaired(i,p,value);
     CountUnpaired(q,j,value);
 #if PARAMS_INTERNAL_ANY_NUCLEOTIDES
-    pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1+l2 <= PARAMS_INTERNAL_ANY_NUCLEOTIDES) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
 #else
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
     if (l1 == 0 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
@@ -1545,30 +1547,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
         + ScoreSingleNucleotides(i,j,p,q);
 }
 
-#if 0
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos) const
-{
-    const int l1 = p - i;
-    const int l2 = j - q;
-    
-    // Nucleotides s[i] and s[j+1] must exist, hence the conditions i > 0 and j < L.
-    // the condition p+2 <= q comes from the fact that there must be enough room for
-    // at least one nucleotide on the other side of the single-branch loop.  This
-    // loop should only be used for dealing with single-branch loops, not stacking pairs.
-    
-    Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
-    
-    return 
-        cache_score_single[l1][l2].first
-        + ScoreBasePair(p+1,q)
-        + ScoreJunctionB(i,j) 
-        + ScoreJunctionB(q,p)
-        + ScoreSingleNucleotides(i,j,p,q,pos);
-}
-#endif
-
 template<class RealT>
 inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, RealT value)
 {
@@ -1584,24 +1562,6 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, Real
     CountJunctionB(q,p,value);
     CountSingleNucleotides(i,j,p,q,value);
 }
-
-#if 0
-template<class RealT>
-inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, const std::vector<std::vector<int>>& pos, RealT value)
-{
-    const int l1 = p - i;
-    const int l2 = j - q;
-    
-    Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
-    
-    cache_score_single[l1][l2].second += value;
-    CountBasePair(p+1,q,value);
-    CountJunctionB(i,j,value);
-    CountJunctionB(q,p,value);
-    CountSingleNucleotides(i,j,p,q,pos,value);
-}
-#endif
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::EncodeTraceback()
@@ -1741,7 +1701,6 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 
                 // compute MAX (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -1751,46 +1710,12 @@ void InferenceEngine<RealT>::ComputeViterbi()
                         if (q < j && !allow_unpaired_position[q+1]) break;
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
-                        
+
                         UPDATE_MAX(best_v, best_t,
                                    ScoreSingle(i,j,p,q) + FCv[offset[p+1]+q-1],
                                    EncodeTraceback(TB_FN_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q));
                     }
                 }
-                
-#else
-                
-                {
-                    RealT score_other = ScoreJunctionB(i,j);
-                    
-                    int bp = -1, bq = -1;
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCv[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            if (i == p && j == q) continue;
-                            
-                            RealT score = (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) +
-                                           ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                            
-                            if (score > best_v)
-                            {
-                                best_v = score;
-                                bp = p;
-                                bq = q;
-                            }
-                        }
-                    }
-                    
-                    if (bp != -1 && bq != -1)
-                        best_t = EncodeTraceback(TB_FN_SINGLE,(bp-i)*(C_MAX_SINGLE_LENGTH+1)+j-bq);
-                }
-#endif
                 
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
@@ -1902,7 +1827,6 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 
                 // compute MAX (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -1918,41 +1842,6 @@ void InferenceEngine<RealT>::ComputeViterbi()
                                    EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q));
                     }
                 }
-                
-#else
-                
-                {
-                    RealT score_helix = (i+2 <= j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : 0);
-                    RealT score_other = ScoreJunctionB(i,j);
-                    
-                    int bp = -1, bq = -1;
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCv[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            
-                            RealT score = (p == i && q == j) ?
-                                (score_helix + FCptr[q]) :
-                                (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                            
-                            if (score > best_v)
-                            {
-                                best_v = score;
-                                bp = p;
-                                bq = q;
-                            }
-                        }
-                    }
-                    
-                    if (bp != -1 && bq != -1)
-                        best_t = EncodeTraceback(TB_FC_SINGLE,(bp-i)*(C_MAX_SINGLE_LENGTH+1)+j-bq);
-                }
-#endif
                 
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
@@ -2540,9 +2429,6 @@ void InferenceEngine<RealT>::ComputeInside()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-                
-#if !FAST_SINGLE_BRANCH_LOOPS
-                
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -2556,32 +2442,6 @@ void InferenceEngine<RealT>::ComputeInside()
                         Fast_LogPlusEquals(sum_i, ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]);
                     }
                 }
-                
-#else
-
-                if (i+2 <= j)                
-                {
-                    RealT score_other = ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            if (i == p && j == q) continue;
-                            
-                            RealT score = (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) +
-                                           ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                            
-                            Fast_LogPlusEquals(sum_i, score);
-                        }
-                    }
-                }
-#endif
                 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
@@ -2680,8 +2540,6 @@ void InferenceEngine<RealT>::ComputeInside()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-#if !FAST_SINGLE_BRANCH_LOOPS
-                
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -2696,33 +2554,6 @@ void InferenceEngine<RealT>::ComputeInside()
                                            (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q)));
                     }
                 }
-                
-#else
-
-                {
-                    RealT score_helix = (i+2 <= j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : 0);
-                    RealT score_other = ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            
-                            RealT score = (p == i && q == j) ?
-                                (score_helix + FCptr[q]) :
-                                (score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) +
-                                 ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                            
-                            Fast_LogPlusEquals(sum_i, score);
-                        }
-                    }
-                }
-#endif
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
@@ -3020,7 +2851,6 @@ void InferenceEngine<RealT>::ComputeOutside()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 {
                     RealT temp = FNo[offset[i]+j];
                     for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3037,28 +2867,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                         }
                     }
                 }
-#else
-                
-                {
-                    RealT score_other = FNo[offset[i]+j] + ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        RealT *FCptr = &(FCo[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            if (i == p && j == q) continue;
-                            
-                            Fast_LogPlusEquals(FCptr[q], score_other + cache_score_single[p-i][j-q].first + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                        }
-                    }
-                }
-#endif
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
                 Fast_LogPlusEquals(FM2o, FNo[offset[i]+j] + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
@@ -3084,7 +2893,6 @@ void InferenceEngine<RealT>::ComputeOutside()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 {
                     RealT temp = FCo[offset[i]+j];
                     for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3101,31 +2909,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                         }
                     }
                 }
-#else
-                
-                {
-                    RealT score_helix = (i+2 <= j ? FCo[offset[i]+j] + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : 0);
-                    RealT score_other = FCo[offset[i]+j] + ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        RealT *FCptr = &(FCo[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            
-                            Fast_LogPlusEquals(FCptr[q], 
-                                               (p == i && q == j) ?
-                                               score_helix :
-                                               score_other + cache_score_single[p-i][j-q].first + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                        }
-                    }
-                }
-#endif
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
                 Fast_LogPlusEquals(FM2o, FCo[offset[i]+j] + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
@@ -3265,7 +3049,6 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3279,33 +3062,6 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                         CountSingle(i,j,p,q,Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]));
                     }
                 }
-                
-#else
-                
-                {
-                    RealT score_other = outside + ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            if (i == p && j == q) continue;
-                            
-                            RealT value = Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                            cache_score_single[p-i][j-q].second += value;
-                            CountBasePair(p+1,q,value);
-                            CountJunctionB(i,j,value);
-                            CountJunctionB(q,p,value);
-                            CountSingleNucleotides(i,j,p,q,value);
-                        }
-                    }
-                }
-#endif
                 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
@@ -3406,7 +3162,6 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3428,44 +3183,6 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                         }
                     }
                 }
-                
-#else
-                
-                {
-                    RealT score_helix = (i+2 <= j ? outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : 0);
-                    RealT score_other = outside + ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            
-                            if (p == i && q == j)
-                            {
-                                RealT value = Fast_Exp(score_helix + FCptr[q]);
-                                cache_score_single[0][0].second += value;
-                                CountBasePair(i+1,j,value);
-                                CountHelixStacking(i,j+1,value);
-                            }
-                            else
-                            {
-                                RealT value = Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + 
-                                                       ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                                cache_score_single[p-i][j-q].second += value;
-                                CountBasePair(p+1,q,value);
-                                CountJunctionB(i,j,value);
-                                CountJunctionB(q,p,value);
-                                CountSingleNucleotides(i,j,p,q,value);
-                            }
-                        }
-                    }
-                }
-#endif
                 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
@@ -3648,7 +3365,6 @@ void InferenceEngine<RealT>::ComputePosterior()
                 
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3663,29 +3379,6 @@ void InferenceEngine<RealT>::ComputePosterior()
                     }
                 }
                 
-#else
-                
-                {
-                    RealT score_other = outside + ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            if (i == p && j == q) continue;
-                            
-                            posterior[offset[p+1]+q] += 
-                                Fast_Exp(score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                        }
-                    }
-                }
-#endif
-
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c) -- do nothing
                 
             }
@@ -3781,7 +3474,6 @@ void InferenceEngine<RealT>::ComputePosterior()
                 
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
                 
-#if !FAST_SINGLE_BRANCH_LOOPS
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3801,33 +3493,6 @@ void InferenceEngine<RealT>::ComputePosterior()
                         }
                     }
                 }
-                
-#else
-                
-                {
-                    RealT score_helix = (i+2 <= j ? outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : 0);
-                    RealT score_other = outside + ScoreJunctionB(i,j);
-                    
-                    for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
-                    {
-                        if (p > i && !allow_unpaired_position[p]) break;
-                        int q_min = std::max(p+2,p-i+j-C_MAX_SINGLE_LENGTH);
-                        const RealT *FCptr = &(FCi[offset[p+1]-1]);
-                        for (int q = j; q >= q_min; q--)
-                        {
-                            if (q < j && !allow_unpaired_position[q+1]) break;
-                            if (!allow_paired[offset[p+1]+q]) continue;
-                            
-                            posterior[offset[p+1]+q] +=
-                                Fast_Exp(p == i && q == j ?
-                                         score_helix + FCptr[q] :
-                                         score_other + cache_score_single[p-i][j-q].first + FCptr[q] + ScoreBasePair(p+1,q) + 
-                                         ScoreJunctionB(q,p) + ScoreSingleNucleotides(i,j,p,q));
-                        }
-                    }
-                }
-                
-#endif
                 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c) -- do nothing
                 
