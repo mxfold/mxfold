@@ -4,6 +4,8 @@
 
 #include "../config.h"
 #include "InferenceEngine.hpp"
+#include <algorithm>
+#include <cassert>
 
 template < class M, class OFFSET >
 void show_matrix(const M& matrix, const OFFSET& offset, const std::string& name, int L)
@@ -1088,6 +1090,187 @@ inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
 #endif
 }
 
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionHairpin(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionHairpin(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt01(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt01(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt10(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt10(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt02(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt02(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt20(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt20(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt0N(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt0N(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionIntN0(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionIntN0(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt11(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt11(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt12(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt12(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt21(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt21(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt1N(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt1N(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionIntN1(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionIntN1(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt22(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt22(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt23(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt23(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionInt32(int i, int j) const
+{
+    return ScoreJunctionB(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionInt32(int i, int j, RealT value)
+{
+    CountJunctionB(i, j, value);
+}
+
+
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::ScoreBasePair()
 // InferenceEngine::CountBasePair()
@@ -1160,7 +1343,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
     
     return 
         ScoreUnpaired(i,j)
-        + ScoreJunctionB(i,j)
+        + ScoreJunctionHairpin(i,j)
 #if PARAMS_HAIRPIN_LENGTH
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
@@ -1193,7 +1376,7 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
     auto& pc = *parameter_count;
     
     CountUnpaired(i,j,value);
-    CountJunctionB(i,j,value);
+    CountJunctionHairpin(i,j,value);
 #if PARAMS_HAIRPIN_LENGTH
     cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
 #endif
@@ -1530,6 +1713,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
 {
     const int l1 = p - i;
     const int l2 = j - q;
+    const auto& pm = *parameter_manager;
     
     // Nucleotides s[i] and s[j+1] must exist, hence the conditions i > 0 and j < L.
     // the condition p+2 <= q comes from the fact that there must be enough room for
@@ -1538,13 +1722,150 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
     
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
-    
-    return 
-        cache_score_single[l1][l2].first
-        + ScoreBasePair(p+1,q)
-        + ScoreJunctionB(i,j) 
-        + ScoreJunctionB(q,p)
-        + ScoreSingleNucleotides(i,j,p,q);
+
+    if (l1 == 0 || l2 == 0)
+    {                           // bulge
+        if (l2 == 1)
+        {
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                // + (l1 + l2 == 1 ? pm.helix_stacking(s[i], s[j+1], s[p+1], s[q]) : RealT(0))
+                + ScoreJunctionInt01(i,j) // includes TerminalAU
+                + ScoreJunctionInt10(q,p) // includes TerminalAU
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l1 == 1)
+        {
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                // + (l1 + l2 == 1 ? pm.helix_stacking(s[i], s[j+1], s[p+1], s[q]) : RealT(0))
+                + ScoreJunctionInt10(i,j) // includes TerminalAU
+                + ScoreJunctionInt01(q,p) // includes TerminalAU
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l2 == 2)
+        {
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt02(i,j) // includes TerminalAU
+                + ScoreJunctionInt20(q,p) // includes TerminalAU
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l1 == 2)
+        {
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt20(i,j) // includes TerminalAU
+                + ScoreJunctionInt02(q,p) // includes TerminalAU
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l2 > 0)
+        {
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt0N(i,j) // includes TerminalAU
+                + ScoreJunctionIntN0(q,p) // includes TerminalAU
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else /* if (l1 > 0) */
+        {
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionIntN0(i,j) // includes TerminalAU
+                + ScoreJunctionInt0N(q,p) // includes TerminalAU
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+    }
+    else if (l1 == 1 || l2 == 1)
+    {
+        if (l2 == 2)
+        {                           // 1x2 loop
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt12(i,j) // includes TerminalMismatchInt12
+                + ScoreJunctionInt21(q,p) // includes TerminalMismatchInt21
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l1 == 2)
+        {                           // 2x1 loop
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt21(i,j) // includes TerminalMismatchInt12
+                + ScoreJunctionInt12(q,p) // includes TerminalMismatchInt21
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l2 > 1)
+        {                           // 1xn loop
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt1N(i,j) // includes TerminalMismatchInt1n
+                + ScoreJunctionIntN1(q,p) // includes TerminalMismatchIntn1
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+        else if (l1 > 1)
+        {                           // nx1 loop
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionIntN1(i,j) // includes TerminalMismatchIntn1
+                + ScoreJunctionInt1N(q,p) // includes TerminalMismatchInt1n
+                + ScoreSingleNucleotides(i,j,p,q);
+        } 
+        else /*if (l1 == 1 && l2 == 1)*/
+        {                           // 1x1 loop
+            return 
+                cache_score_single[l1][l2].first
+                + ScoreBasePair(p+1,q)
+                + ScoreJunctionInt11(i,j) // includes TerminalMismatchInt11
+                + ScoreJunctionInt11(q,p) // includes TerminalMismatchInt11
+                + ScoreSingleNucleotides(i,j,p,q);
+        }
+    }
+    else if (l1 == 2 && l2 == 2)
+    {                           // 2x2 loop
+        return 
+            cache_score_single[l1][l2].first
+            + ScoreBasePair(p+1,q)
+            + ScoreJunctionInt22(i,j) // includes TerminalMismatchInt12
+            + ScoreJunctionInt22(q,p) // includes TerminalMismatchInt21
+            + ScoreSingleNucleotides(i,j,p,q);
+    }
+    else if (l1 == 2 && l2 == 3)
+    {                           // 2x3 loop
+        return 
+            cache_score_single[l1][l2].first
+            + ScoreBasePair(p+1,q)
+            + ScoreJunctionInt23(i,j) // includes TerminalMismatchInt23
+            + ScoreJunctionInt32(q,p) // includes TerminalMismatchInt32
+            + ScoreSingleNucleotides(i,j,p,q);
+    }
+    else if (l1 == 3 && l2 == 2)
+    {                           // 3x2 loop
+        return 
+            cache_score_single[l1][l2].first
+            + ScoreBasePair(p+1,q)
+            + ScoreJunctionInt32(i,j) // includes TerminalMismatchInt32
+            + ScoreJunctionInt23(q,p) // includes TerminalMismatchInt23
+            + ScoreSingleNucleotides(i,j,p,q);
+    }
+    else
+    {                           // generic loop
+        return 
+            cache_score_single[l1][l2].first
+            + ScoreBasePair(p+1,q)
+            + ScoreJunctionB(i,j) 
+            + ScoreJunctionB(q,p)
+            + ScoreSingleNucleotides(i,j,p,q);
+    }
 }
 
 template<class RealT>
@@ -1552,15 +1873,142 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, Real
 {
     const int l1 = p - i;
     const int l2 = j - q;
-    
+    auto& pc = *parameter_count;
+        
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
     
-    cache_score_single[l1][l2].second += value;
-    CountBasePair(p+1,q,value);
-    CountJunctionB(i,j,value);
-    CountJunctionB(q,p,value);
-    CountSingleNucleotides(i,j,p,q,value);
+
+    if (l1 == 0 || l2 == 0)
+    {                           // bulge
+        if (l2 == 1)
+        {
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            if (l1 + l2 == 1)
+                pc.helix_stacking(s[i], s[j+1], s[p+1], s[q]) += value;
+            CountJunctionInt01(i,j,value);
+            CountJunctionInt10(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l1 == 1)
+        {
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            if (l1 + l2 == 1)
+                pc.helix_stacking(s[i], s[j+1], s[p+1], s[q]) += value;
+            CountJunctionInt10(i,j,value);
+            CountJunctionInt01(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l2 == 2)
+        {
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt02(i,j,value);
+            CountJunctionInt20(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l1 == 2)
+        {
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt20(i,j,value);
+            CountJunctionInt02(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l2 > 0)
+        {
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt0N(i,j,value);
+            CountJunctionIntN0(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else /* if (l1 > 0) */
+        {
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionIntN0(i,j,value);
+            CountJunctionInt0N(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+    }
+    else if (l1 == 1 || l2 == 1)
+    {
+        if (l2 == 2)
+        {                       // 1x2 loop
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt12(i,j,value);
+            CountJunctionInt21(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l1 == 2)
+        {                       // 2x1 loop
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt21(i,j,value);
+            CountJunctionInt12(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l2 > 1)
+        {                       // 1xn loop
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt1N(i,j,value);
+            CountJunctionIntN1(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else if (l1 > 1)
+        {                       // nx1 loop
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionIntN1(i,j,value);
+            CountJunctionInt1N(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+        else /* if (l1 == 1 && l2 == 1) */
+        {    // 1x1 loop
+            cache_score_single[l1][l2].second += value;
+            CountBasePair(p+1,q,value);
+            CountJunctionInt11(i,j,value);
+            CountJunctionInt11(q,p,value);
+            CountSingleNucleotides(i,j,p,q,value);
+        }
+    }
+    else if (l1 == 2 && l2 == 2)
+    {                           // 2x2 loop
+        cache_score_single[l1][l2].second += value;
+        CountBasePair(p+1,q,value);
+        CountJunctionInt22(i,j,value);
+        CountJunctionInt22(q,p,value);
+        CountSingleNucleotides(i,j,p,q,value);
+    }
+    else if (l1 == 2 && l2 == 3)
+    {                           // 2x3 loop
+        cache_score_single[l1][l2].second += value;
+        CountBasePair(p+1,q,value);
+        CountJunctionInt23(i,j,value);
+        CountJunctionInt32(q,p,value);
+        CountSingleNucleotides(i,j,p,q,value);
+    }
+    else if (l1 == 3 && l2 == 2)
+    {                           // 3x2 loop
+        cache_score_single[l1][l2].second += value;
+        CountBasePair(p+1,q,value);
+        CountJunctionInt32(i,j,value);
+        CountJunctionInt23(q,p,value);
+        CountSingleNucleotides(i,j,p,q,value);
+    }
+    else
+    {                           // generic loop
+        cache_score_single[l1][l2].second += value;
+        CountBasePair(p+1,q,value);
+        CountJunctionB(i,j,value);
+        CountJunctionB(q,p,value);
+        CountSingleNucleotides(i,j,p,q,value);
+    }
 }
 
 //////////////////////////////////////////////////////////////////////

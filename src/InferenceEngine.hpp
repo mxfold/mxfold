@@ -119,6 +119,21 @@ private:
 
     RealT ScoreJunctionA(int i, int j) const;
     RealT ScoreJunctionB(int i, int j) const;
+    RealT ScoreJunctionHairpin(int i, int j) const;
+    RealT ScoreJunctionInt01(int i, int j) const;
+    RealT ScoreJunctionInt10(int i, int j) const;
+    RealT ScoreJunctionInt02(int i, int j) const;
+    RealT ScoreJunctionInt20(int i, int j) const;
+    RealT ScoreJunctionInt0N(int i, int j) const;
+    RealT ScoreJunctionIntN0(int i, int j) const;
+    RealT ScoreJunctionInt11(int i, int j) const;
+    RealT ScoreJunctionInt12(int i, int j) const;
+    RealT ScoreJunctionInt21(int i, int j) const;
+    RealT ScoreJunctionInt1N(int i, int j) const;
+    RealT ScoreJunctionIntN1(int i, int j) const;
+    RealT ScoreJunctionInt22(int i, int j) const;
+    RealT ScoreJunctionInt23(int i, int j) const;
+    RealT ScoreJunctionInt32(int i, int j) const;
     RealT ScoreBasePair(int i, int j) const;
     RealT ScoreHairpin(int i, int j) const;
     RealT ScoreHelix(int i, int j, int m) const;
@@ -137,6 +152,21 @@ private:
 
     void CountJunctionA(int i, int j, RealT value);
     void CountJunctionB(int i, int j, RealT value);
+    void CountJunctionHairpin(int i, int j, RealT value);
+    void CountJunctionInt01(int i, int j, RealT value);
+    void CountJunctionInt10(int i, int j, RealT value);
+    void CountJunctionInt02(int i, int j, RealT value);
+    void CountJunctionInt20(int i, int j, RealT value);
+    void CountJunctionInt0N(int i, int j, RealT value);
+    void CountJunctionIntN0(int i, int j, RealT value);
+    void CountJunctionInt11(int i, int j, RealT value);
+    void CountJunctionInt12(int i, int j, RealT value);
+    void CountJunctionInt21(int i, int j, RealT value);
+    void CountJunctionInt1N(int i, int j, RealT value);
+    void CountJunctionIntN1(int i, int j, RealT value);
+    void CountJunctionInt22(int i, int j, RealT value);
+    void CountJunctionInt23(int i, int j, RealT value);
+    void CountJunctionInt32(int i, int j, RealT value);
     void CountBasePair(int i, int j, RealT value);
     void CountHairpin(int i, int j, RealT value);
     void CountHelix(int i, int j, int m, RealT value);
