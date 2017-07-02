@@ -118,6 +118,8 @@ private:
     RealT ScoreHelixStacking(int i, int j) const;
 
     RealT ScoreJunctionA(int i, int j) const;
+    RealT ScoreJunctionMulti(int i, int j) const;
+    RealT ScoreJunctionExt(int i, int j) const;
     RealT ScoreJunctionB(int i, int j) const;
     RealT ScoreJunctionHairpin(int i, int j) const;
     RealT ScoreJunctionInt01(int i, int j) const;
@@ -151,6 +153,8 @@ private:
     void CountHelixStacking(int i,int j, RealT v);
 
     void CountJunctionA(int i, int j, RealT value);
+    void CountJunctionMulti(int i, int j, RealT value);
+    void CountJunctionExt(int i, int j, RealT value);
     void CountJunctionB(int i, int j, RealT value);
     void CountJunctionHairpin(int i, int j, RealT value);
     void CountJunctionInt01(int i, int j, RealT value);

@@ -1034,6 +1034,30 @@ inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
 #endif
 }
 
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionMulti(int i, int j) const
+{
+    return ScoreJunctionA(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionMulti(int i, int j, RealT value)
+{
+    CountJunctionA(i, j, value);
+}
+
+template<class RealT>
+inline RealT InferenceEngine<RealT>::ScoreJunctionExt(int i, int j) const
+{
+    return ScoreJunctionA(i, j);
+}
+
+template<class RealT>
+inline void InferenceEngine<RealT>::CountJunctionExt(int i, int j, RealT value)
+{
+    CountJunctionA(i, j, value);
+}
+
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::ScoreJunctionB()
 // InferenceEngine::CountJunctionB()
@@ -2168,7 +2192,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
                 UPDATE_MAX(best_v, best_t,
-                           FM2v + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase(), 
+                           FM2v + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase(), 
                            EncodeTraceback(TB_FN_BIFURCATION,FM2t));
                 
                 FNv[offset[i]+j] = best_v;
@@ -2294,7 +2318,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
                 UPDATE_MAX(best_v, best_t,
-                           FM2v + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase(), 
+                           FM2v + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase(), 
                            EncodeTraceback(TB_FC_BIFURCATION,FM2t));
                 
                 FCv[offset[i]+j] = best_v;
@@ -2323,7 +2347,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 if (allow_paired[offset[i+1]+j])
                 {
                     UPDATE_MAX(best_v, best_t, 
-                               FCv[offset[i+1]+j-1] + ScoreJunctionA(j,i) +
+                               FCv[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) +
                                ScoreMultiPaired() + ScoreBasePair(i+1,j), 
                                EncodeTraceback(TB_FM1_PAIRED,0));
                 }
@@ -2426,7 +2450,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
             {
                 UPDATE_MAX(best_v, best_t,
                            F5v[k] + FCv[offset[k+1]+j-1] + ScoreExternalPaired() +
-                           ScoreBasePair(k+1,j) + ScoreJunctionA(j,k),
+                           ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k),
                            EncodeTraceback(TB_F5_BIFURCATION,k));
             }
         }
@@ -2667,7 +2691,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
             case TB_FN_BIFURCATION:
             {
                 const int k = traceback.second;
-                CountJunctionA(i,j,1);
+                CountJunctionMulti(i,j,1);
                 CountMultiPaired(1);
                 CountMultiBase(1);
                 traceback_queue.push(make_triple(&FM1t[0], i, k));
@@ -2731,7 +2755,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
             case TB_FC_BIFURCATION:
             {
                 const int k = traceback.second;
-                CountJunctionA(i,j,1);
+                CountJunctionMulti(i,j,1);
                 CountMultiPaired(1);
                 CountMultiBase(1);
                 traceback_queue.push(make_triple(&FM1t[0], i, k));
@@ -2741,7 +2765,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 #endif
             case TB_FM1_PAIRED:
             {
-                CountJunctionA(j,i,1);
+                CountJunctionMulti(j,i,1);
                 CountMultiPaired(1);
                 CountBasePair(i+1,j,1);
                 traceback_queue.push(make_triple(&FCt[0], i+1, j-1));
@@ -2780,7 +2804,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
                 const int k = traceback.second;
                 CountExternalPaired(1);
                 CountBasePair(k+1,j,1);
-                CountJunctionA(j,k,1);
+                CountJunctionExt(j,k,1);
                 traceback_queue.push(make_triple(&F5t[0], 0, k));
                 traceback_queue.push(make_triple(&FCt[0], k+1, j-1));
             }
@@ -2893,7 +2917,7 @@ void InferenceEngine<RealT>::ComputeInside()
                 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
-                Fast_LogPlusEquals(sum_i, FM2i + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                Fast_LogPlusEquals(sum_i, FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
                 
                 FNi[offset[i]+j] = sum_i;
             }
@@ -3005,7 +3029,7 @@ void InferenceEngine<RealT>::ComputeInside()
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
-                Fast_LogPlusEquals(sum_i, FM2i + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                Fast_LogPlusEquals(sum_i, FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
                 
                 FCi[offset[i]+j] = sum_i;
             }
@@ -3030,7 +3054,7 @@ void InferenceEngine<RealT>::ComputeInside()
                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
                 
                 if (allow_paired[offset[i+1]+j])
-                    Fast_LogPlusEquals(sum_i, FCi[offset[i+1]+j-1] + ScoreJunctionA(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j));
+                    Fast_LogPlusEquals(sum_i, FCi[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j));
                 
                 // compute FM1[i+1,j] + b
                 
@@ -3094,7 +3118,7 @@ void InferenceEngine<RealT>::ComputeInside()
         
         for (int k = 0; k < j; k++)
             if (allow_paired[offset[k+1]+j])
-                Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
+                Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
         
         F5i[j] = sum_i;
     }
@@ -3153,7 +3177,7 @@ void InferenceEngine<RealT>::ComputeOutside()
             {
                 if (allow_paired[offset[k+1]+j])
                 {
-                    RealT temp = F5o[j] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k);
+                    RealT temp = F5o[j] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k);
                     Fast_LogPlusEquals(F5o[k], temp + FCi[offset[k+1]+j-1]);
                     Fast_LogPlusEquals(FCo[offset[k+1]+j-1], temp + F5i[k]);
                 }
@@ -3208,7 +3232,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
                 
                 if (allow_paired[offset[i+1]+j])
-                    Fast_LogPlusEquals(FCo[offset[i+1]+j-1], FM1o[offset[i]+j] + ScoreJunctionA(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j));
+                    Fast_LogPlusEquals(FCo[offset[i+1]+j-1], FM1o[offset[i]+j] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j));
                 
                 // compute FM1[i+1,j] + b
                 
@@ -3318,7 +3342,7 @@ void InferenceEngine<RealT>::ComputeOutside()
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
-                Fast_LogPlusEquals(FM2o, FNo[offset[i]+j] + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                Fast_LogPlusEquals(FM2o, FNo[offset[i]+j] + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
                 
             }
             
@@ -3360,7 +3384,7 @@ void InferenceEngine<RealT>::ComputeOutside()
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
-                Fast_LogPlusEquals(FM2o, FCo[offset[i]+j] + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                Fast_LogPlusEquals(FM2o, FCo[offset[i]+j] + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
                 
             }
             
@@ -3514,8 +3538,8 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
                 {
-                    RealT value = Fast_Exp(outside + FM2i + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
-                    CountJunctionA(i,j,value);
+                    RealT value = Fast_Exp(outside + FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                    CountJunctionMulti(i,j,value);
                     CountMultiPaired(value);
                     CountMultiBase(value);
                 }
@@ -3635,8 +3659,8 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
                 
                 {
-                    RealT value = Fast_Exp(outside + FM2i + ScoreJunctionA(i,j) + ScoreMultiPaired() + ScoreMultiBase());
-                    CountJunctionA(i,j,value);
+                    RealT value = Fast_Exp(outside + FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
+                    CountJunctionMulti(i,j,value);
                     CountMultiPaired(value);
                     CountMultiBase(value);
                 }
@@ -3661,8 +3685,8 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 
                 if (allow_paired[offset[i+1]+j])
                 {
-                    RealT value = Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionA(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
-                    CountJunctionA(j,i,value);
+                    RealT value = Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
+                    CountJunctionMulti(j,i,value);
                     CountMultiPaired(value);
                     CountBasePair(i+1,j,value);
                 }
@@ -3722,10 +3746,10 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
         {
             if (allow_paired[offset[k+1]+j])
             {
-                RealT value = Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
+                RealT value = Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
                 CountExternalPaired(value);
                 CountBasePair(k+1,j,value);
-                CountJunctionA(j,k,value);
+                CountJunctionExt(j,k,value);
             }      
         }
     }
@@ -3964,7 +3988,7 @@ void InferenceEngine<RealT>::ComputePosterior()
                 // Compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
                 
                 if (allow_paired[offset[i+1]+j])
-                    posterior[offset[i+1]+j] += Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionA(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
+                    posterior[offset[i+1]+j] += Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
                 
                 // Compute FM1[i+1,j] + b -- do nothing
                 
@@ -4006,7 +4030,7 @@ void InferenceEngine<RealT>::ComputePosterior()
         for (int k = 0; k < j; k++)
         {
             if (allow_paired[offset[k+1]+j])
-                posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionA(j,k));
+                posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
         }
     }
 
