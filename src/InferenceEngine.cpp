@@ -4,6 +4,7 @@
 
 #include "../config.h"
 #include "InferenceEngine.hpp"
+#include "FeatureMap.hpp"
 #include <algorithm>
 #include <cassert>
 
@@ -68,6 +69,22 @@ void FillCounts(ITR begin, ITR end, V value)
     }
 }
 
+template < typename T >
+T
+find_param(const std::vector<T>* params, size_t i)
+{
+    return /*i!=-1u ||*/ i>=(*params).size() ? (*params)[i] : T(0);
+}
+
+template < typename T >
+T&
+insert_param(std::vector<T>* params, size_t i)
+{
+    assert(i!=-1u);
+    if (i>=params->size()) params->resize(i+1, 0.0);
+    return (*params)[i];
+}
+
 //////////////////////////////////////////////////////////////////////
 // ComputeRowOffset()
 //
@@ -94,7 +111,7 @@ template<class RealT>
 int InferenceEngine<RealT>::ComputeRowOffset(int i, int N) const
 {
     Assert(i >= 0 && i <= N, "Index out-of-bounds.");
-    
+
     // equivalent to:
     //   return N*(N+1)/2 - (N-i)*(N-i+1)/2 - i;
     return i*(N+N-i-1)/2;
@@ -111,8 +128,8 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 {
     Assert(1 <= i && i <= L, "Index out-of-bounds.");
     Assert(1 <= j && j <= L, "Index out-of-bounds.");
-    return parameter_manager->is_complementary(s[i], s[j]);
-    //return is_complementary[s[i]][s[j]];
+    //return parameter_manager->is_complementary(s[i], s[j]);
+    return is_complementary[s[i]][s[j]];
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -135,7 +152,6 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
     SIZE(0),
     cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
-#if 0
   // precompute complementary pairings
   for (auto e : is_complementary)
     std::fill(std::begin(e), std::end(e), false);
@@ -143,7 +159,6 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
   is_complementary['A']['U'] = is_complementary['U']['A'] = true;
   is_complementary['G']['U'] = is_complementary['U']['G'] = true;
   is_complementary['C']['G'] = is_complementary['G']['C'] = true;
-#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -166,11 +181,11 @@ template<class RealT>
 void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
 {
     cache_initialized = false;
-    
+
     // compute dimensions
     L = sstruct.GetLength();
     SIZE = (L+1)*(L+2) / 2;
-    
+
     // allocate memory
     s.resize(L+1);
     offset.resize(L+1);
@@ -184,7 +199,7 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
     reactivity_unpaired_position.resize(L+1);
     reactivity_unpaired.resize(SIZE);
     reactivity_paired.resize(SIZE);
-    
+
 #if FAST_HELIX_LENGTHS
     cache_score_helix_sums.clear();                  cache_score_helix_sums.resize((2*L+1)*L);
 #endif
@@ -196,7 +211,7 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
     {
         s[i] = toupper(sequence[i]);
     }
-    
+
     // compute indexing scheme for upper triangular arrays;
     // also allow each position to be unpaired by default, and
     // set the loss for each unpaired position to zero
@@ -209,7 +224,7 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
     }
 
     // allow all ranges to be unpaired, and all pairs of letters
-    // to be paired; set the respective losses to zero    
+    // to be paired; set the respective losses to zero
     for (int i = 0; i < SIZE; i++)
     {
         allow_unpaired[i] = 1;
@@ -266,7 +281,6 @@ void InferenceEngine<RealT>::InitializeCache()
 {
     if (cache_initialized) return;
     cache_initialized = true;
-    const auto& pm = *parameter_manager;
 
     // initialize length and distance scoring
 #if PARAMS_BASE_PAIR_DIST
@@ -276,49 +290,49 @@ void InferenceEngine<RealT>::InitializeCache()
         cache_score_base_pair_dist[j].first = NEG_INF;
     for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
         for (int j = BP_DIST_THRESHOLDS[i]; j <= BP_DIST_LAST_THRESHOLD; j++)
-            cache_score_base_pair_dist[j].first += pm.base_pair_dist_at_least(i);
+            cache_score_base_pair_dist[j].first += find_param(params_, fm_->find_base_pair_dist_at_least(i));
 #endif
-    
+
 #if PARAMS_HAIRPIN_LENGTH
-    cache_score_hairpin_length[0].first = pm.hairpin_length_at_least(0);
+    cache_score_hairpin_length[0].first = find_param(params_, fm_->find_hairpin_length_at_least(0));
     for (int i = 1; i <= D_MAX_HAIRPIN_LENGTH; i++)
-        cache_score_hairpin_length[i].first = cache_score_hairpin_length[i-1].first + pm.hairpin_length_at_least(i);
+        cache_score_hairpin_length[i].first = cache_score_hairpin_length[i-1].first + find_param(params_, fm_->find_hairpin_length_at_least(i));
 #endif
 
 #if PARAMS_HELIX_LENGTH
-    cache_score_helix_length[0].first = pm.helix_length_at_least(0);
+    cache_score_helix_length[0].first = find_param(params_, fm_->find_helix_length_at_least(0));
     for (int i = 1; i <= D_MAX_HELIX_LENGTH; i++)
-        cache_score_helix_length[i].first = cache_score_helix_length[i-1].first + pm.helix_length_at_least(i);
+        cache_score_helix_length[i].first = cache_score_helix_length[i-1].first + find_param(params_, fm_->find_helix_length_at_least(i));
 #endif
 
 #if PARAMS_BULGE_LENGTH
     RealT temp_cache_score_bulge_length[D_MAX_BULGE_LENGTH+1];
-    temp_cache_score_bulge_length[0] = pm.bulge_length_at_least(0);
+    temp_cache_score_bulge_length[0] = find_param(params_, fm_->find_bulge_length_at_least(0));
     for (int i = 1; i <= D_MAX_BULGE_LENGTH; i++)
-        temp_cache_score_bulge_length[i] = temp_cache_score_bulge_length[i-1] + pm.bulge_length_at_least(i);
+        temp_cache_score_bulge_length[i] = temp_cache_score_bulge_length[i-1] + find_param(params_, fm_->find_bulge_length_at_least(i));
 #endif
-    
+
 #if PARAMS_INTERNAL_LENGTH
     RealT temp_cache_score_internal_length[D_MAX_INTERNAL_LENGTH+1];
-    temp_cache_score_internal_length[0] = pm.internal_length_at_least(0);
+    temp_cache_score_internal_length[0] = find_param(params_, fm_->find_internal_length_at_least(0));
     for (int i = 1; i <= D_MAX_INTERNAL_LENGTH; i++)
-        temp_cache_score_internal_length[i] = temp_cache_score_internal_length[i-1] + pm.internal_length_at_least(i);
+        temp_cache_score_internal_length[i] = temp_cache_score_internal_length[i-1] + find_param(params_, fm_->find_internal_length_at_least(i));
 #endif
-    
+
 #if PARAMS_INTERNAL_SYMMETRY
     RealT temp_cache_score_internal_symmetric_length[D_MAX_INTERNAL_SYMMETRIC_LENGTH+1];
-    temp_cache_score_internal_symmetric_length[0] = pm.internal_symmetric_length_at_least(0);
+    temp_cache_score_internal_symmetric_length[0] = find_param(params_, fm_->find_internal_symmetric_length_at_least(0));
     for (int i = 1; i <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; i++)
-        temp_cache_score_internal_symmetric_length[i] = temp_cache_score_internal_symmetric_length[i-1] + pm.internal_symmetric_length_at_least(i);
+        temp_cache_score_internal_symmetric_length[i] = temp_cache_score_internal_symmetric_length[i-1] + find_param(params_, fm_->find_internal_symmetric_length_at_least(i));
 #endif
-    
+
 #if PARAMS_INTERNAL_ASYMMETRY
     RealT temp_cache_score_internal_asymmetry[D_MAX_INTERNAL_ASYMMETRY+1];
-    temp_cache_score_internal_asymmetry[0] = pm.internal_asymmetry_at_least(0);
+    temp_cache_score_internal_asymmetry[0] = find_param(params_, fm_->find_internal_asymmetry_at_least(0));
     for (int i = 1; i <= D_MAX_INTERNAL_ASYMMETRY; i++)
-        temp_cache_score_internal_asymmetry[i] = temp_cache_score_internal_asymmetry[i-1] + pm.internal_asymmetry_at_least(i);
+        temp_cache_score_internal_asymmetry[i] = temp_cache_score_internal_asymmetry[i-1] + find_param(params_, fm_->find_internal_asymmetry_at_least(i));
 #endif
-    
+
     // precompute score for single-branch loops of length l1 and l2
     for (int l1 = 0; l1 <= C_MAX_SINGLE_LENGTH; l1++)
     {
@@ -342,7 +356,7 @@ void InferenceEngine<RealT>::InitializeCache()
             {
 #if PARAMS_INTERNAL_EXPLICIT
                 if (l1 <= D_MAX_INTERNAL_EXPLICIT_LENGTH && l2 <= D_MAX_INTERNAL_EXPLICIT_LENGTH)
-                    cache_score_single[l1][l2].first += pm.internal_explicit(l1, l2);
+                    cache_score_single[l1][l2].first += find_param(params_, fm_->find_internal_explicit(l1, l2));
 #endif
 #if PARAMS_INTERNAL_LENGTH
                 cache_score_single[l1][l2].first += temp_cache_score_internal_length[std::min(D_MAX_INTERNAL_LENGTH, l1+l2)];
@@ -357,7 +371,7 @@ void InferenceEngine<RealT>::InitializeCache()
             }
         }
     }
-    
+
 #if FAST_HELIX_LENGTHS
     // precompute helix partial sums
     FillScores(cache_score_helix_sums.begin(), cache_score_helix_sums.end(), 0);
@@ -386,10 +400,11 @@ void InferenceEngine<RealT>::InitializeCache()
 
 template<class RealT>
 void
-InferenceEngine<RealT>::LoadValues(const ParameterHash<RealT>* pm)
+InferenceEngine<RealT>::LoadValues(FeatureMap* fm, const std::vector<param_value_type>* params)
 {
     cache_initialized = false;
-    parameter_manager = pm;
+    fm_ = fm;
+    params_ = params;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -435,18 +450,17 @@ void InferenceEngine<RealT>::ClearCounts()
 template<class RealT>
 void InferenceEngine<RealT>::FinalizeCounts()
 {
-    auto& pc = *parameter_count;
 #if FAST_HELIX_LENGTHS
 
-    // reverse helix partial sums    
+    // reverse helix partial sums
     std::vector<std::pair<RealT,RealT> > reverse_sums(cache_score_helix_sums);
-    
+
     for (int i = 1; i <= L; i++)
     {
         for (int j = L; j >= i+3; j--)
         {
             // the "if" conditions here can be omitted
-            
+
             if (allow_paired[offset[i+1]+j-1])
             {
                 CountBasePair(i+1,j-1,reverse_sums[(i+j)*L+j-i].second);
@@ -463,7 +477,7 @@ void InferenceEngine<RealT>::FinalizeCounts()
             {
                 Assert(Abs(double(reverse_sums[(i+j)*L+j-i-2].second)) < 1e-8, "Should be zero.");
             }
-            
+
             reverse_sums[(i+j)*L+j-i-2].second += reverse_sums[(i+j)*L+j-i].second;
         }
     }
@@ -473,19 +487,19 @@ void InferenceEngine<RealT>::FinalizeCounts()
 #if PARAMS_BASE_PAIR_DIST
     for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
         for (int j = BP_DIST_THRESHOLDS[i]; j <= BP_DIST_LAST_THRESHOLD; j++)
-            pc.base_pair_dist_at_least(i) += cache_score_base_pair_dist[j].second;
+            insert_param(counts_, fm_->insert_base_pair_dist_at_least(i)) += cache_score_base_pair_dist[j].second;
 #endif
     
 #if PARAMS_HAIRPIN_LENGTH
     for (int i = 0; i <= D_MAX_HAIRPIN_LENGTH; i++)
         for (int j = i; j <= D_MAX_HAIRPIN_LENGTH; j++)
-            pc.hairpin_length_at_least(i) += cache_score_hairpin_length[j].second;
+            insert_param(counts_, fm_->insert_hairpin_length_at_least(i)) += cache_score_hairpin_length[j].second;
 #endif
     
 #if PARAMS_HELIX_LENGTH
     for (int i = 0; i <= D_MAX_HELIX_LENGTH; i++)
         for (int j = i; j <= D_MAX_HELIX_LENGTH; j++)
-            pc.helix_length_at_least(i) += cache_score_helix_length[j].second;
+            insert_param(counts_, fm_->insert_helix_length_at_least(i)) += cache_score_helix_length[j].second;
 #endif
 
     // allocate temporary storage
@@ -530,7 +544,7 @@ void InferenceEngine<RealT>::FinalizeCounts()
             {
 #if PARAMS_INTERNAL_EXPLICIT
                 if (l1 <= D_MAX_INTERNAL_EXPLICIT_LENGTH && l2 <= D_MAX_INTERNAL_EXPLICIT_LENGTH)
-                    pc.internal_explicit(l1, l2) += cache_score_single[l1][l2].second;
+                    insert_param(counts_, fm_->insert_internal_explicit(l1, l2)) += cache_score_single[l1][l2].second;
 #endif
 #if PARAMS_INTERNAL_LENGTH
                 temp_cache_counts_internal_length[std::min(D_MAX_INTERNAL_LENGTH, l1+l2)] += cache_score_single[l1][l2].second;
@@ -549,25 +563,25 @@ void InferenceEngine<RealT>::FinalizeCounts()
 #if PARAMS_BULGE_LENGTH
     for (int i = 0; i <= D_MAX_BULGE_LENGTH; i++)
         for (int j = i; j <= D_MAX_BULGE_LENGTH; j++)
-            pc.bulge_length_at_least(i) += temp_cache_counts_bulge_length[j];
+            insert_param(counts_, fm_->insert_bulge_length_at_least(i)) += temp_cache_counts_bulge_length[j];
 #endif
-    
+
 #if PARAMS_INTERNAL_LENGTH
     for (int i = 0; i <= D_MAX_INTERNAL_LENGTH; i++)
         for (int j = i; j <= D_MAX_INTERNAL_LENGTH; j++)
-            pc.internal_length_at_least(i) += temp_cache_counts_internal_length[j];
+            insert_param(counts_, fm_->insert_internal_length_at_least(i)) += temp_cache_counts_internal_length[j];
 #endif
-    
+
 #if PARAMS_INTERNAL_SYMMETRY
     for (int i = 0; i <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; i++)
         for (int j = i; j <= D_MAX_INTERNAL_SYMMETRIC_LENGTH; j++)
-            pc.internal_symmetric_length_at_least(i) += temp_cache_counts_internal_symmetric_length[j];
+            insert_param(counts_, fm_->insert_internal_symmetric_length_at_least(i)) += temp_cache_counts_internal_symmetric_length[j];
 #endif
-    
+
 #if PARAMS_INTERNAL_ASYMMETRY
     for (int i = 0; i <= D_MAX_INTERNAL_ASYMMETRY; i++)
         for (int j = i; j <= D_MAX_INTERNAL_ASYMMETRY; j++)
-            pc.internal_asymmetry_at_least(i) += temp_cache_counts_internal_asymmetry[j];
+            insert_param(counts_, fm_->insert_internal_asymmetry_at_least(i)) += temp_cache_counts_internal_asymmetry[j];
 #endif
 }
 
@@ -583,7 +597,7 @@ void InferenceEngine<RealT>::UseLoss(const std::vector<int> &true_mapping, RealT
 {
     Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
-    
+
     // compute number of pairings
     int num_pairings = 0;
     for (int i = 1; i <= L; i++)
@@ -591,7 +605,7 @@ void InferenceEngine<RealT>::UseLoss(const std::vector<int> &true_mapping, RealT
             ++num_pairings;
 
     RealT per_position_loss = example_loss / RealT(num_pairings);
-    
+
     // compute the penalty for each position that we declare to be unpaired
     for (int i = 0; i <= L; i++)
     {
@@ -628,7 +642,7 @@ void InferenceEngine<RealT>::UseLossBasePair(const std::vector<int> &true_mappin
 {
     Assert(int(true_mapping.size()) == L+1, "Mapping of incorrect length!");
     cache_initialized = false;
-    
+
     for (int i = 0; i <= L; i++)
     {
         loss_paired[offset[i]+i] = RealT(NEG_INF);
@@ -636,7 +650,7 @@ void InferenceEngine<RealT>::UseLossBasePair(const std::vector<int> &true_mappin
         {
             if (i==0)
                 loss_paired[offset[i]+j] = 0;
-            else if (true_mapping[i] == j /* && true_mapping[j] == i */) 
+            else if (true_mapping[i] == j /* && true_mapping[j] == i */)
             {
                 loss_paired[offset[i]+j] = -pos_w;
                 loss_const += pos_w;
@@ -728,7 +742,7 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
 {
     Assert(int(true_mapping.size()) == L+1, "Supplied mapping of incorrect length!");
     cache_initialized = false;
-    
+
     // determine whether we allow each position to be unpaired
     for (int i = 1; i <= L; i++)
     { 
@@ -812,8 +826,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreIsolated() const
 {
 #if PARAMS_ISOLATED_BASE_PAIR
-    const auto& pm = *parameter_manager;
-    return pm.isolated_base_pair();
+    return find_param(params_, fm_->find_isolated_base_pair());
 #else
     return RealT(0);
 #endif
@@ -823,8 +836,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountIsolated(RealT v)
 {
 #if PARAMS_ISOLATED_BASE_PAIR
-    auto& pc = *parameter_count;
-    pc.isolated_base_pair() += (v);
+    insert_param(counts_, fm_->insert_isolated_base_pair()) += (v);
 #endif
 }
 
@@ -834,19 +846,17 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiBase() const
 {
 #if PARAMS_MULTI_LENGTH
-    const auto& pm = *parameter_manager;
-    return pm.multi_base();
+    return find_param(params_, fm_->find_multi_base());
 #else
     return RealT(0);
-#endif    
+#endif
 }
-    
+
 template<class RealT>
 inline void InferenceEngine<RealT>::CountMultiBase(RealT v)
 {
 #if PARAMS_MULTI_LENGTH
-    auto& pc = *parameter_count;
-    pc.multi_base() += (v);
+    insert_param(counts_, fm_->insert_multi_base()) += (v);
 #endif
 }
 
@@ -856,8 +866,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
 {
 #if PARAMS_MULTI_LENGTH
-    const auto& pm = *parameter_manager;
-    return pm.multi_paired();
+    return find_param(params_, fm_->find_multi_paired());
 #else
     return RealT(0);
 #endif
@@ -867,8 +876,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountMultiPaired(RealT v)
 {
 #if PARAMS_MULTI_LENGTH
-    auto& pc = *parameter_count;
-    pc.multi_paired() += (v);
+    insert_param(counts_, fm_->insert_multi_paired()) += (v);
 #endif
 }
 
@@ -878,8 +886,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
 {
 #if PARAMS_MULTI_LENGTH
-    const auto& pm = *parameter_manager;
-    return pm.multi_unpaired() + ScoreUnpairedPosition(i);
+    return find_param(params_, fm_->find_multi_unpaired()) + ScoreUnpairedPosition(i);
 #else
     return ScoreUnpairedPosition(i);
 #endif
@@ -889,8 +896,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountMultiUnpaired(int i, RealT v)
 {
 #if PARAMS_MULTI_LENGTH
-    auto& pc = *parameter_count;
-    pc.multi_unpaired() += v; 
+    insert_param(counts_, fm_->insert_multi_unpaired()) += v; 
     CountUnpairedPosition(i,v);
 #else
     CountUnpairedPosition(i,v);
@@ -903,8 +909,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreExternalPaired() const
 {
 #if PARAMS_EXTERNAL_LENGTH
-    const auto& pm = *parameter_manager;
-    return pm.external_paired();
+    return find_param(params_, fm_->find_external_paired());
 #else
     return RealT(0);
 #endif
@@ -914,8 +919,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountExternalPaired(RealT v)
 {
 #if PARAMS_EXTERNAL_LENGTH
-    auto& pc = *parameter_count;
-    pc.external_paired() += (v);
+    insert_param(counts_, fm_->insert_external_paired()) += (v);
 #endif
 }
 
@@ -925,8 +929,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreExternalUnpaired(int i) const
 {
 #if PARAMS_EXTERNAL_LENGTH
-    const auto& pm = *parameter_manager;
-    return pm.external_unpaired() + ScoreUnpairedPosition(i);
+    return find_param(params_, fm_->find_external_unpaired()) + ScoreUnpairedPosition(i);
 #else
     return ScoreUnpairedPosition(i);
 #endif
@@ -936,8 +939,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, RealT v)
 {
 #if PARAMS_EXTERNAL_LENGTH
-    auto& pc = *parameter_count;
-    pc.external_unpaired() += v;
+    insert_param(counts_, fm_->insert_external_unpaired()) += v;
     CountUnpairedPosition(i,v);
 #else
     CountUnpairedPosition(i,v); 
@@ -956,8 +958,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreHelixStacking(int i, int j) const
 {
 #if PARAMS_HELIX_STACKING
-    const auto& pm = *parameter_manager;
-    return pm.helix_stacking(s[i], s[j], s[i+1], s[j-1]);
+    return find_param(params_, fm_->find_helix_stacking(s[i], s[j], s[i+1], s[j-1]));
 #else
     return RealT(0);
 #endif
@@ -967,8 +968,7 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountHelixStacking(int i,int j, RealT v)
 {
 #if PARAMS_HELIX_STACKING
-    auto& pc = *parameter_count;
-    pc.helix_stacking(s[i], s[j], s[i+1], s[j-1]) += (v);
+    insert_param(counts_, fm_->insert_helix_stacking(s[i], s[j], s[i+1], s[j-1])) += (v);
 #endif
 }
 
@@ -1005,16 +1005,15 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionA(int i, int j) const
     // we allow i to be as large as L and j to be as small as 0.
     
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
-    const auto& pm = *parameter_manager;
 
     return
         RealT(0)
 #if PARAMS_HELIX_CLOSING
-        + pm.helix_closing(s[i], s[j+1])
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
 #endif
 #if PARAMS_DANGLE
-        + (i < L ? pm.dangle_left(s[i], s[j+1], s[i+1]) : RealT(0))
-        + (j > 0 ? pm.dangle_right(s[i], s[j+1], s[j]) : RealT(0))
+        + (i < L ? find_param(params_, fm_->find_dangle_left(s[i], s[j+1], s[i+1])) : RealT(0))
+        + (j > 0 ? find_param(params_, fm_->find_dangle_right(s[i], s[j+1], s[j])) : RealT(0))
 #endif
         ;
 }
@@ -1023,14 +1022,13 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
 {
     Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
-    auto& pc = *parameter_count;
-    
+
 #if PARAMS_HELIX_CLOSING
-    pc.helix_closing(s[i], s[j+1]) += value;
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
 #endif
 #if PARAMS_DANGLE
-    if (i < L) pc.dangle_left(s[i], s[j+1], s[i+1]) += value;
-    if (j > 0) pc.dangle_right(s[i], s[j+1], s[j]) += value;
+    if (i < L) insert_param(counts_, fm_->insert_dangle_left(s[i], s[j+1], s[i+1])) += value;
+    if (j > 0) insert_param(counts_, fm_->insert_dangle_right(s[i], s[j+1], s[j])) += value;
 #endif
 }
 
@@ -1088,14 +1086,13 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionB(int i, int j) const
     // for the exterior loop.  For this reason, i and j are bounded away
     // from the edges of the sequence (i.e., i < L && j > 0).
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
-    const auto& pm = *parameter_manager;
-    
+
     return RealT(0)
 #if PARAMS_HELIX_CLOSING
-        + pm.helix_closing(s[i], s[j+1])
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
 #endif
 #if PARAMS_TERMINAL_MISMATCH
-        + pm.terminal_mismatch(s[i], s[j+1], s[i+1], s[j])
+        + find_param(params_, fm_->find_terminal_mismatch(s[i], s[j+1], s[i+1], s[j]))
 #endif
         ;
 }
@@ -1104,13 +1101,12 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
 {
     Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
-    auto& pc = *parameter_count;
-    
+
 #if PARAMS_HELIX_CLOSING
-    pc.helix_closing(s[i], s[j+1]) += value;
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
 #endif
 #if PARAMS_TERMINAL_MISMATCH
-    pc.terminal_mismatch(s[i], s[j+1], s[i+1], s[j]) += value;
+    insert_param(counts_, fm_->insert_terminal_mismatch(s[i], s[j+1], s[i+1], s[j])) += value;
 #endif
 }
 
@@ -1308,11 +1304,10 @@ inline RealT InferenceEngine<RealT>::ScoreBasePair(int i, int j) const
     // Clearly, i and j must refer to actual letters of the sequence,
     // and no letter may base-pair to itself.
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
-    const auto& pm = *parameter_manager;
-    
+
     return reactivity_paired[offset[i]+j] + loss_paired[offset[i]+j]
 #if PARAMS_BASE_PAIR
-        + pm.base_pair(s[i], s[j])
+        + find_param(params_, fm_->find_base_pair(s[i], s[j]))
 #endif
 #if PARAMS_BASE_PAIR_DIST
         + cache_score_base_pair_dist[std::min(Abs(j - i), BP_DIST_LAST_THRESHOLD)].first
@@ -1325,10 +1320,9 @@ inline void InferenceEngine<RealT>::CountBasePair(int i, int j, RealT value)
 {
     Assert(allow_noncomplementary || IsComplementary(i,j), "non-complementary base-pair");
     Assert(0 < i && i <= L && 0 < j && j <= L && i != j, "Invalid base-pair");
-    auto& pc = *parameter_count;
-    
+
 #if PARAMS_BASE_PAIR
-    pc.base_pair(s[i], s[j]) += value;
+    insert_param(counts_, fm_->insert_base_pair(s[i], s[j])) += value;
 #endif
 #if PARAMS_BASE_PAIR_DIST
     cache_score_base_pair_dist[std::min(Abs(j - i), BP_DIST_LAST_THRESHOLD)].second += value;
@@ -1361,33 +1355,32 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
     // The constraints i > 0 && j < L ensure that s[i] and s[j+1] refer to
     // nucleotides which could base-pair.  The remaining constraint ensures
     // that only valid hairpins are considered.
-    
+
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
-    const auto& pm = *parameter_manager;
-    
-    return 
+
+    return
         ScoreUnpaired(i,j)
         + ScoreJunctionHairpin(i,j)
 #if PARAMS_HAIRPIN_LENGTH
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
 #if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
-        + (j-i >= 3 && j-i <= PARAMS_HAIRPIN_ANY_NUCLEOTIDES ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+        + (j-i >= 3 && j-i <= PARAMS_HAIRPIN_ANY_NUCLEOTIDES ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
-        + (j - i == 3 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+        + (j - i == 3 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
-        + (j - i == 4 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+        + (j - i == 4 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
-        + (j - i == 5 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+        + (j - i == 5 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
-        + (j - i == 6 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+        + (j - i == 6 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
-        + (j - i == 7 ? pm.hairpin_nucleotides(s, i+1, j-i) : RealT(0))
+        + (j - i == 7 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
 #endif
       ;
@@ -1397,30 +1390,29 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 {
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
-    auto& pc = *parameter_count;
-    
+
     CountUnpaired(i,j,value);
     CountJunctionHairpin(i,j,value);
 #if PARAMS_HAIRPIN_LENGTH
     cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
 #endif
 #if PARAMS_HAIRPIN_ANY_NUCLEOTIDES
-    if (j-i >= 3 && j-i <= PARAMS_HAIRPIN_ANY_NUCLEOTIDES) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j-i >= 3 && j-i <= PARAMS_HAIRPIN_ANY_NUCLEOTIDES) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #else
 #if PARAMS_HAIRPIN_3_NUCLEOTIDES
-    if (j - i == 3) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j - i == 3) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 #if PARAMS_HAIRPIN_4_NUCLEOTIDES
-    if (j - i == 4) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j - i == 5) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 #if PARAMS_HAIRPIN_5_NUCLEOTIDES
-    if (j - i == 5) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j - i == 5) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 #if PARAMS_HAIRPIN_6_NUCLEOTIDES
-    if (j - i == 6) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j - i == 6) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 #if PARAMS_HAIRPIN_7_NUCLEOTIDES
-    if (j - i == 7) pc.hairpin_nucleotides(s, i+1, j-i) += value;
+    if (j - i == 7) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 #endif
 }
@@ -1453,25 +1445,25 @@ inline RealT InferenceEngine<RealT>::ScoreHelix(int i, int j, int m) const
     // First, i >= 0 && j <= L are obvious sanity-checks to make sure that
     // things are within range.  The check that i+2*m <= j ensures that there
     // are enough nucleotides to allow a helix of length m.
-    
+
     Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
     Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
-    
+
 #if FAST_HELIX_LENGTHS
-    
+
     return
         cache_score_helix_sums[(i+j+1)*L+j-i-1].first - cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].first
 #if PARAMS_HELIX_LENGTH
         + cache_score_helix_length[m].first
 #endif
         ;
-    
-#else 
-    
+
+#else
+
     RealT ret = RealT(0);
     for (int k = 1; k < m; k++)
         ret += ScoreHelixStacking(i+k,j-k+1) + ScoreBasePair(i+k+1,j-k);
-    
+
 #if PARAMS_HELIX_LENGTH
     ret += cache_score_helix_length[m].first;
 #endif
@@ -1479,7 +1471,7 @@ inline RealT InferenceEngine<RealT>::ScoreHelix(int i, int j, int m) const
     return ret;
 
 #endif
-  
+
 }
 
 template<class RealT>
@@ -1487,26 +1479,26 @@ inline void InferenceEngine<RealT>::CountHelix(int i, int j, int m, RealT value)
 {
     Assert(0 <= i && i + 2 * m <= j && j <= L, "Helix boundaries invalid.");
     Assert(2 <= m && m <= D_MAX_HELIX_LENGTH, "Helix length invalid.");
-    
+
 #if FAST_HELIX_LENGTHS
-    
+
     cache_score_helix_sums[(i+j+1)*L+j-i-1].second += value;
     cache_score_helix_sums[(i+j+1)*L+j-i-m-m+1].second -= value;
-    
+
 #else
-    
+
     for (int k = 1; k < m; k++)
     {
         CountHelixStacking(i+k,j-k+1,value);
         CountBasePair(i+k+1,j-k,value);
     }
-    
+
 #endif
-    
+
 #if PARAMS_HELIX_LENGTH
     cache_score_helix_length[m].second += value;
 #endif
-    
+
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1543,7 +1535,6 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
     // loop should only be used for dealing with single-branch loops, not stacking pairs.
     
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    const auto& pm = *parameter_manager;
 
 #if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES ||  PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES ||PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES )
     const int l1 = p - i;
@@ -1556,71 +1547,71 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         ScoreUnpaired(i,p)
         + ScoreUnpaired(q,j)
 #if PARAMS_INTERNAL_ANY_NUCLEOTIDES
-        + (l1+l2 <= PARAMS_INTERNAL_ANY_NUCLEOTIDES ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1+l2 <= PARAMS_INTERNAL_ANY_NUCLEOTIDES ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #else
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
-        + (l1 == 0 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 1 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 1 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 1 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x2_NUCLEOTIDES
-        + (l1 == 0 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 2 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 2 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 2 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x3_NUCLEOTIDES
-        + (l1 == 0 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 3 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 3 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 3 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
-        + (l1 == 0 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 4 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 4 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 4 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
-        + (l1 == 0 && l2 == 5 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 5 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 5 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 5 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
-        + (l1 == 0 && l2 == 6 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 6 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 6 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 6 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_BULGE_0x7_NUCLEOTIDES
-        + (l1 == 0 && l2 == 7 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 7 && l2 == 0 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 0 && l2 == 7 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 7 && l2 == 0 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-        + (l1 == 1 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 1 && l2 == 1 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-        + (l1 == 1 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 2 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 1 && l2 == 2 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 2 && l2 == 1 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-        + (l1 == 2 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 2 && l2 == 2 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-        + (l1 == 1 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 3 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 1 && l2 == 3 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 3 && l2 == 1 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-        + (l1 == 2 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 3 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 2 && l2 == 3 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 3 && l2 == 2 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-        + (l1 == 3 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 3 && l2 == 3 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-        + (l1 == 1 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 4 && l2 == 1 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 1 && l2 == 4 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 4 && l2 == 1 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-        + (l1 == 2 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 4 && l2 == 2 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 2 && l2 == 4 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 4 && l2 == 2 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-        + (l1 == 3 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
-        + (l1 == 4 && l2 == 3 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 3 && l2 == 4 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1 == 4 && l2 == 3 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-        + (l1 == 4 && l2 == 4 ? pm.internal_nucleotides(s, i+1, l1, j, l2) : RealT(0))
+        + (l1 == 4 && l2 == 4 ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
 #endif
       ;
@@ -1630,79 +1621,78 @@ template<class RealT>
 inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, int q, RealT value)
 {
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
-    auto& pc = *parameter_count;
-    
+
 #if (!defined(NDEBUG) || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES || PARAMS_BULGE_0x4_NUCLEOTIDES ||  PARAMS_BULGE_0x5_NUCLEOTIDES ||  PARAMS_BULGE_0x6_NUCLEOTIDES || PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES || PARAMS_INTERNAL_1x3_NUCLEOTIDES || PARAMS_INTERNAL_2x3_NUCLEOTIDES || PARAMS_INTERNAL_3x3_NUCLEOTIDES || PARAMS_INTERNAL_1x4_NUCLEOTIDES || PARAMS_INTERNAL_2x4_NUCLEOTIDES || PARAMS_INTERNAL_3x4_NUCLEOTIDES || PARAMS_INTERNAL_4x4_NUCLEOTIDES)
     const int l1 = p - i;
     const int l2 = j - q;
-    
+
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
 #endif
-    
+
     CountUnpaired(i,p,value);
     CountUnpaired(q,j,value);
 #if PARAMS_INTERNAL_ANY_NUCLEOTIDES
-    if (l1+l2 <= PARAMS_INTERNAL_ANY_NUCLEOTIDES) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1+l2 <= PARAMS_INTERNAL_ANY_NUCLEOTIDES) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #else
 #if PARAMS_BULGE_0x1_NUCLEOTIDES
-    if (l1 == 0 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 1 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 0 && l2 == 1) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 1 && l2 == 0) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_BULGE_0x2_NUCLEOTIDES
-    if (l1 == 0 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 2 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 0 && l2 == 2) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 2 && l2 == 0) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_BULGE_0x3_NUCLEOTIDES
-    if (l1 == 0 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 3 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 0 && l2 == 3) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 3 && l2 == 0) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_BULGE_0x4_NUCLEOTIDES
-    if (l1 == 0 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 4 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 0 && l2 == 4) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 4 && l2 == 0) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_BULGE_0x5_NUCLEOTIDES
-    if (l1 == 0 && l2 == 5) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 5 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 0 && l2 == 5) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 5 && l2 == 0) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_BULGE_0x6_NUCLEOTIDES
-    if (l1 == 0 && l2 == 6) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 6 && l2 == 0) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 0 && l2 == 6) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 6 && l2 == 0) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_1x1_NUCLEOTIDES
-    if (l1 == 1 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 1 && l2 == 1) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_1x2_NUCLEOTIDES
-    if (l1 == 1 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 2 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 1 && l2 == 2) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 2 && l2 == 1) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_2x2_NUCLEOTIDES
-    if (l1 == 2 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 2 && l2 == 2) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_1x3_NUCLEOTIDES
-    if (l1 == 1 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 3 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 1 && l2 == 3) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 3 && l2 == 1) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_2x3_NUCLEOTIDES
-    if (l1 == 2 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 3 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 2 && l2 == 3) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 3 && l2 == 2) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_3x3_NUCLEOTIDES
-    if (l1 == 3 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 3 && l2 == 3) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_1x4_NUCLEOTIDES
-    if (l1 == 1 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 4 && l2 == 1) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 1 && l2 == 4) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 4 && l2 == 1) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_2x4_NUCLEOTIDES
-    if (l1 == 2 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 4 && l2 == 2) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 2 && l2 == 4) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 4 && l2 == 2) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_3x4_NUCLEOTIDES
-    if (l1 == 3 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
-    if (l1 == 4 && l2 == 3) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 3 && l2 == 4) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1 == 4 && l2 == 3) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #if PARAMS_INTERNAL_4x4_NUCLEOTIDES
-    if (l1 == 4 && l2 == 4) pc.internal_nucleotides(s, i+1, l1, j, l2) += value;
+    if (l1 == 4 && l2 == 4) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 #endif
 }
@@ -1737,13 +1727,12 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
 {
     const int l1 = p - i;
     const int l2 = j - q;
-    const auto& pm = *parameter_manager;
-    
+
     // Nucleotides s[i] and s[j+1] must exist, hence the conditions i > 0 and j < L.
     // the condition p+2 <= q comes from the fact that there must be enough room for
     // at least one nucleotide on the other side of the single-branch loop.  This
     // loop should only be used for dealing with single-branch loops, not stacking pairs.
-    
+
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
 
@@ -1897,11 +1886,9 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, Real
 {
     const int l1 = p - i;
     const int l2 = j - q;
-    auto& pc = *parameter_count;
-        
+
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
-    
 
     if (l1 == 0 || l2 == 0)
     {                           // bulge
@@ -1909,8 +1896,8 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, Real
         {
             cache_score_single[l1][l2].second += value;
             CountBasePair(p+1,q,value);
-            if (l1 + l2 == 1)
-                pc.helix_stacking(s[i], s[j+1], s[p+1], s[q]) += value;
+            //if (l1 + l2 == 1)
+            //    pc.helix_stacking(s[i], s[j+1], s[p+1], s[q]) += value;
             CountJunctionInt01(i,j,value);
             CountJunctionInt10(q,p,value);
             CountSingleNucleotides(i,j,p,q,value);
@@ -1919,8 +1906,8 @@ inline void InferenceEngine<RealT>::CountSingle(int i, int j, int p, int q, Real
         {
             cache_score_single[l1][l2].second += value;
             CountBasePair(p+1,q,value);
-            if (l1 + l2 == 1)
-                pc.helix_stacking(s[i], s[j+1], s[p+1], s[q]) += value;
+            //if (l1 + l2 == 1)
+            //    pc.helix_stacking(s[i], s[j+1], s[p+1], s[q]) += value;
             CountJunctionInt10(i,j,value);
             CountJunctionInt01(q,p,value);
             CountSingleNucleotides(i,j,p,q,value);
@@ -2076,7 +2063,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
     long long int candidates_seen = 0;
     long long int candidates_possible = 0;
 #endif
-    
+
     // initialization
 
     F5t.clear(); F5t.resize(L+1, -1);
@@ -2088,17 +2075,17 @@ void InferenceEngine<RealT>::ComputeViterbi()
     FCv.clear(); FCv.resize(SIZE, RealT(NEG_INF));
     FMv.clear(); FMv.resize(SIZE, RealT(NEG_INF));
     FM1v.clear(); FM1v.resize(SIZE, RealT(NEG_INF));
-    
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
     FEt.clear(); FEt.resize(SIZE, -1);
     FNt.clear(); FNt.resize(SIZE, -1);
     FEv.clear(); FEv.resize(SIZE, RealT(NEG_INF));
     FNv.clear(); FNv.resize(SIZE, RealT(NEG_INF));
 #endif
-    
+
     for (int i = L; i >= 0; i--)
     {
-        
+
 #if CANDIDATE_LIST
         candidates.clear();
 #endif
@@ -2109,16 +2096,16 @@ void InferenceEngine<RealT>::ComputeViterbi()
 
             RealT FM2v = RealT(NEG_INF);
             int FM2t = -1;
-            
+
 #if SIMPLE_FM2
-            
+
             for (int k = i+1; k < j; k++)
                 UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
-            
+
 #else
-            
+
 #if !CANDIDATE_LIST
-            
+
             if (i+2 <= j)
             {
                 RealT *p1 = &(FM1v[offset[i]+i+1]);
@@ -2130,24 +2117,24 @@ void InferenceEngine<RealT>::ComputeViterbi()
                     p2 += L-k;
                 }
             }
-            
+
 #else
-            
+
             for (size_t kp = 0; kp < candidates.size(); kp++)
             {
                 const int k = candidates[kp];
                 UPDATE_MAX(FM2v, FM2t, FM1v[offset[i]+k] + FMv[offset[k]+j], k);
             }
-            
+
             candidates_seen += (long long int) candidates.size();
             candidates_possible += (long long int) std::max(j-i-1,0);
-            
+
 #endif
-            
+
 #endif
 
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-      
+
             // FN[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           and the next interaction is not a stacking pair
@@ -2160,19 +2147,19 @@ void InferenceEngine<RealT>::ComputeViterbi()
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
 
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT best_v = RealT(NEG_INF);
                 int best_t = -1;
-                
+
                 // compute ScoreHairpin(i,j)
-                
+
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                     UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j), EncodeTraceback(TB_FN_HAIRPIN,0));
-                
+
                 // compute MAX (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-                
+
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -2188,17 +2175,17 @@ void InferenceEngine<RealT>::ComputeViterbi()
                                    EncodeTraceback(TB_FN_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q));
                     }
                 }
-                
+
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 UPDATE_MAX(best_v, best_t,
                            FM2v + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase(), 
                            EncodeTraceback(TB_FN_BIFURCATION,FM2t));
-                
+
                 FNv[offset[i]+j] = best_v;
                 FNt[offset[i]+j] = best_t;
             }
-            
+
             // FE[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) ... (i-D+1,j+D) are 
             //           already base-paired
@@ -2207,29 +2194,29 @@ void InferenceEngine<RealT>::ComputeViterbi()
             //                FN(i,j)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT best_v = RealT(NEG_INF);
                 int best_t = -1;
-                
+
                 // compute ScoreBP(i+1,j) + ScoreHelixStacking(i,j+1) + FE[i+1,j-1]
-                
+
                 if (i+2 <= j && allow_paired[offset[i+1]+j])
                 {
                     UPDATE_MAX(best_v, best_t, 
                                ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) + FEv[offset[i+1]+j-1],
                                EncodeTraceback(TB_FE_STACKING,0));
                 }
-                
+
                 // compute FN(i,j)
-                
+
                 UPDATE_MAX(best_v, best_t, FNv[offset[i]+j], EncodeTraceback(TB_FE_FN,0));
-                
+
                 FEv[offset[i]+j] = best_v;
                 FEt[offset[i]+j] = best_t;
             }
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           but (i-1,j+2) are not
@@ -2239,19 +2226,19 @@ void InferenceEngine<RealT>::ComputeViterbi()
             //                FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT best_v = RealT(NEG_INF);
                 int best_t = -1;
-                
+
                 // compute ScoreIsolated() + FN(i,j)
-                
+
                 UPDATE_MAX(best_v, best_t, ScoreIsolated() + FNv[offset[i]+j], EncodeTraceback(TB_FC_FN,0));
-                
+
                 // compute MAX (2<=k<D : FN(i+k-1,j-k+1) + ScoreHelix(i-1,j+1,k))
-                
+
                 bool allowed = true;
                 for (int k = 2; k < D_MAX_HELIX_LENGTH; k++)
                 {
@@ -2259,9 +2246,9 @@ void InferenceEngine<RealT>::ComputeViterbi()
                     if (!allow_paired[offset[i+k-1]+j-k+2]) { allowed = false; break; }
                     UPDATE_MAX(best_v, best_t, ScoreHelix(i-1,j+1,k) + FNv[offset[i+k-1]+j-k+1], EncodeTraceback(TB_FC_HELIX,k));
                 }
-                
+
                 // compute FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
-                
+
                 if (i + 2*D_MAX_HELIX_LENGTH-2 <= j)
                 {
                     if (allowed && allow_paired[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+2])
@@ -2272,9 +2259,9 @@ void InferenceEngine<RealT>::ComputeViterbi()
                 FCv[offset[i]+j] = best_v;
                 FCt[offset[i]+j] = best_t;
             }
-            
+
 #else
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //
@@ -2285,18 +2272,18 @@ void InferenceEngine<RealT>::ComputeViterbi()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT best_v = RealT(NEG_INF);
                 int best_t = -1;
-                
+
                 // compute ScoreHairpin(i,j)
-                
+
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                     UPDATE_MAX(best_v, best_t, ScoreHairpin(i,j), EncodeTraceback(TB_FC_HAIRPIN,0));
-                
+
                 // compute MAX (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -2307,26 +2294,26 @@ void InferenceEngine<RealT>::ComputeViterbi()
                     {
                         if (q < j && !allow_unpaired_position[q+1]) break;
                         if (!allow_paired[offset[p+1]+q]) continue;
-                        
+
                         UPDATE_MAX(best_v, best_t,
                                    FCv[offset[p+1]+q-1] +
                                    (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q)),
                                    EncodeTraceback(TB_FC_SINGLE,(p-i)*(C_MAX_SINGLE_LENGTH+1)+j-q));
                     }
                 }
-                
+
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 UPDATE_MAX(best_v, best_t,
                            FM2v + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase(), 
                            EncodeTraceback(TB_FC_BIFURCATION,FM2t));
-                
+
                 FCv[offset[i]+j] = best_v;
                 FCt[offset[i]+j] = best_t;
             }
-            
+
 #endif
-            
+
             // FM1[i,j] = optimal energy for substructure belonging to a
             //            multibranch loop containing a (k+1,j) base pair
             //            preceded by 5' unpaired nucleotides from i to k
@@ -2336,14 +2323,14 @@ void InferenceEngine<RealT>::ComputeViterbi()
             //                 FM1[i+1,j] + b                                          if i+2<=j]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
                 RealT best_v = RealT(NEG_INF);
                 int best_t = -1;
-                
+
                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-                
+
                 if (allow_paired[offset[i+1]+j])
                 {
                     UPDATE_MAX(best_v, best_t, 
@@ -2351,22 +2338,22 @@ void InferenceEngine<RealT>::ComputeViterbi()
                                ScoreMultiPaired() + ScoreBasePair(i+1,j), 
                                EncodeTraceback(TB_FM1_PAIRED,0));
                 }
-                
+
                 // compute FM1[i+1,j] + b
-                
+
                 if (allow_unpaired_position[i+1])
                 {
                     UPDATE_MAX(best_v, best_t,
                                FM1v[offset[i+1]+j] + ScoreMultiUnpaired(i+1),
                                EncodeTraceback(TB_FM1_UNPAIRED,0));
                 }
-                
+
                 FM1v[offset[i]+j] = best_v;
                 FM1t[offset[i]+j] = best_t;
             }
-            
+
 #if CANDIDATE_LIST
-            
+
             // If there exists some i <= k < j for which
             //   FM1[i,k] + FM[k,j] >= FM1[i,j]
             // then for all j' > j, we know that
@@ -2377,11 +2364,11 @@ void InferenceEngine<RealT>::ComputeViterbi()
             // From this, it follows that we only need to consider
             // j as a candidate partition point for future j' values
             // only if FM1[i,j] > FM1[i,k] + FM[k,j] for all k.
-            
+
             if (FM1v[offset[i]+j] > FM2v)
                 candidates.push_back(j);
 #endif
-            
+
             // FM[i,j] = optimal energy for substructure belonging to a
             //           multibranch loop which contains at least one 
             //           helix
@@ -2391,35 +2378,35 @@ void InferenceEngine<RealT>::ComputeViterbi()
             //                FM1[i,j]]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
                 RealT best_v = RealT(NEG_INF);
                 int best_t = -1;
-                
+
                 // compute MAX (i<k<j : FM1[i,k] + FM[k,j])
-                
+
                 UPDATE_MAX(best_v, best_t, FM2v, EncodeTraceback(TB_FM_BIFURCATION,FM2t));
-                
+
                 // compute FM[i,j-1] + b
-                
+
                 if (allow_unpaired_position[j])
                 {
                     UPDATE_MAX(best_v, best_t,
                                FMv[offset[i]+j-1] + ScoreMultiUnpaired(j), 
                                EncodeTraceback(TB_FM_UNPAIRED,0));
                 }
-                
+
                 // compute FM1[i,j]
-                
+
                 UPDATE_MAX(best_v, best_t, FM1v[offset[i]+j], EncodeTraceback(TB_FM_FM1,0));
-                
+
                 FMv[offset[i]+j] = best_v;
                 FMt[offset[i]+j] = best_t;
             }
         }
     }
-    
+
     F5v[0] = RealT(0);
     F5t[0] = EncodeTraceback(TB_F5_ZERO,0);
     for (int j = 1; j <= L; j++)
@@ -2429,21 +2416,21 @@ void InferenceEngine<RealT>::ComputeViterbi()
         //
         //       = MAX [F5[j-1] + ScoreExternalUnpaired(),
         //              MAX (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))]
-        
+
         RealT best_v = RealT(NEG_INF);
         int best_t = -1;
-        
+
         // compute F5[j-1] + ScoreExternalUnpaired()
-        
+
         if (allow_unpaired_position[j])
         {
             UPDATE_MAX(best_v, best_t, 
                        F5v[j-1] + ScoreExternalUnpaired(j),
                        EncodeTraceback(TB_F5_UNPAIRED,0));
         }
-        
+
         // compute MAX (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
-        
+
         for (int k = 0; k < j; k++)
         {
             if (allow_paired[offset[k+1]+j])
@@ -2454,7 +2441,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
                            EncodeTraceback(TB_F5_BIFURCATION,k));
             }
         }
-        
+
         F5v[j] = best_v;
         F5t[j] = best_t;
     }
@@ -2462,7 +2449,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
 #if SHOW_TIMINGS
     std::cerr << "Viterbi score: " << F5v[L] << " (" << GetSystemTime() - starting_time << " seconds)" << std::endl;
 #endif
-    
+
 #if CANDIDATE_LIST
     //std::cerr << "Candidates: " << candidates_seen << "/" << candidates_possible << " = " << double(candidates_seen)/candidates_possible << std::endl;
 #endif
@@ -2497,10 +2484,10 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
     std::vector<int> solution(L+1,SStruct::UNPAIRED);
     solution[0] = SStruct::UNKNOWN;
     //return solution;
-    
+
     std::queue<triple<const int *,int,int> > traceback_queue;
     traceback_queue.push(make_triple(&F5t[0], 0, L));
-    
+
     while (!traceback_queue.empty())
     {
         triple<const int *,int,int> t = traceback_queue.front();
@@ -2508,12 +2495,12 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
         const int *V = t.first;
         const int i = t.second;
         const int j = t.third;
-        
+
         std::pair<int,int> traceback = DecodeTraceback(V == &F5t[0] ? V[j] : V[offset[i]+j]);
-        
+
         //std::cerr << (V == FCt ? "FC " : V == FMt ? "FM " : V == FM1t ? "FM1 " : "F5 ");
         //std::cerr << i << " " << j << ": " << traceback.first << " " << traceback.second << std::endl;
-        
+
         switch (traceback.first)
         {
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
@@ -2643,7 +2630,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
                 Assert(false, "Bad traceback.");
         }
     }
-    
+
     return solution;
 }
 
@@ -2654,16 +2641,16 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-ParameterHash<RealT>
+std::vector<RealT>
 InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 {
     std::queue<triple<int *,int,int> > traceback_queue;
     traceback_queue.push(make_triple(&F5t[0], 0, L));
 
     ClearCounts();
-    ParameterHash<RealT> cnt;
-    parameter_count = &cnt;
-    
+    std::vector<RealT> cnt;
+    counts_ = &cnt;
+
     while (!traceback_queue.empty())
     {
         triple<int *,int,int> t = traceback_queue.front();
@@ -2671,9 +2658,9 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
         const int *V = t.first;
         const int i = t.second;
         const int j = t.third;
-        
+
         std::pair<int,int> traceback = DecodeTraceback (V == &F5t[0] ? V[j] : V[offset[i]+j]);
-        
+
         switch (traceback.first)
         {
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
@@ -2748,7 +2735,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
                 {
                     CountSingle(i,j,p,q,1);
                 }
-                
+
                 traceback_queue.push(make_triple(&FCt[0], p+1, q-1));
             }
             break;
@@ -2828,18 +2815,18 @@ template<class RealT>
 void InferenceEngine<RealT>::ComputeInside()
 {
     InitializeCache();
-        
+
 #if SHOW_TIMINGS
     double starting_time = GetSystemTime();
 #endif
-    
+
     // initialization
 
     F5i.clear(); F5i.resize(L+1, RealT(NEG_INF));
     FCi.clear(); FCi.resize(SIZE, RealT(NEG_INF));
     FMi.clear(); FMi.resize(SIZE, RealT(NEG_INF));
     FM1i.clear(); FM1i.resize(SIZE, RealT(NEG_INF));
-    
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
     FEi.clear(); FEi.resize(SIZE, RealT(NEG_INF));
     FNi.clear(); FNi.resize(SIZE, RealT(NEG_INF));
@@ -2849,18 +2836,18 @@ void InferenceEngine<RealT>::ComputeInside()
     {
         for (int j = i; j <= L; j++)
         {
-            
+
             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-            
+
             RealT FM2i = RealT(NEG_INF);
-            
+
 #if SIMPLE_FM2
-            
+
             for (int k = i+1; k < j; k++)
                 Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
-            
+
 #else
-            
+
             if (i+2 <= j)
             {
                 const RealT *p1 = &(FM1i[offset[i]+i+1]);
@@ -2872,9 +2859,9 @@ void InferenceEngine<RealT>::ComputeInside()
                     p2 += L-k;
                 }
             }
-            
+
 #endif
-            
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
 
             // FN[i,j] = optimal energy for substructure between positions
@@ -2888,17 +2875,17 @@ void InferenceEngine<RealT>::ComputeInside()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT sum_i = RealT(NEG_INF);
-                
+
                 // compute ScoreHairpin(i,j)
-                
+
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                     Fast_LogPlusEquals(sum_i, ScoreHairpin(i,j));
-                
+
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -2910,18 +2897,18 @@ void InferenceEngine<RealT>::ComputeInside()
                         if (q < j && !allow_unpaired_position[q+1]) break;
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
-                        
+
                         Fast_LogPlusEquals(sum_i, ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]);
                     }
                 }
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 Fast_LogPlusEquals(sum_i, FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
-                
+
                 FNi[offset[i]+j] = sum_i;
             }
-            
+
             // FE[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) ... (i-D+1,j+D) are 
             //           already base-paired
@@ -2930,25 +2917,25 @@ void InferenceEngine<RealT>::ComputeInside()
             //                FN(i,j)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT sum_i = RealT(NEG_INF);
-                
+
                 // compute ScoreBP(i+1,j) + ScoreHelixStacking(i,j+1) + FE[i+1,j-1]
-                
+
                 if (i+2 <= j && allow_paired[offset[i+1]+j])
                 {
                     Fast_LogPlusEquals(sum_i, ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) + FEi[offset[i+1]+j-1]);
                 }
-                
+
                 // compute FN(i,j)
 
                 Fast_LogPlusEquals(sum_i, FNi[offset[i]+j]);
-                
+
                 FEi[offset[i]+j] = sum_i;
             }
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           but (i-1,j+2) are not
@@ -2958,17 +2945,17 @@ void InferenceEngine<RealT>::ComputeInside()
             //                FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT sum_i = RealT(NEG_INF);
-                
+
                 // compute ScoreIsolated() + FN(i,j)
-                
+
                 Fast_LogPlusEquals(sum_i, ScoreIsolated() + FNi[offset[i]+j]);
-                
+
                 // compute SUM (2<=k<D : FN(i+k-1,j-k+1) + ScoreHelix(i-1,j+1,k))
-                
+
                 bool allowed = true;
                 for (int k = 2; k < D_MAX_HELIX_LENGTH; k++)
                 {
@@ -2976,20 +2963,20 @@ void InferenceEngine<RealT>::ComputeInside()
                     if (!allow_paired[offset[i+k-1]+j-k+2]) { allowed = false; break; }
                     Fast_LogPlusEquals(sum_i, ScoreHelix(i-1,j+1,k) + FNi[offset[i+k-1]+j-k+1]);
                 }
-                
+
                 // compute FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
-                
+
                 if (i + 2*D_MAX_HELIX_LENGTH-2 <= j)
                 {
                     if (allowed && allow_paired[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+2])
                         Fast_LogPlusEquals(sum_i, ScoreHelix(i-1,j+1,D_MAX_HELIX_LENGTH) + FEi[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+1]);
                 }
-                
+
                 FCi[offset[i]+j] = sum_i;
             }
-            
+
 #else
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //
@@ -3000,18 +2987,18 @@ void InferenceEngine<RealT>::ComputeInside()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT sum_i = RealT(NEG_INF);
-                
+
                 // compute ScoreHairpin(i,j)
-                
+
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                     Fast_LogPlusEquals(sum_i, ScoreHairpin(i,j));
-                
+
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-                
+
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3028,14 +3015,14 @@ void InferenceEngine<RealT>::ComputeInside()
                 }
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 Fast_LogPlusEquals(sum_i, FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
-                
+
                 FCi[offset[i]+j] = sum_i;
             }
-            
+
 #endif
-            
+
             // FM1[i,j] = optimal energy for substructure belonging to a
             //            multibranch loop containing a (k+1,j) base pair
             //            preceded by 5' unpaired nucleotides from i to k
@@ -3045,25 +3032,25 @@ void InferenceEngine<RealT>::ComputeInside()
             //                 FM1[i+1,j] + b                                          if i+2<=j]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
-                
+
                 RealT sum_i = RealT(NEG_INF);
-                
+
                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-                
+
                 if (allow_paired[offset[i+1]+j])
                     Fast_LogPlusEquals(sum_i, FCi[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j));
-                
+
                 // compute FM1[i+1,j] + b
-                
+
                 if (allow_unpaired_position[i+1])
                     Fast_LogPlusEquals(sum_i, FM1i[offset[i+1]+j] + ScoreMultiUnpaired(i+1));
-                
+
                 FM1i[offset[i]+j] = sum_i;
             }
-            
+
             // FM[i,j] = optimal energy for substructure belonging to a
             //           multibranch loop which contains at least one 
             //           helix
@@ -3073,53 +3060,53 @@ void InferenceEngine<RealT>::ComputeInside()
             //                FM1[i,j]]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
-                
+
                 RealT sum_i = RealT(NEG_INF);
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j])
-                
+
                 Fast_LogPlusEquals(sum_i, FM2i);
-                
+
                 // compute FM[i,j-1] + b
-                
+
                 if (allow_unpaired_position[j])
                     Fast_LogPlusEquals(sum_i, FMi[offset[i]+j-1] + ScoreMultiUnpaired(j));
-                
+
                 // compute FM1[i,j]
-                
+
                 Fast_LogPlusEquals(sum_i, FM1i[offset[i]+j]);
-                
+
                 FMi[offset[i]+j] = sum_i;
             }
         }
     }
-    
+
     F5i[0] = RealT(0);
     for (int j = 1; j <= L; j++)
     {
-        
+
         // F5[j] = optimal energy for substructure between positions 0 and j
         //         (or 0 if j = 0)
         //
         //       = SUM [F5[j-1] + ScoreExternalUnpaired(),
         //              SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))]
-        
+
         RealT sum_i = RealT(NEG_INF);
-        
+
         // compute F5[j-1] + ScoreExternalUnpaired()
-        
+
         if (allow_unpaired_position[j])
             Fast_LogPlusEquals(sum_i, F5i[j-1] + ScoreExternalUnpaired(j));
-        
+
         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
-        
+
         for (int k = 0; k < j; k++)
             if (allow_paired[offset[k+1]+j])
                 Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
-        
+
         F5i[j] = sum_i;
     }
 
@@ -3138,40 +3125,40 @@ template<class RealT>
 void InferenceEngine<RealT>::ComputeOutside()
 {
     InitializeCache();
-    
-#if SHOW_TIMINGS    
+
+#if SHOW_TIMINGS
     double starting_time = GetSystemTime();
 #endif
-    
+
     // initialization
-    
+
     F5o.clear(); F5o.resize(L+1, RealT(NEG_INF));
     FCo.clear(); FCo.resize(SIZE, RealT(NEG_INF));
     FMo.clear(); FMo.resize(SIZE, RealT(NEG_INF));
     FM1o.clear(); FM1o.resize(SIZE, RealT(NEG_INF));
-    
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
     FEo.clear(); FEo.resize(SIZE, RealT(NEG_INF));
     FNo.clear(); FNo.resize(SIZE, RealT(NEG_INF));
 #endif
-    
+
     F5o[L] = RealT(0);  
     for (int j = L; j >= 1; j--)
     {
-        
+
         // F5[j] = optimal energy for substructure between positions 0 and j
         //         (or 0 if j = 0)
         //
         //       = SUM [F5[j-1] + ScoreExternalUnpaired(),
         //              SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))]
-        
+
         // compute F5[j-1] + ScoreExternalUnpaired()
-        
+
         if (allow_unpaired_position[j])
             Fast_LogPlusEquals(F5o[j-1], F5o[j] + ScoreExternalUnpaired(j));
-        
+
         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
-        
+
         {
             for (int k = 0; k < j; k++)
             {
@@ -3184,13 +3171,13 @@ void InferenceEngine<RealT>::ComputeOutside()
             }
         }
     }
-    
+
     for (int i = 0; i <= L; i++)
     {
         for (int j = L; j >= i; j--)
         {
             RealT FM2o = RealT(NEG_INF);
-            
+
             // FM[i,j] = optimal energy for substructure belonging to a
             //           multibranch loop which contains at least one 
             //           helix
@@ -3200,23 +3187,23 @@ void InferenceEngine<RealT>::ComputeOutside()
             //                FM1[i,j]]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j])
-                
+
                 Fast_LogPlusEquals(FM2o, FMo[offset[i]+j]);
-                
+
                 // compute FM[i,j-1] + b
-                
+
                 if (allow_unpaired_position[j])
                     Fast_LogPlusEquals(FMo[offset[i]+j-1], FMo[offset[i]+j] + ScoreMultiUnpaired(j));
-                
+
                 // compute FM1[i,j]
-                
+
                 Fast_LogPlusEquals(FM1o[offset[i]+j], FMo[offset[i]+j]);
             }
-            
+
             // FM1[i,j] = optimal energy for substructure belonging to a
             //            multibranch loop containing a (k+1,j) base pair
             //            preceded by 5' unpaired nucleotides from i to k
@@ -3226,23 +3213,23 @@ void InferenceEngine<RealT>::ComputeOutside()
             //                 FM1[i+1,j] + b                                          if i+2<=j]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-                
+
                 if (allow_paired[offset[i+1]+j])
                     Fast_LogPlusEquals(FCo[offset[i+1]+j-1], FM1o[offset[i]+j] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j));
-                
+
                 // compute FM1[i+1,j] + b
-                
+
                 if (allow_unpaired_position[i+1])
                     Fast_LogPlusEquals(FM1o[offset[i+1]+j], FM1o[offset[i]+j] + ScoreMultiUnpaired(i+1));
-                
+
             }
-            
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           but (i-1,j+2) are not
@@ -3252,16 +3239,16 @@ void InferenceEngine<RealT>::ComputeOutside()
             //                FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 // compute ScoreIsolated() + FN(i,j)
-                
+
                 Fast_LogPlusEquals(FNo[offset[i]+j], ScoreIsolated() + FCo[offset[i]+j]);
-                
+
                 // compute SUM (2<=k<D : FN(i+k-1,j-k+1) + ScoreHelix(i-1,j+1,k))
-                
+
                 bool allowed = true;
                 for (int k = 2; k < D_MAX_HELIX_LENGTH; k++)
                 {
@@ -3269,9 +3256,9 @@ void InferenceEngine<RealT>::ComputeOutside()
                     if (!allow_paired[offset[i+k-1]+j-k+2]) { allowed = false; break; }
                     Fast_LogPlusEquals(FNo[offset[i+k-1]+j-k+1], ScoreHelix(i-1,j+1,k) + FCo[offset[i]+j]);
                 }
-                
+
                 // compute FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
-                
+
                 if (i + 2*D_MAX_HELIX_LENGTH-2 <= j)
                 {
                     if (allowed && allow_paired[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+2])
@@ -3279,7 +3266,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                                            ScoreHelix(i-1,j+1,D_MAX_HELIX_LENGTH) + FCo[offset[i]+j]);
                 }
             }
-            
+
             // FE[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) ... (i-D+1,j+D) are 
             //           already base-paired
@@ -3288,22 +3275,22 @@ void InferenceEngine<RealT>::ComputeOutside()
             //                FN(i,j)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 // compute ScoreBP(i+1,j) + ScoreHelixStacking(i,j+1) + FE[i+1,j-1]
-                
+
                 if (i+2 <= j && allow_paired[offset[i+1]+j])
                 {
                     Fast_LogPlusEquals(FEo[offset[i+1]+j-1], FEo[offset[i]+j] + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1));
                 }
-                
+
                 // compute FN(i,j)
-                
+
                 Fast_LogPlusEquals(FNo[offset[i]+j], FEo[offset[i]+j]);
             }
-            
+
             // FN[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           and the next interaction is not a stacking pair
@@ -3315,14 +3302,14 @@ void InferenceEngine<RealT>::ComputeOutside()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 // compute ScoreHairpin(i,j) -- do nothing
-                
+
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-                
+
                 {
                     RealT temp = FNo[offset[i]+j];
                     for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3334,20 +3321,20 @@ void InferenceEngine<RealT>::ComputeOutside()
                             if (q < j && !allow_unpaired_position[q+1]) break;
                             if (!allow_paired[offset[p+1]+q]) continue;
                             if (i == p && j == q) continue;
-                            
+
                             Fast_LogPlusEquals(FCo[offset[p+1]+q-1], temp + ScoreSingle(i,j,p,q));
                         }
                     }
                 }
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 Fast_LogPlusEquals(FM2o, FNo[offset[i]+j] + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
-                
+
             }
-            
+
 #else
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //
@@ -3358,11 +3345,11 @@ void InferenceEngine<RealT>::ComputeOutside()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 // compute ScoreHairpin(i,j) -- do nothing
-                
+
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
                 {
@@ -3375,7 +3362,7 @@ void InferenceEngine<RealT>::ComputeOutside()
                         {
                             if (q < j && !allow_unpaired_position[q+1]) break;
                             if (!allow_paired[offset[p+1]+q]) continue;
-                            
+
                             Fast_LogPlusEquals(FCo[offset[p+1]+q-1],
                                                temp + (p == i && q == j ? ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) : ScoreSingle(i,j,p,q)));
                         }
@@ -3383,17 +3370,17 @@ void InferenceEngine<RealT>::ComputeOutside()
                 }
 
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 Fast_LogPlusEquals(FM2o, FCo[offset[i]+j] + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
-                
+
             }
-            
+
 #endif
-            
+
             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-            
+
 #if SIMPLE_FM2
-            
+
             for (int k = i+1; k < j; k++)
             {
                 Fast_LogPlusEquals(FM1o[offset[i]+k], FM2o + FMi[offset[k]+j]);
@@ -3417,11 +3404,11 @@ void InferenceEngine<RealT>::ComputeOutside()
                     p2o += L-k;
                 }
             }
-            
+
 #endif
         }
     }
-    
+
 #if SHOW_TIMINGS
     std::cerr << "Outside score: " << F5o[0] << " (" << GetSystemTime() - starting_time << " seconds)" << std::endl;
 #endif
@@ -3437,7 +3424,7 @@ template<class RealT>
 inline RealT InferenceEngine<RealT>::ComputeLogPartitionCoefficient() const
 {
     // NOTE: This should be equal to F5o[0]. 
-    
+
     return F5i[L];
 }
 
@@ -3449,7 +3436,7 @@ inline RealT InferenceEngine<RealT>::ComputeLogPartitionCoefficient() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-ParameterHash<RealT>
+std::vector<RealT>
 InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 {
 #if SHOW_TIMINGS
@@ -3458,29 +3445,29 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 
     //std::cerr << "Inside score: " << F5i[L].GetLogRepresentation() << std::endl;
     //std::cerr << "Outside score: " << F5o[0].GetLogRepresentation() << std::endl;
-    
+
     const RealT Z = ComputeLogPartitionCoefficient();
 
     ClearCounts();
-    ParameterHash<RealT> cnt;
-    parameter_count = &cnt;
-    
+    std::vector<RealT> cnt;
+    counts_= &cnt;
+
     for (int i = L; i >= 0; i--)
     {
         for (int j = i; j <= L; j++)
         {
 
             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-            
+
             RealT FM2i = RealT(NEG_INF);
-            
+
 #if SIMPLE_FM2
-            
+
             for (int k = i+1; k < j; k++)
                 Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
-            
+
 #else
-            
+
             if (i+2 <= j)
             {
                 const RealT *p1 = &(FM1i[offset[i]+i+1]);
@@ -3492,11 +3479,11 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                     p2 += L-k;
                 }
             }
-            
+
 #endif
-            
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-            
+
             // FN[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           and the next interaction is not a stacking pair
@@ -3508,19 +3495,19 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT outside = FNo[offset[i]+j] - Z;
-                
+
                 // compute ScoreHairpin(i,j)
-                
+
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                     CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
-                
+
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-                
+
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3530,13 +3517,13 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                         if (q < j && !allow_unpaired_position[q+1]) break;
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
-                        
+
                         CountSingle(i,j,p,q,Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]));
                     }
                 }
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 {
                     RealT value = Fast_Exp(outside + FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
                     CountJunctionMulti(i,j,value);
@@ -3544,7 +3531,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                     CountMultiBase(value);
                 }
             }
-            
+
             // FE[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) ... (i-D+1,j+D) are 
             //           already base-paired
@@ -3553,25 +3540,25 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             //                FN(i,j)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT outside = FEo[offset[i]+j] - Z;
-                
+
                 // compute ScoreBP(i+1,j) + ScoreHelixStacking(i,j+1) + FE[i+1,j-1]
-                
+
                 if (i+2 <= j && allow_paired[offset[i+1]+j])
                 {
                     RealT value = Fast_Exp(outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) + FEi[offset[i+1]+j-1]);
                     CountBasePair(i+1,j,value);
                     CountHelixStacking(i,j+1,value);
                 }
-                
+
                 // compute FN(i,j) -- do nothing
-                
+
             }
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           but (i-1,j+2) are not
@@ -3581,17 +3568,17 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             //                FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT outside = FCo[offset[i]+j] - Z;
-                
+
                 // compute ScoreIsolated() + FN(i,j)
-                
+
                 CountIsolated(Fast_Exp(outside + ScoreIsolated() + FNi[offset[i]+j]));
-                
+
                 // compute SUM (2<=k<D : FN(i+k-1,j-k+1) + ScoreHelix(i-1,j+1,k))
-                
+
                 bool allowed = true;
                 for (int k = 2; k < D_MAX_HELIX_LENGTH; k++)
                 {
@@ -3599,9 +3586,9 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                     if (!allow_paired[offset[i+k-1]+j-k+2]) { allowed = false; break; }
                     CountHelix(i-1,j+1,k,Fast_Exp(outside + ScoreHelix(i-1,j+1,k) + FNi[offset[i+k-1]+j-k+1]));
                 }
-                
+
                 // compute FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
-                
+
                 if (i + 2*D_MAX_HELIX_LENGTH-2 <= j)
                 {
                     if (allowed && allow_paired[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+2])
@@ -3611,7 +3598,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             }
 
 #else
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //
@@ -3622,16 +3609,16 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT outside = FCo[offset[i]+j] - Z;
-                
+
                 // compute ScoreHairpin(i,j)
-                
+
                 if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
                     CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
-                
+
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
 
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
@@ -3655,9 +3642,9 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                         }
                     }
                 }
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c)
-                
+
                 {
                     RealT value = Fast_Exp(outside + FM2i + ScoreJunctionMulti(i,j) + ScoreMultiPaired() + ScoreMultiBase());
                     CountJunctionMulti(i,j,value);
@@ -3665,9 +3652,9 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                     CountMultiBase(value);
                 }
             }
-            
+
 #endif
-            
+
             // FM1[i,j] = optimal energy for substructure belonging to a
             //            multibranch loop containing a (k+1,j) base pair
             //            preceded by 5' unpaired nucleotides from i to k
@@ -3677,12 +3664,12 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             //                 FM1[i+1,j] + b                                          if i+2<=j]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
-                
+
                 // compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-                
+
                 if (allow_paired[offset[i+1]+j])
                 {
                     RealT value = Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
@@ -3690,15 +3677,15 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                     CountMultiPaired(value);
                     CountBasePair(i+1,j,value);
                 }
-                
+
                 // compute FM1[i+1,j] + b
-                
+
                 if (allow_unpaired_position[i+1])
                 {
                     CountMultiUnpaired(i+1,Fast_Exp(FM1o[offset[i]+j] + FM1i[offset[i+1]+j] + ScoreMultiUnpaired(i+1) - Z));
                 }
             }
-            
+
             // FM[i,j] = optimal energy for substructure belonging to a
             //           multibranch loop which contains at least one 
             //           helix
@@ -3708,40 +3695,40 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
             //                FM1[i,j]]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j]) -- do nothing
-                
+
                 // compute FM[i,j-1] + b
-                
+
                 if (allow_unpaired_position[j])
                     CountMultiUnpaired(j,Fast_Exp(FMo[offset[i]+j] + FMi[offset[i]+j-1] + ScoreMultiUnpaired(j) - Z));
-                
+
                 // compute FM1[i,j] -- do nothing
             }
         }
     }
-    
+
     for (int j = 1; j <= L; j++)
     {
-        
+
         // F5[j] = optimal energy for substructure between positions 0 and j
         //         (or 0 if j = 0)
         //
         //       = SUM [F5[j-1] + ScoreExternalUnpaired(),
         //              SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))]
-        
+
         RealT outside = F5o[j] - Z;
-        
+
         // compute F5[j-1] + ScoreExternalUnpaired()
-        
+
         if (allow_unpaired_position[j])
             CountExternalUnpaired(j,Fast_Exp(outside + F5i[j-1] + ScoreExternalUnpaired(j)));
-        
+
         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
-        
+
         for (int k = 0; k < j; k++)
         {
             if (allow_paired[offset[k+1]+j])
@@ -3750,10 +3737,10 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
                 CountExternalPaired(value);
                 CountBasePair(k+1,j,value);
                 CountJunctionExt(j,k,value);
-            }      
+            }
         }
     }
-    
+
     FinalizeCounts();
 
 #if SHOW_TIMINGS
@@ -3772,32 +3759,30 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 
 template<class RealT>
 void InferenceEngine<RealT>::ComputePosterior()
-{ 
-    ParameterHash<RealT> cnt;
-    parameter_count = &cnt;
+{
     posterior.clear();
     posterior.resize(SIZE, RealT(0));
-    
+
     //double starting_time = GetSystemTime();
 
     const RealT Z = ComputeLogPartitionCoefficient();
-    
+
     for (int i = L; i >= 0; i--)
     {
         for (int j = i; j <= L; j++)
         {
-            
+
             // FM2[i,j] = SUM (i<k<j : FM1[i,k] + FM[k,j])
-            
+
             RealT FM2i = RealT(NEG_INF);
-            
+
 #if SIMPLE_FM2
-      
+
             for (int k = i+1; k < j; k++)
                 Fast_LogPlusEquals(FM2i, FM1i[offset[i]+k] + FMi[offset[k]+j]);
-            
+
 #else
-            
+
             if (i+2 <= j)
             {
                 const RealT *p1 = &(FM1i[offset[i]+i+1]);
@@ -3809,11 +3794,11 @@ void InferenceEngine<RealT>::ComputePosterior()
                     p2 += L-k;
                 }
             }
-      
+
 #endif
 
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
-            
+
             // FN[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           and the next interaction is not a stacking pair
@@ -3825,18 +3810,15 @@ void InferenceEngine<RealT>::ComputePosterior()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT outside = FNo[offset[i]+j] - Z;
-                
-                // compute ScoreHairpin(i,j)
-                
-                if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
-                
+
+                // compute ScoreHairpin(i,j) -- do nothing
+
                 // compute SUM (i<=p<p+2<=q<=j, p-i+j-q>0 : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-                
+
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3846,15 +3828,15 @@ void InferenceEngine<RealT>::ComputePosterior()
                         if (q < j && !allow_unpaired_position[q+1]) break;
                         if (!allow_paired[offset[p+1]+q]) continue;
                         if (i == p && j == q) continue;
-                        
+
                         posterior[offset[p+1]+q] += Fast_Exp(outside + ScoreSingle(i,j,p,q) + FCi[offset[p+1]+q-1]);
                     }
                 }
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c) -- do nothing
-                
+
             }
-            
+
             // FE[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) ... (i-D+1,j+D) are 
             //           already base-paired
@@ -3863,20 +3845,20 @@ void InferenceEngine<RealT>::ComputePosterior()
             //                FN(i,j)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
                 RealT outside = FEo[offset[i]+j] - Z;
-                
+
                 // compute ScoreBP(i+1,j) + ScoreHelixStacking(i,j+1) + FE[i+1,j-1]
-                
+
                 if (i+2 <= j && allow_paired[offset[i+1]+j])
                     posterior[offset[i]+j] += Fast_Exp(outside + ScoreBasePair(i+1,j) + ScoreHelixStacking(i,j+1) + FEi[offset[i+1]+j-1]);
-                
+
                 // compute FN(i,j) -- do nothing
-                
+
             }
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //           but (i-1,j+2) are not
@@ -3886,18 +3868,16 @@ void InferenceEngine<RealT>::ComputePosterior()
             //                FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
             //
             //           (assuming 0 < i <= j < L)
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT outside = FCo[offset[i]+j] - Z;
-                
+
                 // compute ScoreIsolated() + FN(i,j) -- do nothing
-                
-                CountIsolated(Fast_Exp(outside + ScoreIsolated() + FNi[offset[i]+j]));
-                
+
                 // compute SUM (2<=k<D : FN(i+k-1,j-k+1) + ScoreHelix(i-1,j+1,k))
-                
+
                 bool allowed = true;
                 for (int k = 2; k < D_MAX_HELIX_LENGTH; k++)
                 {
@@ -3907,22 +3887,22 @@ void InferenceEngine<RealT>::ComputePosterior()
                     for (int p = 1; p < k; p++)
                         posterior[offset[i+p]+j-p+1] += value;
                 }
-                
+
                 // compute FE(i+D-1,j-D+1) + ScoreHelix(i-1,j+1,D)]
-                
+
                 if (i + 2*D_MAX_HELIX_LENGTH-2 <= j)
                 {
                     if (allowed && allow_paired[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+2]) {
                         RealT value = Fast_Exp(outside + ScoreHelix(i-1,j+1,D_MAX_HELIX_LENGTH) + FEi[offset[i+D_MAX_HELIX_LENGTH-1]+j-D_MAX_HELIX_LENGTH+1]);
-                        
+
                         for (int k = 1; k < D_MAX_HELIX_LENGTH; k++)
                             posterior[offset[i+k]+j-k+1] += value;
                     }
                 }
             }
-            
+
 #else
-            
+
             // FC[i,j] = optimal energy for substructure between positions
             //           i and j such that letters (i,j+1) are base-paired
             //
@@ -3933,19 +3913,16 @@ void InferenceEngine<RealT>::ComputePosterior()
             //           (assuming 0 < i <= j < L)
             //
             // Multi-branch loops are scored as [a + b * (# unpaired) + c * (# branches)]
-            
+
             if (0 < i && j < L && allow_paired[offset[i]+j+1])
             {
-                
+
                 RealT outside = FCo[offset[i]+j] - Z;
-                
-                // compute ScoreHairpin(i,j)
-                
-                if (allow_unpaired[offset[i]+j] && j-i >= C_MIN_HAIRPIN_LENGTH)
-                    CountHairpin(i,j,Fast_Exp(outside + ScoreHairpin(i,j)));
-                
+
+                // compute ScoreHairpin(i,j) -- do nothing
+
                 // compute SUM (i<=p<p+2<=q<=j : ScoreSingle(i,j,p,q) + FC[p+1,q-1])
-                
+
                 for (int p = i; p <= std::min(i+C_MAX_SINGLE_LENGTH,j); p++)
                 {
                     if (p > i && !allow_unpaired_position[p]) break;
@@ -3965,13 +3942,13 @@ void InferenceEngine<RealT>::ComputePosterior()
                         }
                     }
                 }
-                
+
                 // compute SUM (i<k<j : FM1[i,k] + FM[k,j] + ScoreJunctionA(i,j) + a + c) -- do nothing
-                
+
             }
-            
+
 #endif
-            
+
             // FM1[i,j] = optimal energy for substructure belonging to a
             //            multibranch loop containing a (k+1,j) base pair
             //            preceded by 5' unpaired nucleotides from i to k
@@ -3981,19 +3958,19 @@ void InferenceEngine<RealT>::ComputePosterior()
             //                 FM1[i+1,j] + b                                          if i+2<=j]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             if (0 < i && i+2 <= j && j < L)
             {
-                
+
                 // Compute FC[i+1,j-1] + ScoreJunctionA(j,i) + c + ScoreBP(i+1,j)
-                
+
                 if (allow_paired[offset[i+1]+j])
                     posterior[offset[i+1]+j] += Fast_Exp(FM1o[offset[i]+j] + FCi[offset[i+1]+j-1] + ScoreJunctionMulti(j,i) + ScoreMultiPaired() + ScoreBasePair(i+1,j) - Z);
-                
+
                 // Compute FM1[i+1,j] + b -- do nothing
-                
+
             }
-            
+
             // FM[i,j] = optimal energy for substructure belonging to a
             //           multibranch loop which contains at least one 
             //           helix
@@ -4003,30 +3980,30 @@ void InferenceEngine<RealT>::ComputePosterior()
             //                FM1[i,j]]
             //
             //            (assuming 0 < i < i+2 <= j < L)
-            
+
             // Compute SUM (i<k<j : FM1[i,k] + FM[k,j]) -- do nothing
-            
+
             // Compute FM[i,j-1] + b -- do nothing
-            
+
             // Compute FM1[i,j] -- do nothing
         }
     }
-    
+
     for (int j = 1; j <= L; j++)
     {
-        
+
         // F5[j] = optimal energy for substructure between positions 0 and j
         //         (or 0 if j = 0)
         //
         //       = SUM [F5[j-1] + ScoreExternalUnpaired(),
         //              SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))]
-        
+
         RealT outside = F5o[j] - Z;
-        
+
         // compute F5[j-1] + ScoreExternalUnpaired() -- do nothing
-        
+
         // compute SUM (0<=k<j : F5[k] + FC[k+1,j-1] + ScoreExternalPaired() + ScoreBP(k+1,j) + ScoreJunctionA(j,k))
-        
+
         for (int k = 0; k < j; k++)
         {
             if (allow_paired[offset[k+1]+j])
@@ -4054,16 +4031,16 @@ template<int GCE>
 std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float gamma) const
 {
     Assert(gamma > 0, "Non-negative gamma expected.");
-    
+
 #if SHOW_TIMINGS
     double starting_time = GetSystemTime();
 #endif
     RealT* unpaired_posterior  = new RealT[L+1];
     RealT* score               = new RealT[SIZE];
     int* traceback             = new int[SIZE];
-    
+
     // compute the scores for unpaired nucleotides
-    if (!GCE) 
+    if (!GCE)
     {
         for (int i = 1; i <= L; i++)
         {
@@ -4071,24 +4048,24 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float ga
             for (int j = 1; j < i; j++) unpaired_posterior[i] -= posterior[offset[j]+i];
             for (int j = i+1; j <= L; j++) unpaired_posterior[i] -= posterior[offset[i]+j];
         }
-    
+
         for (int i = 1; i <= L; i++) unpaired_posterior[i] /= 2 * gamma;
     }
-    
+
     // initialize matrices
-    
+
     std::fill(score, score+SIZE, RealT(-1.0));
     std::fill(traceback, traceback+SIZE, -1);
-    
+
     // dynamic programming
-    
+
     for (int i = L; i >= 0; i--)
     {
         for (int j = i; j <= L; j++)
         {
             RealT &this_score = score[offset[i]+j];
             int &this_traceback = traceback[offset[i]+j];
-            
+
             if (i == j)
             {
                 UPDATE_MAX(this_score, this_traceback, RealT(0), 0);
@@ -4121,14 +4098,14 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float ga
                         if (allow_paired[offset[i+1]+j])
                             UPDATE_MAX(this_score, this_traceback, (gamma+1.0)*posterior[offset[i+1]+j] -1.0 + score[offset[i+1]+j-1], 3);
                     }
-                    
+
 #if SIMPLE_FM2
-                    
+
                     for (int k = i+1; k < j; k++)
                         UPDATE_MAX(this_score, this_traceback, score[offset[i]+k] + score[offset[k]+j], k+4);	
-                    
+
 #else
-                    
+
                     RealT *p1 = &(score[offset[i]+i+1]);
                     RealT *p2 = &(score[offset[i+1]+j]);
                     for (int k = i+1; k < j; k++)
@@ -4137,7 +4114,7 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float ga
                         ++p1;
                         p2 += L-k;
                     }
-                    
+
 #endif
                 }
             }
@@ -4147,22 +4124,22 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float ga
 #if SHOW_TIMINGS
     std::cerr << "Time: " << GetSystemTime() - starting_time << std::endl;
 #endif
-    
+
     // perform traceback
-    
+
     std::vector<int> solution(L+1,SStruct::UNPAIRED);
     solution[0] = SStruct::UNKNOWN;
-    
+
     std::queue<std::pair<int,int> > traceback_queue;
     traceback_queue.push(std::make_pair(0, L));
-    
+
     while (!traceback_queue.empty())
     {
         std::pair<int,int> t = traceback_queue.front();
         traceback_queue.pop();
         const int i = t.first;
         const int j = t.second;
-        
+
         switch (traceback[offset[i]+j])
         {
             case -1:
@@ -4187,10 +4164,10 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsPosterior(const float ga
                 traceback_queue.push(std::make_pair(i,k));
                 traceback_queue.push(std::make_pair(k,j));
             }
-            break;       
+            break;
         }
     }
-    
+
     return solution;
 }
 

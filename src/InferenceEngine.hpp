@@ -11,7 +11,7 @@
 #include <memory>
 #include "Config.hpp"
 #include "SStruct.hpp"
-#include "ParameterHash.hpp"
+#include "FeatureMap.hpp"
 #include "Utilities.hpp"
 #include "LogSpace.hpp"
 #include <iostream>
@@ -28,11 +28,12 @@ private:
     const int C_MIN_HAIRPIN_LENGTH;
     const int C_MAX_SPAN;
     bool cache_initialized;
-    const ParameterHash<RealT>* parameter_manager;
-    ParameterHash<RealT>* parameter_count;
+    FeatureMap* fm_;
+    const std::vector<RealT>* params_;
+    std::vector<RealT>* counts_;
 
-    //std::array<std::array<int, 256>, 256> is_complementary;
-    
+    std::array<std::array<int, 256>, 256> is_complementary;
+
     // dimensions
     int L, SIZE;
 
@@ -73,20 +74,20 @@ private:
         TB_F5_BIFURCATION,
         NUM_TRACEBACK_TYPES
     };
-    
+
     // dynamic programming matrices
     std::vector<int> FCt, F5t, FMt, FM1t;            // traceback
-    std::vector<RealT> FCv, F5v, FMv, FM1v;          // Viterbi  
+    std::vector<RealT> FCv, F5v, FMv, FM1v;          // Viterbi
     std::vector<RealT> FCi, F5i, FMi, FM1i;          // inside
     std::vector<RealT> FCo, F5o, FMo, FM1o;          // outside
-    
+
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
     std::vector<int> FEt, FNt;
     std::vector<RealT> FEv, FNv;
     std::vector<RealT> FEi, FNi;
     std::vector<RealT> FEo, FNo;
 #endif
-    
+
     std::vector<RealT> posterior;
 
     // cache
@@ -187,7 +188,7 @@ private:
 public:
 
     // constructor and destructor
-    InferenceEngine(bool allow_noncomplementary, 
+    InferenceEngine(bool allow_noncomplementary,
                     int max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH,
                     int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH,
                     int max_span = -1);
@@ -197,7 +198,7 @@ public:
     void LoadSequence(const SStruct &sstruct);
 
     // load parameter values
-    void LoadValues(const ParameterHash<RealT>* pm);
+    void LoadValues(FeatureMap* fm, const std::vector<param_value_type>* params);
 
     // load loss function
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);
@@ -213,13 +214,13 @@ public:
     void ComputeViterbi();
     RealT GetViterbiScore() const;
     std::vector<int> PredictPairingsViterbi() const;
-    ParameterHash<RealT> ComputeViterbiFeatureCounts();
+    std::vector<RealT> ComputeViterbiFeatureCounts();
 
     // MEA inference
     void ComputeInside();
     RealT ComputeLogPartitionCoefficient() const;
     void ComputeOutside();
-    ParameterHash<RealT> ComputeFeatureCountExpectations();
+    std::vector<RealT> ComputeFeatureCountExpectations();
     void ComputePosterior();
     template <int GCE> std::vector<int> PredictPairingsPosterior(const float gamma) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;

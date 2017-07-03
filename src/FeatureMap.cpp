@@ -126,10 +126,18 @@ initialize_cache()
 #endif
 }
 
+size_t
+FeatureMap::
+find_key(const std::string& key) const
+{
+  auto itr = hash_.find(key);
+  return itr != hash_.end() ? itr->second : -1u;
+}
+
 inline
 size_t
 FeatureMap::
-set_key(const std::string& key)
+insert_key(const std::string& key)
 {
   auto r = hash_.emplace(key, keys_.size());
   if (!r.second) return r.first->second;
@@ -183,6 +191,80 @@ set_key(const std::string& key)
   return keys_.size()-1;
 }
 
+std::vector<param_value_type> 
+FeatureMap::
+load_from_hash(const std::unordered_map<std::string, param_value_type>& h)
+{
+  std::vector<param_value_type> vals;
+  hash_.clear();
+  keys_.clear();
+  for (auto e: h)
+  {
+    size_t i = insert_key(e.first);
+    if (i>=vals.size()) vals.resize(i+1, 0.0);
+    vals[i] = e.second;
+  }
+
+  initialize_cache()  ;
+  return std::move(vals);
+}
+
+std::vector<param_value_type>
+FeatureMap::
+read_from_file(const std::string& filename)
+{
+  std::vector<param_value_type> vals;
+  hash_.clear();
+  keys_.clear();
+  std::ifstream is(filename.c_str());
+  if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+
+  std::string k;
+  param_value_type v;
+  if (!std::isdigit(is.peek()))
+  {
+    while (is >> k >> v)
+      if (v!=0.0)
+      {
+        size_t i = insert_key(k);
+        if (i>=vals.size()) vals.resize(i+1, 0.0);
+        vals[i] = v;
+      }
+  }
+  else
+  {
+    // for reading AdaGradRDA outputs
+    float eta, lambda, eps, t, s1, s2;
+    is >> eta >> lambda >> eps >> t;
+    while (is >> k >> v >> s1 >> s2)
+      if (v!=0.0)
+      {
+        size_t i = insert_key(k);
+        if (i>=vals.size()) vals.resize(i+1, 0.0);
+        vals[i] = v;
+      }
+  }
+
+  initialize_cache();
+  return std::move(vals);
+}
+
+void
+FeatureMap::
+write_to_file(const std::string& filename, const std::vector<param_value_type>& vals) const
+{
+  std::ofstream os(filename.c_str());
+  if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+
+  std::vector<size_t> idx(keys_.size());
+  std::iota(idx.begin(), idx.end(), 0);
+  std::sort(idx.begin(), idx.end(),
+            [&](size_t i, size_t j) { return keys_[i] < keys_[j]; });
+  for (auto i: idx)
+    if (vals[i]!=0.0)
+      os << keys_[i] << " " << vals[i] << std::endl;
+}
+
 
 #if PARAMS_BASE_PAIR
 static const char* format_base_pair = "base_pair_%c%c";
@@ -194,14 +276,14 @@ initialize_cache_base_pair()
 #ifdef USE_CACHE
   for (auto i : def_bases_)
     for (auto j : def_bases_)
-      cache_base_pair_[is_base_[i]][is_base_[j]] = set_key(SPrintF(format_base_pair, i, j));
+      cache_base_pair_[is_base_[i]][is_base_[j]] = insert_key(SPrintF(format_base_pair, i, j));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-base_pair(NUCL i, NUCL j) const
+find_base_pair(NUCL i, NUCL j) const
 {
 #ifdef USE_CACHE
   auto ii=is_base_[i], jj=is_base_[j];
@@ -209,6 +291,19 @@ base_pair(NUCL i, NUCL j) const
     return cache_base_pair_[ii][jj];
 #endif
   return find_key(std::string("base_pair_")+i+j);
+}
+
+inline
+size_t
+FeatureMap::
+insert_base_pair(NUCL i, NUCL j)
+{
+#ifdef USE_CACHE
+  auto ii=is_base_[i], jj=is_base_[j];
+  if (ii>=0 && jj>=0)
+    return cache_base_pair_[ii][jj];
+#endif
+  return insert_key(std::string("base_pair_")+i+j);
 }
 #endif
 
@@ -221,20 +316,32 @@ initialize_cache_base_pair_dist_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_base_pair_dist_at_least_.size(); ++i)
-    cache_base_pair_dist_at_least_[i] = set_key(SPrintF(format_base_pair_dist_at_least, i));
+    cache_base_pair_dist_at_least_[i] = insert_key(SPrintF(format_base_pair_dist_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-base_pair_dist_at_least(uint l) const
+find_base_pair_dist_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_base_pair_dist_at_least_.size())
     return cache_base_pair_dist_at_least_[l];
 #endif
   return find_key(SPrintF(format_base_pair_dist_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_base_pair_dist_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_base_pair_dist_at_least_.size())
+    return cache_base_pair_dist_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_base_pair_dist_at_least, l));
 }
 #endif
 
@@ -259,7 +366,7 @@ initialize_cache_terminal_mismatch()
         {
           auto jj2 = is_base_[j2];
           cache_terminal_mismatch_[ii1][jj1][ii2][jj2]
-            = set_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
+            = insert_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
         }
       }
     }
@@ -270,7 +377,7 @@ initialize_cache_terminal_mismatch()
 inline
 size_t
 FeatureMap::
-terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+find_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
 #ifdef USE_CACHE
   auto ii1 = is_base_[i1], jj1 = is_base_[j1];
@@ -279,6 +386,20 @@ terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
     return cache_terminal_mismatch_[ii1][jj1][ii2][jj2];
 #endif
   return find_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
+}
+
+inline
+size_t
+FeatureMap::
+insert_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ii1 = is_base_[i1], jj1 = is_base_[j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_[ii1][jj1][ii2][jj2];
+#endif
+  return insert_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 }
 #endif
 
@@ -291,20 +412,32 @@ initialize_cache_hairpin_length_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_hairpin_length_at_least_.size(); ++i)
-    cache_hairpin_length_at_least_[i] = set_key(SPrintF(format_hairpin_length_at_least, i));
+    cache_hairpin_length_at_least_[i] = insert_key(SPrintF(format_hairpin_length_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-hairpin_length_at_least(uint l) const
+find_hairpin_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_hairpin_length_at_least_.size())
     return cache_hairpin_length_at_least_[l];
 #endif
   return find_key(SPrintF(format_hairpin_length_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_hairpin_length_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_hairpin_length_at_least_.size())
+    return cache_hairpin_length_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_hairpin_length_at_least, l));
 }
 #endif
 
@@ -313,11 +446,21 @@ static const std::string format_hairpin_nucleotides("hairpin_nucleotides_");
 inline
 size_t
 FeatureMap::
-hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
+find_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
 {
   std::string h(l, ' ');
   std::copy(&s[i], &s[i]+l, h.begin());
   return find_key(format_hairpin_nucleotides + h);
+}
+
+inline
+size_t
+FeatureMap::
+insert_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
+{
+  std::string h(l, ' ');
+  std::copy(&s[i], &s[i]+l, h.begin());
+  return insert_key(format_hairpin_nucleotides + h);
 }
 
 #if PARAMS_HELIX_LENGTH
@@ -329,20 +472,32 @@ initialize_cache_helix_length_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_helix_length_at_least_.size(); ++i)
-    cache_helix_length_at_least_[i] = set_key(SPrintF(format_helix_length_at_least, i));
+    cache_helix_length_at_least_[i] = insert_key(SPrintF(format_helix_length_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-helix_length_at_least(uint l) const
+find_helix_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_helix_length_at_least_.size())
     return cache_helix_length_at_least_[l];
 #endif
   return find_key(SPrintF(format_helix_length_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_helix_length_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_helix_length_at_least_.size())
+    return cache_helix_length_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_helix_length_at_least, l));
 }
 #endif
 
@@ -354,19 +509,31 @@ FeatureMap::
 initialize_cache_isolated_base_pair()
 {
 #ifdef USE_CACHE
-  cache_isolated_base_pair_ = set_key(format_isolated_base_pair);
+  cache_isolated_base_pair_ = insert_key(format_isolated_base_pair);
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-isolated_base_pair() const
+find_isolated_base_pair() const
 {
 #ifdef USE_CACHE
   return cache_isolated_base_pair_;
 #else
   return find_key(format_isolated_base_pair);
+#endif
+}
+
+inline
+size_t
+FeatureMap::
+insert_isolated_base_pair()
+{
+#ifdef USE_CACHE
+  return cache_isolated_base_pair_;
+#else
+  return insert_key(format_isolated_base_pair);
 #endif
 }
 #endif
@@ -381,20 +548,32 @@ initialize_cache_internal_explicit()
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_internal_explicit_.size(); ++i)
     for (size_t j=0; j!=cache_internal_explicit_[i].size(); ++j)
-      cache_internal_explicit_[i][j] = set_key(SPrintF(format_internal_explicit, i, j));
+      cache_internal_explicit_[i][j] = insert_key(SPrintF(format_internal_explicit, i, j));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-internal_explicit(uint i, uint j) const
+find_internal_explicit(uint i, uint j) const
 {
 #ifdef USE_CACHE
   if (i<cache_internal_explicit_.size() && j<cache_internal_explicit_[i].size())
     return cache_internal_explicit_[i][j];
 #endif
   return find_key(SPrintF(format_internal_explicit, i, j));
+}
+
+inline
+size_t
+FeatureMap::
+insert_internal_explicit(uint i, uint j)
+{
+#ifdef USE_CACHE
+  if (i<cache_internal_explicit_.size() && j<cache_internal_explicit_[i].size())
+    return cache_internal_explicit_[i][j];
+#endif
+  return insert_key(SPrintF(format_internal_explicit, i, j));
 }
 #endif
 
@@ -407,20 +586,32 @@ initialize_cache_bulge_length_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_bulge_length_at_least_.size(); ++i)
-    cache_bulge_length_at_least_[i] = set_key(SPrintF(format_bulge_length_at_least, i));
+    cache_bulge_length_at_least_[i] = insert_key(SPrintF(format_bulge_length_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-bulge_length_at_least(uint l) const
+find_bulge_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_bulge_length_at_least_.size())
     return cache_bulge_length_at_least_[l];
 #endif
   return find_key(SPrintF(format_bulge_length_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_bulge_length_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_bulge_length_at_least_.size())
+    return cache_bulge_length_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_bulge_length_at_least, l));
 }
 #endif
 
@@ -433,20 +624,32 @@ initialize_cache_internal_length_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_internal_length_at_least_.size(); ++i)
-    cache_internal_length_at_least_[i] = set_key(SPrintF(format_internal_length_at_least, i));
+    cache_internal_length_at_least_[i] = insert_key(SPrintF(format_internal_length_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-internal_length_at_least(uint l) const
+find_internal_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_internal_length_at_least_.size())
     return cache_internal_length_at_least_[l];
 #endif
   return find_key(SPrintF(format_internal_length_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_internal_length_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_internal_length_at_least_.size())
+    return cache_internal_length_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_internal_length_at_least, l));
 }
 #endif
 
@@ -459,20 +662,32 @@ initialize_cache_internal_symmetric_length_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_internal_symmetric_length_at_least_.size(); ++i)
-    cache_internal_symmetric_length_at_least_[i] = set_key(SPrintF(format_internal_symmetric_length_at_least, i));
+    cache_internal_symmetric_length_at_least_[i] = insert_key(SPrintF(format_internal_symmetric_length_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-internal_symmetric_length_at_least(uint l) const
+find_internal_symmetric_length_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_internal_symmetric_length_at_least_.size())
     return cache_internal_symmetric_length_at_least_[l];
 #endif
   return find_key(SPrintF(format_internal_symmetric_length_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_internal_symmetric_length_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_internal_symmetric_length_at_least_.size())
+    return cache_internal_symmetric_length_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_internal_symmetric_length_at_least, l));
 }
 #endif
 
@@ -485,20 +700,32 @@ initialize_cache_internal_asymmetry_at_least()
 {
 #ifdef USE_CACHE
   for (size_t i=0; i!=cache_internal_asymmetry_at_least_.size(); ++i)
-    cache_internal_asymmetry_at_least_[i] = set_key(SPrintF(format_internal_asymmetry_at_least, i));
+    cache_internal_asymmetry_at_least_[i] = insert_key(SPrintF(format_internal_asymmetry_at_least, i));
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-internal_asymmetry_at_least(uint l) const
+find_internal_asymmetry_at_least(uint l) const
 {
 #ifdef USE_CACHE
   if (l<cache_internal_asymmetry_at_least_.size())
     return cache_internal_asymmetry_at_least_[l];
 #endif
   return find_key(SPrintF(format_internal_asymmetry_at_least, l));
+}
+
+inline
+size_t
+FeatureMap::
+insert_internal_asymmetry_at_least(uint l)
+{
+#ifdef USE_CACHE
+  if (l<cache_internal_asymmetry_at_least_.size())
+    return cache_internal_asymmetry_at_least_[l];
+#endif
+  return insert_key(SPrintF(format_internal_asymmetry_at_least, l));
 }
 #endif
 
@@ -507,13 +734,25 @@ static const std::string format_internal_nucleotides("internal_nucleotides_");
 inline
 size_t
 FeatureMap::
-internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
+find_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
 {
   std::string nuc(l+m+1, ' ');
   auto x = std::copy(&s[i], &s[i+l], nuc.begin());
   *(x++) = '_';
   std::reverse_copy(&s[j-m+1], &s[j+1], x);
   return find_key(format_internal_nucleotides + nuc);
+}
+
+inline
+size_t
+FeatureMap::
+insert_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
+{
+  std::string nuc(l+m+1, ' ');
+  auto x = std::copy(&s[i], &s[i+l], nuc.begin());
+  *(x++) = '_';
+  std::reverse_copy(&s[j-m+1], &s[j+1], x);
+  return insert_key(format_internal_nucleotides + nuc);
 }
 
 #if PARAMS_HELIX_STACKING
@@ -536,7 +775,7 @@ initialize_cache_helix_stacking()
         for (auto j2: def_bases_)
         {
           auto jj2 = is_base_[j2];
-          cache_helix_stacking_[ii1][jj1][ii2][jj2] = set_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
+          cache_helix_stacking_[ii1][jj1][ii2][jj2] = insert_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
         }
       }
     }
@@ -547,7 +786,7 @@ initialize_cache_helix_stacking()
 inline
 size_t
 FeatureMap::
-helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+find_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1];
@@ -556,6 +795,20 @@ helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
     return cache_helix_stacking_[ii1][jj1][ii2][jj2];
 #endif
   return find_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
+}
+
+inline
+size_t
+FeatureMap::
+insert_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ii1=is_base_[i1], jj1=is_base_[j1];
+  auto ii2=is_base_[i2], jj2=is_base_[j2];
+  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
+    return cache_helix_stacking_[ii1][jj1][ii2][jj2];
+#endif
+  return insert_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 }
 #endif
 
@@ -573,7 +826,7 @@ initialize_cache_helix_closing()
     for (auto j: def_bases_)
     {
       auto jj = is_base_[j];
-      cache_helix_closing_[ii][jj] = set_key(SPrintF(format_helix_closing, i, j));
+      cache_helix_closing_[ii][jj] = insert_key(SPrintF(format_helix_closing, i, j));
     }
   }
 #endif
@@ -582,7 +835,7 @@ initialize_cache_helix_closing()
 inline
 size_t
 FeatureMap::
-helix_closing(NUCL i, NUCL j) const
+find_helix_closing(NUCL i, NUCL j) const
 {
 #ifdef USE_CACHE
   auto ii=is_base_[i], jj=is_base_[j];
@@ -590,6 +843,19 @@ helix_closing(NUCL i, NUCL j) const
     return cache_helix_closing_[ii][jj];
 #endif
   return find_key(SPrintF(format_helix_closing, i, j));
+}
+
+inline
+size_t
+FeatureMap::
+insert_helix_closing(NUCL i, NUCL j)
+{
+#ifdef USE_CACHE
+  auto ii=is_base_[i], jj=is_base_[j];
+  if (ii>=0 && jj>=0)
+    return cache_helix_closing_[ii][jj];
+#endif
+  return insert_key(SPrintF(format_helix_closing, i, j));
 }
 #endif
 
@@ -601,19 +867,31 @@ FeatureMap::
 initialize_cache_multi_base()
 {
 #ifdef USE_CACHE
-  cache_multi_base_ = set_key(format_multi_base);
+  cache_multi_base_ = insert_key(format_multi_base);
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-multi_base() const
+find_multi_base() const
 {
 #ifdef USE_CACHE
   return cache_multi_base_;
 #else
   return find_key(format_multi_base);
+#endif
+}
+
+inline
+size_t
+FeatureMap::
+insert_multi_base() const
+{
+#ifdef USE_CACHE
+  return cache_multi_base_;
+#else
+  return insert_key(format_multi_base);
 #endif
 }
 
@@ -624,19 +902,31 @@ FeatureMap::
 initialize_cache_multi_unpaired()
 {
 #ifdef USE_CACHE
-  cache_multi_unpaired_ = set_key(format_multi_unpaired);
+  cache_multi_unpaired_ = insert_key(format_multi_unpaired);
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-multi_unpaired() const
+find_multi_unpaired() const
 {
 #ifdef USE_CACHE
   return cache_multi_unpaired_;
 #else
   return find_key(format_multi_unpaired);
+#endif
+}
+
+inline
+size_t
+FeatureMap::
+insert_multi_unpaired()
+{
+#ifdef USE_CACHE
+  return cache_multi_unpaired_;
+#else
+  return insert_key(format_multi_unpaired);
 #endif
 }
 
@@ -647,19 +937,31 @@ FeatureMap::
 initialize_cache_multi_paired()
 {
 #ifdef USE_CACHE
-  cache_multi_paired_ = set_key(format_multi_paired);
+  cache_multi_paired_ = insert_key(format_multi_paired);
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-multi_paired() const
+find_multi_paired() const
 {
 #ifdef USE_CACHE
   return cache_multi_paired_;
 #else
   return find_key(format_multi_paired);
+#endif
+}
+
+inline
+size_t
+FeatureMap::
+insert_multi_paired()
+{
+#ifdef USE_CACHE
+  return cache_multi_paired_;
+#else
+  return insert_key(format_multi_paired);
 #endif
 }
 #endif
@@ -681,7 +983,7 @@ initialize_cache_dangle_left()
       for (auto i2: def_bases_)
       {
         auto ii2 = is_base_[i2];
-        cache_dangle_left_[ii1][jj1][ii2] = set_key(SPrintF(format_dangle_left, i1, j1, i2));
+        cache_dangle_left_[ii1][jj1][ii2] = insert_key(SPrintF(format_dangle_left, i1, j1, i2));
       }
     }
   }
@@ -691,7 +993,7 @@ initialize_cache_dangle_left()
 inline
 size_t
 FeatureMap::
-dangle_left(NUCL i1, NUCL j1, NUCL i2) const
+find_dangle_left(NUCL i1, NUCL j1, NUCL i2) const
 {
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1], ii2=is_base_[i2];
@@ -699,6 +1001,19 @@ dangle_left(NUCL i1, NUCL j1, NUCL i2) const
     return cache_dangle_left_[ii1][jj1][ii2];
 #endif
   return find_key(SPrintF(format_dangle_left, i1, j1, i2));
+}
+
+inline
+size_t
+FeatureMap::
+insert_dangle_left(NUCL i1, NUCL j1, NUCL i2)
+{
+#ifdef USE_CACHE
+  auto ii1=is_base_[i1], jj1=is_base_[j1], ii2=is_base_[i2];
+  if (ii1>=0 && jj1>=0 && ii2>=0)
+    return cache_dangle_left_[ii1][jj1][ii2];
+#endif
+  return insert_key(SPrintF(format_dangle_left, i1, j1, i2));
 }
 
 static const char* format_dangle_right = "dangle_right_%c%c%c";
@@ -718,7 +1033,7 @@ initialize_cache_dangle_right()
       for (auto j2: def_bases_)
       {
         auto jj2 = is_base_[j2];
-        cache_dangle_right_[ii1][jj1][jj2] = set_key(SPrintF(format_dangle_right, i1, j1, j2));
+        cache_dangle_right_[ii1][jj1][jj2] = insert_key(SPrintF(format_dangle_right, i1, j1, j2));
       }
     }
   }
@@ -728,7 +1043,7 @@ initialize_cache_dangle_right()
 inline
 size_t
 FeatureMap::
-dangle_right(NUCL i1, NUCL j1, NUCL j2) const
+find_dangle_right(NUCL i1, NUCL j1, NUCL j2) const
 {
 #ifdef USE_CACHE
   auto ii1=is_base_[i1], jj1=is_base_[j1], jj2=is_base_[j2];
@@ -736,6 +1051,19 @@ dangle_right(NUCL i1, NUCL j1, NUCL j2) const
     return cache_dangle_right_[ii1][jj1][jj2];
 #endif
     return find_key(SPrintF(format_dangle_right, i1, j1, j2));
+}
+
+inline
+size_t
+FeatureMap::
+insert_dangle_right(NUCL i1, NUCL j1, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ii1=is_base_[i1], jj1=is_base_[j1], jj2=is_base_[j2];
+  if (ii1>=0 && jj1>=0 && jj2>=0)
+    return cache_dangle_right_[ii1][jj1][jj2];
+#endif
+  return insert_key(SPrintF(format_dangle_right, i1, j1, j2));
 }
 #endif
 
@@ -747,19 +1075,31 @@ FeatureMap::
 initialize_cache_external_unpaired()
 {
 #ifdef USE_CACHE
-  cache_external_unpaired_ = set_key(format_external_unpaired);
+  cache_external_unpaired_ = insert_key(format_external_unpaired);
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-external_unpaired() const
+find_external_unpaired() const
 {
 #ifdef USE_CACHE
   return cache_external_unpaired_;
 #else
   return find_key(format_external_unpaired);
+#endif
+}
+
+inline
+size_t
+FeatureMap::
+insert_external_unpaired()
+{
+#ifdef USE_CACHE
+  return cache_external_unpaired_;
+#else
+  return insert_key(format_external_unpaired);
 #endif
 }
 
@@ -770,19 +1110,31 @@ FeatureMap::
 initialize_cache_external_paired()
 {
 #ifdef USE_CACHE
-  cache_external_paired_ = set_key(format_external_paired);
+  cache_external_paired_ = insert_key(format_external_paired);
 #endif
 }
 
 inline
 size_t
 FeatureMap::
-external_paired() const
+find_external_paired() const
 {
 #ifdef USE_CACHE
   return cache_external_paired_;
 #else
   return find_key(format_external_paired);
+#endif
+}
+
+inline
+size_t
+FeatureMap::
+insert_external_paired()
+{
+#ifdef USE_CACHE
+  return cache_external_paired_;
+#else
+  return insert_key(format_external_paired);
 #endif
 }
 #endif

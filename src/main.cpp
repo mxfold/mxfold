@@ -11,7 +11,7 @@
 #include "Config.hpp"
 #include "Utilities.hpp"
 #include "InferenceEngine.hpp"
-#include "ParameterHash.hpp"
+#include "FeatureMap.hpp"
 #include "SStruct.hpp"
 #include "adagrad.hpp"
 
@@ -41,7 +41,7 @@ private:
   int validate();
   int count_features();
   std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
-  std::unordered_map<std::string,param_value_type> compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm);
+  std::unordered_map<std::string,param_value_type> compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params);
   
 
 private:
@@ -80,7 +80,7 @@ private:
   std::vector<std::string> args_;
 };
 
-NGSfold& 
+NGSfold&
 NGSfold::parse_options(int& argc, char**& argv)
 {
   gengetopt_args_info args_info;
@@ -193,7 +193,7 @@ read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int
 
 std::unordered_map<std::string,param_value_type>
 NGSfold::
-compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
+compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params)
 {
   double starting_time = GetSystemTime();
   std::unordered_map<std::string,param_value_type> grad;
@@ -207,7 +207,7 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
   else
     max_span = max_span_;
   InferenceEngine<param_value_type> inference_engine1(noncomplementary_, max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
-  inference_engine1.LoadValues(pm);
+  inference_engine1.LoadValues(fm, params);
   inference_engine1.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
   {
@@ -238,7 +238,7 @@ compute_gradients(const SStruct& s, const ParameterHash<param_value_type>* pm)
 
   // count the occurence of parameters in the predicted structure
   InferenceEngine<param_value_type> inference_engine0(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
-  inference_engine0.LoadValues(pm);
+  inference_engine0.LoadValues(fm, params);
   inference_engine0.LoadSequence(s);
   switch (s.GetType())
   {
@@ -294,15 +294,15 @@ NGSfold::train()
   auto pos_str = read_data(data, data_list_, SStruct::NO_REACTIVITY);
   auto pos_weak = read_data(data, data_weak_list_, SStruct::REACTIVITY_PAIRED);
 
-  //AdaGradRDAUpdater optimizer(eta0_, lambda_);
-  AdaGradFobosUpdater optimizer(eta0_, lambda_);
-  ParameterHash<param_value_type> pm;
+  FeatureMap fm;
+  std::vector<param_value_type> params;
   if (!param_file_.empty())
   {
-    pm.ReadFromFile(param_file_);
+    params = fm.read_from_file(param_file_);
     optimizer.read_from_file(param_file_);
   }
-  pm.initialize_cache();
+  //AdaGradRDAUpdater optimizer(eta0_, lambda_);
+  AdaGradFobosUpdater optimizer(fm, params, eta0_, lambda_);
 
   // run max-margin training
   for (uint t=0, k=0; t!=t_max_; ++t)
@@ -325,7 +325,7 @@ NGSfold::train()
         if (is1 && !is2)
         {
           is1.close();
-          pm.ReadFromFile(SPrintF("%s/%d.param", out_param_.c_str(), k));
+          params = fm.read_from_file(SPrintF("%s/%d.param", out_param_.c_str(), k));
           optimizer.read_from_file(SPrintF("%s/%d.param", out_param_.c_str(), k));
           k++;
           continue;
@@ -338,43 +338,27 @@ NGSfold::train()
       auto eta_w = is_weak_label ? eta0_weak_labeled_/eta0_ : 1.0;
 
       // gradient
-      auto grad = compute_gradients(data[i], &pm);
+      auto grad = compute_gradients(data[i], &fm, &params);
 
       // update
       for (auto g : grad)
         if (g.second!=0.0)
-          if (true /*!is_weak_label || pm.is_context_feature(g.first) ||
-                     (use_bp_context_ && pm.is_basepair_context_feature(g.first)) */)
-            optimizer.update(g.first, pm.get_by_key(g.first), g.second*w, eta_w);
+          optimizer.update(g.first, g.second*w, eta_w);
 
       // regularize
-      for (auto p=pm.begin(); p!=pm.end(); ++p)
-      {
-        if (true /*!is_weak_label || pm.is_context_feature(p->first) ||
-                   (use_bp_context_ && pm.is_basepair_context_feature(p->first)) */)
-        {
-          optimizer.regularize(p->first, p->second, eta_w);
-#if 0
-          if (*p==0.0)
-            p = pm.erase(p);
-          else
-            ++p;
-#endif
-        }
-        else
-          ++p;
-      }
-      optimizer.proceed_timestamp();
+      for (auto p=fm.begin(); p!=fm.end(); ++p)
+        optimizer.regularize(*p, eta_w);
 
+      optimizer.proceed_timestamp();
       if (!out_param_.empty())
       {
-        //pm.WriteToFile(SPrintF("%s/%d.param", out_param_.c_str(), k++));
+        //fm.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), params);
         optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), &pm);
       }
     }
   }
 
-  //pm.WriteToFile(out_file_);
+  //fm.write_to_file(out_file_, params);
   optimizer.write_to_file(out_file_, &pm);
 
   return 0;
