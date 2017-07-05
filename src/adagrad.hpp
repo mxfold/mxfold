@@ -37,7 +37,7 @@ class AdaGradFobosUpdater
 public:
   AdaGradFobosUpdater(FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps=1e-8);
 
-  void update(const std::string& fname, param_value_type grad, float weight);
+  void update(size_t i, param_value_type grad, float weight);
   void regularize_all(float weight) const;
   void proceed_timestamp() { }
 

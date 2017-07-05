@@ -85,6 +85,15 @@ insert_param(std::vector<T>* params, size_t i)
     return (*params)[i];
 }
 
+template < typename T >
+T&
+insert_param(std::unordered_map<size_t, T>* params, size_t i)
+{
+    assert(i!=-1u);
+    auto r = params->emplace(i, static_cast<T>(0));
+    return r.first->second;
+}
+
 //////////////////////////////////////////////////////////////////////
 // ComputeRowOffset()
 //
@@ -2641,14 +2650,16 @@ std::vector<int> InferenceEngine<RealT>::PredictPairingsViterbi() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-std::vector<RealT>
+//std::vector<RealT>
+std::unordered_map<size_t,RealT>
 InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
 {
     std::queue<triple<int *,int,int> > traceback_queue;
     traceback_queue.push(make_triple(&F5t[0], 0, L));
 
     ClearCounts();
-    std::vector<RealT> cnt;
+    //std::vector<RealT> cnt(params_->size(), 0.0);
+    std::unordered_map<size_t,RealT> cnt;
     counts_ = &cnt;
 
     while (!traceback_queue.empty())
@@ -3436,7 +3447,8 @@ inline RealT InferenceEngine<RealT>::ComputeLogPartitionCoefficient() const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-std::vector<RealT>
+//std::vector<RealT>
+std::unordered_map<size_t,RealT>
 InferenceEngine<RealT>::ComputeFeatureCountExpectations()
 {
 #if SHOW_TIMINGS
@@ -3449,7 +3461,8 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     const RealT Z = ComputeLogPartitionCoefficient();
 
     ClearCounts();
-    std::vector<RealT> cnt;
+    //std::vector<RealT> cnt;
+    std::unordered_map<size_t,RealT> cnt;
     counts_= &cnt;
 
     for (int i = L; i >= 0; i--)

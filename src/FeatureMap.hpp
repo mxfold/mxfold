@@ -30,6 +30,7 @@ private:
 public:
   size_t find_key(const std::string& key) const;
   size_t insert_key(const std::string& key);
+  const std::string& name(size_t i) const { return keys_[i]; }
 
   iterator begin() { return keys_.begin(); }
   iterator end() { return keys_.end(); }

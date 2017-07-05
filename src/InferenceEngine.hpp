@@ -30,7 +30,8 @@ private:
     bool cache_initialized;
     FeatureMap* fm_;
     const std::vector<RealT>* params_;
-    std::vector<RealT>* counts_;
+    //std::vector<RealT>* counts_;
+    std::unordered_map<size_t,RealT>* counts_;
 
     std::array<std::array<int, 256>, 256> is_complementary;
 
@@ -214,13 +215,15 @@ public:
     void ComputeViterbi();
     RealT GetViterbiScore() const;
     std::vector<int> PredictPairingsViterbi() const;
-    std::vector<RealT> ComputeViterbiFeatureCounts();
+    //std::vector<RealT> ComputeViterbiFeatureCounts();
+    std::unordered_map<size_t,RealT> ComputeViterbiFeatureCounts();
 
     // MEA inference
     void ComputeInside();
     RealT ComputeLogPartitionCoefficient() const;
     void ComputeOutside();
-    std::vector<RealT> ComputeFeatureCountExpectations();
+    //std::vector<RealT> ComputeFeatureCountExpectations();
+    std::unordered_map<size_t,RealT> ComputeFeatureCountExpectations();
     void ComputePosterior();
     template <int GCE> std::vector<int> PredictPairingsPosterior(const float gamma) const;
     RealT *GetPosterior(const RealT posterior_cutoff) const;

@@ -1,4 +1,5 @@
 #include "../config.h"
+#include "Config.hpp"
 #include "FeatureMap.hpp"
 
 FeatureMap::
@@ -126,6 +127,7 @@ initialize_cache()
 #endif
 }
 
+
 size_t
 FeatureMap::
 find_key(const std::string& key) const
@@ -134,7 +136,6 @@ find_key(const std::string& key) const
   return itr != hash_.end() ? itr->second : -1u;
 }
 
-inline
 size_t
 FeatureMap::
 insert_key(const std::string& key)
@@ -265,7 +266,6 @@ write_to_file(const std::string& filename, const std::vector<param_value_type>& 
       os << keys_[i] << " " << vals[i] << std::endl;
 }
 
-
 #if PARAMS_BASE_PAIR
 static const char* format_base_pair = "base_pair_%c%c";
 
@@ -280,7 +280,6 @@ initialize_cache_base_pair()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_base_pair(NUCL i, NUCL j) const
@@ -293,7 +292,6 @@ find_base_pair(NUCL i, NUCL j) const
   return find_key(std::string("base_pair_")+i+j);
 }
 
-inline
 size_t
 FeatureMap::
 insert_base_pair(NUCL i, NUCL j)
@@ -320,7 +318,6 @@ initialize_cache_base_pair_dist_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_base_pair_dist_at_least(uint l) const
@@ -332,7 +329,6 @@ find_base_pair_dist_at_least(uint l) const
   return find_key(SPrintF(format_base_pair_dist_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_base_pair_dist_at_least(uint l)
@@ -374,7 +370,6 @@ initialize_cache_terminal_mismatch()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
@@ -388,7 +383,6 @@ find_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
   return find_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 }
 
-inline
 size_t
 FeatureMap::
 insert_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
@@ -416,7 +410,6 @@ initialize_cache_hairpin_length_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_hairpin_length_at_least(uint l) const
@@ -428,7 +421,6 @@ find_hairpin_length_at_least(uint l) const
   return find_key(SPrintF(format_hairpin_length_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_hairpin_length_at_least(uint l)
@@ -443,7 +435,6 @@ insert_hairpin_length_at_least(uint l)
 
 static const std::string format_hairpin_nucleotides("hairpin_nucleotides_");
 
-inline
 size_t
 FeatureMap::
 find_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
@@ -453,7 +444,6 @@ find_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
   return find_key(format_hairpin_nucleotides + h);
 }
 
-inline
 size_t
 FeatureMap::
 insert_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
@@ -476,7 +466,6 @@ initialize_cache_helix_length_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_helix_length_at_least(uint l) const
@@ -488,7 +477,6 @@ find_helix_length_at_least(uint l) const
   return find_key(SPrintF(format_helix_length_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_helix_length_at_least(uint l)
@@ -513,7 +501,6 @@ initialize_cache_isolated_base_pair()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_isolated_base_pair() const
@@ -525,7 +512,6 @@ find_isolated_base_pair() const
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 insert_isolated_base_pair()
@@ -552,7 +538,6 @@ initialize_cache_internal_explicit()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_internal_explicit(uint i, uint j) const
@@ -564,7 +549,6 @@ find_internal_explicit(uint i, uint j) const
   return find_key(SPrintF(format_internal_explicit, i, j));
 }
 
-inline
 size_t
 FeatureMap::
 insert_internal_explicit(uint i, uint j)
@@ -590,7 +574,6 @@ initialize_cache_bulge_length_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_bulge_length_at_least(uint l) const
@@ -602,7 +585,6 @@ find_bulge_length_at_least(uint l) const
   return find_key(SPrintF(format_bulge_length_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_bulge_length_at_least(uint l)
@@ -628,7 +610,6 @@ initialize_cache_internal_length_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_internal_length_at_least(uint l) const
@@ -640,7 +621,6 @@ find_internal_length_at_least(uint l) const
   return find_key(SPrintF(format_internal_length_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_internal_length_at_least(uint l)
@@ -666,7 +646,6 @@ initialize_cache_internal_symmetric_length_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_internal_symmetric_length_at_least(uint l) const
@@ -678,7 +657,6 @@ find_internal_symmetric_length_at_least(uint l) const
   return find_key(SPrintF(format_internal_symmetric_length_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_internal_symmetric_length_at_least(uint l)
@@ -704,7 +682,6 @@ initialize_cache_internal_asymmetry_at_least()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_internal_asymmetry_at_least(uint l) const
@@ -716,7 +693,6 @@ find_internal_asymmetry_at_least(uint l) const
   return find_key(SPrintF(format_internal_asymmetry_at_least, l));
 }
 
-inline
 size_t
 FeatureMap::
 insert_internal_asymmetry_at_least(uint l)
@@ -731,7 +707,6 @@ insert_internal_asymmetry_at_least(uint l)
 
 static const std::string format_internal_nucleotides("internal_nucleotides_");
 
-inline
 size_t
 FeatureMap::
 find_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
@@ -743,7 +718,6 @@ find_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, ui
   return find_key(format_internal_nucleotides + nuc);
 }
 
-inline
 size_t
 FeatureMap::
 insert_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m)
@@ -783,7 +757,6 @@ initialize_cache_helix_stacking()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
@@ -797,7 +770,6 @@ find_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
   return find_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 }
 
-inline
 size_t
 FeatureMap::
 insert_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
@@ -832,7 +804,6 @@ initialize_cache_helix_closing()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_helix_closing(NUCL i, NUCL j) const
@@ -845,7 +816,6 @@ find_helix_closing(NUCL i, NUCL j) const
   return find_key(SPrintF(format_helix_closing, i, j));
 }
 
-inline
 size_t
 FeatureMap::
 insert_helix_closing(NUCL i, NUCL j)
@@ -871,7 +841,6 @@ initialize_cache_multi_base()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_multi_base() const
@@ -883,10 +852,9 @@ find_multi_base() const
 #endif
 }
 
-inline
 size_t
 FeatureMap::
-insert_multi_base() const
+insert_multi_base()
 {
 #ifdef USE_CACHE
   return cache_multi_base_;
@@ -906,7 +874,6 @@ initialize_cache_multi_unpaired()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_multi_unpaired() const
@@ -918,7 +885,6 @@ find_multi_unpaired() const
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 insert_multi_unpaired()
@@ -941,7 +907,6 @@ initialize_cache_multi_paired()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_multi_paired() const
@@ -953,7 +918,6 @@ find_multi_paired() const
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 insert_multi_paired()
@@ -990,7 +954,6 @@ initialize_cache_dangle_left()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_dangle_left(NUCL i1, NUCL j1, NUCL i2) const
@@ -1003,7 +966,6 @@ find_dangle_left(NUCL i1, NUCL j1, NUCL i2) const
   return find_key(SPrintF(format_dangle_left, i1, j1, i2));
 }
 
-inline
 size_t
 FeatureMap::
 insert_dangle_left(NUCL i1, NUCL j1, NUCL i2)
@@ -1018,7 +980,6 @@ insert_dangle_left(NUCL i1, NUCL j1, NUCL i2)
 
 static const char* format_dangle_right = "dangle_right_%c%c%c";
 
-inline
 void
 FeatureMap::
 initialize_cache_dangle_right()
@@ -1040,7 +1001,6 @@ initialize_cache_dangle_right()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_dangle_right(NUCL i1, NUCL j1, NUCL j2) const
@@ -1053,7 +1013,6 @@ find_dangle_right(NUCL i1, NUCL j1, NUCL j2) const
     return find_key(SPrintF(format_dangle_right, i1, j1, j2));
 }
 
-inline
 size_t
 FeatureMap::
 insert_dangle_right(NUCL i1, NUCL j1, NUCL j2)
@@ -1079,7 +1038,6 @@ initialize_cache_external_unpaired()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_external_unpaired() const
@@ -1091,7 +1049,6 @@ find_external_unpaired() const
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 insert_external_unpaired()
@@ -1114,7 +1071,6 @@ initialize_cache_external_paired()
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 find_external_paired() const
@@ -1126,7 +1082,6 @@ find_external_paired() const
 #endif
 }
 
-inline
 size_t
 FeatureMap::
 insert_external_paired()

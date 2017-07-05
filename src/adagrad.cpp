@@ -33,9 +33,9 @@ void
 AdaGradRDAUpdater::
 update(const std::string& fname, param_value_type& w, param_value_type grad, param_value_type weight)
 {
-  auto u = sum_grad_.insert(std::make_pair(fname, 0.0));
+  auto u = sum_grad_.emplace(fname, 0.0);
   u.first->second += grad;
-  auto g = sum_squared_grad_.insert(std::make_pair(fname, eps_));
+  auto g = sum_squared_grad_.emplace(fname, eps_);
   g.first->second += grad*grad;
   if (!u.second) regularize(fname, w, weight);
 }
@@ -104,20 +104,19 @@ write_to_file(const std::string& filename, const ParameterHash<param_value_type>
 
 
 AdaGradFobosUpdater::
-AdaGradFobosUpdater(const FeatureMap& fm, float eta, float lambda, float eps)
-  : fm_(fm), eta_(eta), lambda_(lambda), eps_(eps), sum_squared_grad_()
+AdaGradFobosUpdater(FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps)
+  : fm_(fm), params_(params), eta_(eta), lambda_(lambda), eps_(eps), sum_squared_grad_()
 {
 }
 
 void
 AdaGradFobosUpdater::
-update(const std::string& fname, param_value_type grad, float weight)
+update(size_t i, param_value_type grad, float weight)
 {
-  size_t i = fm_.set_key(fname);
   if (i>=sum_squared_grad_.size()) sum_squared_grad_.resize(i+1, 0.0);
   if (i>=params_.size()) params_.resize(i+1, 0.0);
   sum_squared_grad_[i] += grad*grad;
-  std::cout << "  " << fname << ": w=" << params_[i] << ", g=" << grad << ", g2s=" << sum_squared_grad_[i];
+  std::cout << "  " << fm_.name(i) << ": w=" << params_[i] << ", g=" << grad << ", g2s=" << sum_squared_grad_[i];
   params_[i] -= weight * eta_ / std::sqrt(sum_squared_grad_[i]) * grad;
   std::cout << ", update=" << weight * eta_ / std::sqrt(sum_squared_grad_[i]) * grad << ", w_new=" << params_[i] << std::endl;
 }
@@ -141,7 +140,7 @@ read_from_file(const std::string& filename)
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
-  if (std::isdigit(is.peek())) 
+  if (std::isdigit(is.peek()))
   {
     uint t;
     is >> t >> eta_ >> lambda_ >> eps_;
