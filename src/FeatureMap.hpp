@@ -18,7 +18,7 @@ public:
 
 public:
   FeatureMap(const char* def_bases = "ACGU", 
-             const std::vector<std::string>& def_bps = {"AU", "UA", "GC", "CG", "GU", "UG"});
+             const std::vector<std::string>& def_bps = {"CG", "GC", "GU", "UG", "AU", "UA"});
   ~FeatureMap() { }
 
   std::vector<param_value_type> load_from_hash(const std::unordered_map<std::string, param_value_type>& hash);
