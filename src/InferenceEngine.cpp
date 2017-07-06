@@ -73,7 +73,7 @@ template < typename T >
 T
 find_param(const std::vector<T>* params, size_t i)
 {
-    return /*i!=-1u ||*/ i>=(*params).size() ? (*params)[i] : T(0);
+    return /*i!=-1u ||*/ i<params->size() ? (*params)[i] : T(0);
 }
 
 template < typename T >

@@ -446,13 +446,13 @@ NGSfold::validate()
     inference_engine.UseConstraints(sstruct.GetMapping());
     inference_engine.ComputeViterbi();
     auto score = inference_engine.GetViterbiScore();
-    std::cout << sstruct.GetNames()[0] << " " 
+    std::cout << sstruct.GetNames()[0] << " "
               << (score>NEG_INF ? "OK" : "NG") << std::endl;
     if (score==NEG_INF)
     {
       sstruct.WriteParens(std::cout); // for debug
       std::cout << std::endl;
-    }  
+    }
   }
 
   return 0;
