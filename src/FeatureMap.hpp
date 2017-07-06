@@ -17,7 +17,8 @@ public:
   typedef typename std::vector<std::string>::const_iterator const_iterator;
 
 public:
-  FeatureMap(const char* def_bases = "ACGUP");
+  FeatureMap(const char* def_bases = "ACGU", 
+             const std::vector<std::string>& def_bps = {"AU", "UA", "GC", "CG", "GU", "UG"});
   ~FeatureMap() { }
 
   std::vector<param_value_type> load_from_hash(const std::unordered_map<std::string, param_value_type>& hash);
@@ -31,6 +32,7 @@ public:
   size_t find_key(const std::string& key) const;
   size_t insert_key(const std::string& key);
   const std::string& name(size_t i) const { return keys_[i]; }
+  int is_complementary(NUCL i, NUCL j) const { return is_complementary_[i][j]; }
 
   iterator begin() { return keys_.begin(); }
   iterator end() { return keys_.end(); }
@@ -147,20 +149,23 @@ public:
 private:
   const std::string def_bases_;
   size_t NBASES;
+  const std::vector<std::string> def_bps_;
+  size_t NBPS;
   std::unordered_map<std::string, size_t> hash_;
   std::vector<std::string> keys_;
   std::array<int, 256> is_base_;
+  std::array<std::array<int, 256>, 256> is_complementary_;
 
   // cache
 #ifdef USE_CACHE
 #if PARAMS_BASE_PAIR
-  VVI cache_base_pair_;
+  VI cache_base_pair_;
 #endif
 #if PARAMS_BASE_PAIR_DIST
   VI cache_base_pair_dist_at_least_;
 #endif
 #if PARAMS_TERMINAL_MISMATCH
-  VVVVI cache_terminal_mismatch_;
+  VVVI cache_terminal_mismatch_;
 #endif
 #if PARAMS_HAIRPIN_LENGTH
   VI cache_hairpin_length_at_least_;
@@ -187,10 +192,10 @@ private:
   VI cache_internal_asymmetry_at_least_;
 #endif
 #if PARAMS_HELIX_STACKING
-  VVVVI cache_helix_stacking_;
+  VVI cache_helix_stacking_;
 #endif
 #if PARAMS_HELIX_CLOSING
-  VVI cache_helix_closing_;
+  VI cache_helix_closing_;
 #endif
 #if PARAMS_MULTI_LENGTH
   int cache_multi_base_;
@@ -198,8 +203,8 @@ private:
   int cache_multi_paired_;
 #endif
 #if PARAMS_DANGLE
-  VVVI cache_dangle_left_;
-  VVVI cache_dangle_right_;
+  VVI cache_dangle_left_;
+  VVI cache_dangle_right_;
 #endif
 #if PARAMS_EXTERNAL_LENGTH
   int cache_external_unpaired_;

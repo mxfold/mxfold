@@ -33,8 +33,6 @@ private:
     //std::vector<RealT>* counts_;
     std::unordered_map<size_t,RealT>* counts_;
 
-    std::array<std::array<int, 256>, 256> is_complementary;
-
     // dimensions
     int L, SIZE;
 

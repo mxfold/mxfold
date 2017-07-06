@@ -137,8 +137,7 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 {
     Assert(1 <= i && i <= L, "Index out-of-bounds.");
     Assert(1 <= j && j <= L, "Index out-of-bounds.");
-    //return parameter_manager->is_complementary(s[i], s[j]);
-    return is_complementary[s[i]][s[j]];
+    return fm_->is_complementary(s[i], s[j])>=0;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -161,13 +160,6 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
     SIZE(0),
     cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
-  // precompute complementary pairings
-  for (auto e : is_complementary)
-    std::fill(std::begin(e), std::end(e), false);
-
-  is_complementary['A']['U'] = is_complementary['U']['A'] = true;
-  is_complementary['G']['U'] = is_complementary['U']['G'] = true;
-  is_complementary['C']['G'] = is_complementary['G']['C'] = true;
 }
 
 //////////////////////////////////////////////////////////////////////

@@ -3,17 +3,20 @@
 #include "FeatureMap.hpp"
 
 FeatureMap::
-FeatureMap(const char* def_bases /*= "ACGUP" */)
-  : def_bases_(def_bases), NBASES(def_bases_.size()), hash_(), keys_()
+FeatureMap(const char* def_bases,
+           const std::vector<std::string>& def_bps)
+  : def_bases_(def_bases), NBASES(def_bases_.size()),
+    def_bps_(def_bps), NBPS(def_bps_.size()),
+    hash_(), keys_()
 #ifdef USE_CACHE
 #if PARAMS_BASE_PAIR
-  , cache_base_pair_(NBASES, VI(NBASES, -1))
+  , cache_base_pair_(NBPS, -1)
 #endif
 #if PARAMS_BASE_PAIR_DIST
   , cache_base_pair_dist_at_least_(D_MAX_BP_DIST_THRESHOLDS, -1)
 #endif
 #if PARAMS_TERMINAL_MISMATCH
-  , cache_terminal_mismatch_(NBASES, VVVI(NBASES, VVI(NBASES, VI(NBASES, -1))))
+  , cache_terminal_mismatch_(NBPS, VVI(NBASES, VI(NBASES, -1)))
 #endif
 #if PARAMS_HAIRPIN_LENGTH
   , cache_hairpin_length_at_least_(D_MAX_HAIRPIN_LENGTH, -1)
@@ -40,10 +43,10 @@ FeatureMap(const char* def_bases /*= "ACGUP" */)
   , cache_internal_asymmetry_at_least_(D_MAX_INTERNAL_ASYMMETRY, -1)
 #endif
 #if PARAMS_HELIX_STACKING
-  , cache_helix_stacking_(NBASES, VVVI(NBASES, VVI(NBASES, VI(NBASES, -1))))
+  , cache_helix_stacking_(NBPS, VI(NBPS, -1))
 #endif
 #if PARAMS_HELIX_CLOSING
-  , cache_helix_closing_(NBASES, VI(NBASES, -1))
+  , cache_helix_closing_(NBPS, -1)
 #endif
 #if PARAMS_MULTI_LENGTH
   , cache_multi_base_(-1)
@@ -51,8 +54,8 @@ FeatureMap(const char* def_bases /*= "ACGUP" */)
   , cache_multi_paired_(-1)
 #endif
 #if PARAMS_DANGLE
-  , cache_dangle_left_(NBASES, VVI(NBASES, VI(NBASES, -1)))
-  , cache_dangle_right_(NBASES, VVI(NBASES, VI(NBASES, -1)))
+  , cache_dangle_left_(NBPS, VI(NBASES, -1))
+  , cache_dangle_right_(NBPS, VI(NBASES, -1))
 #endif
 #if PARAMS_EXTERNAL_LENGTH
   , cache_external_unpaired_(-1)
@@ -63,6 +66,11 @@ FeatureMap(const char* def_bases /*= "ACGUP" */)
   std::fill(std::begin(is_base_), std::end(is_base_), -1);
   for (size_t i=0; i!=def_bases_.size(); ++i)
     is_base_[def_bases[i]] = i;
+
+  for (auto& e : is_complementary_)
+    std::fill(std::begin(e), std::end(e), -1);
+  for (size_t i=0; i!=def_bps_.size(); ++i)
+    is_complementary_[def_bps_[i][0]][def_bps_[i][1]] = i;
 
   initialize_cache();
 }
@@ -192,7 +200,7 @@ insert_key(const std::string& key)
   return keys_.size()-1;
 }
 
-std::vector<param_value_type> 
+std::vector<param_value_type>
 FeatureMap::
 load_from_hash(const std::unordered_map<std::string, param_value_type>& h)
 {
@@ -274,9 +282,8 @@ FeatureMap::
 initialize_cache_base_pair()
 {
 #ifdef USE_CACHE
-  for (auto i : def_bases_)
-    for (auto j : def_bases_)
-      cache_base_pair_[is_base_[i]][is_base_[j]] = insert_key(SPrintF(format_base_pair, i, j));
+  for (auto bp : def_bps_)
+    cache_base_pair_[is_complementary_[bp[0]][bp[1]]] = insert_key(SPrintF(format_base_pair, bp[0], bp[1]));
 #endif
 }
 
@@ -285,9 +292,9 @@ FeatureMap::
 find_base_pair(NUCL i, NUCL j) const
 {
 #ifdef USE_CACHE
-  auto ii=is_base_[i], jj=is_base_[j];
-  if (ii>=0 && jj>=0)
-    return cache_base_pair_[ii][jj];
+  auto ij=is_complementary_[i][j];
+  if (ij>=0)
+    return cache_base_pair_[ij];
 #endif
   return find_key(std::string("base_pair_")+i+j);
 }
@@ -297,9 +304,9 @@ FeatureMap::
 insert_base_pair(NUCL i, NUCL j)
 {
 #ifdef USE_CACHE
-  auto ii=is_base_[i], jj=is_base_[j];
-  if (ii>=0 && jj>=0)
-    return cache_base_pair_[ii][jj];
+  auto ij=is_complementary_[i][j];
+  if (ij>=0)
+    return cache_base_pair_[ij];
 #endif
   return insert_key(std::string("base_pair_")+i+j);
 }
@@ -349,21 +356,17 @@ FeatureMap::
 initialize_cache_terminal_mismatch()
 {
 #ifdef USE_CACHE
-  for (auto i1: def_bases_)
+  for (auto bp : def_bps_)
   {
-    auto ii1 = is_base_[i1];
-    for (auto j1: def_bases_)
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
     {
-      auto jj1 = is_base_[j1];
-      for (auto i2: def_bases_)
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
       {
-        auto ii2 = is_base_[i2];
-        for (auto j2: def_bases_)
-        {
-          auto jj2 = is_base_[j2];
-          cache_terminal_mismatch_[ii1][jj1][ii2][jj2]
-            = insert_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
-        }
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_[ij1][ii2][jj2]
+          = insert_key(SPrintF(format_terminal_mismatch, bp[0], bp[1], i2, j2));
       }
     }
   }
@@ -375,10 +378,10 @@ FeatureMap::
 find_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
 #ifdef USE_CACHE
-  auto ii1 = is_base_[i1], jj1 = is_base_[j1];
+  auto ij1 = is_complementary_[i1][j1];
   auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_[ii1][jj1][ii2][jj2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_[ij1][ii2][jj2];
 #endif
   return find_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 }
@@ -388,10 +391,10 @@ FeatureMap::
 insert_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
 {
 #ifdef USE_CACHE
-  auto ii1 = is_base_[i1], jj1 = is_base_[j1];
+  auto ij1 = is_complementary_[i1][j1];
   auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_[ii1][jj1][ii2][jj2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_[ij1][ii2][jj2];
 #endif
   return insert_key(SPrintF(format_terminal_mismatch, i1, j1, i2, j2));
 }
@@ -737,21 +740,13 @@ FeatureMap::
 initialize_cache_helix_stacking()
 {
 #ifdef USE_CACHE
-  for (auto i1: def_bases_)
+  for (auto bp1: def_bps_)
   {
-    auto ii1 = is_base_[i1];
-    for (auto j1: def_bases_)
+    auto ij1 = is_complementary_[bp1[0]][bp1[1]];
+    for (auto bp2: def_bps_)
     {
-      auto jj1 = is_base_[j1];
-      for (auto i2: def_bases_)
-      {
-        auto ii2 = is_base_[i2];
-        for (auto j2: def_bases_)
-        {
-          auto jj2 = is_base_[j2];
-          cache_helix_stacking_[ii1][jj1][ii2][jj2] = insert_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
-        }
-      }
+      auto ij2 = is_complementary_[bp2[0]][bp2[1]];
+      cache_helix_stacking_[ij1][ij2] = insert_key(SPrintF(format_helix_stacking, bp1[0], bp1[1], bp2[0], bp2[1]));
     }
   }
 #endif
@@ -762,10 +757,10 @@ FeatureMap::
 find_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
 {
 #ifdef USE_CACHE
-  auto ii1=is_base_[i1], jj1=is_base_[j1];
-  auto ii2=is_base_[i2], jj2=is_base_[j2];
-  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return cache_helix_stacking_[ii1][jj1][ii2][jj2];
+  auto ij1 = is_complementary_[i1][j1];
+  auto ij2 = is_complementary_[i2][j2];
+  if (ij1>=0 && ij2>=0)
+    return cache_helix_stacking_[ij1][ij2];
 #endif
   return find_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 }
@@ -775,10 +770,10 @@ FeatureMap::
 insert_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
 {
 #ifdef USE_CACHE
-  auto ii1=is_base_[i1], jj1=is_base_[j1];
-  auto ii2=is_base_[i2], jj2=is_base_[j2];
-  if (ii1>=0 && jj1>=0 && ii2>=0 && jj2>=0)
-    return cache_helix_stacking_[ii1][jj1][ii2][jj2];
+  auto ij1 = is_complementary_[i1][j1];
+  auto ij2 = is_complementary_[i2][j2];
+  if (ij1>=0 && ij2>=0)
+    return cache_helix_stacking_[ij1][ij2];
 #endif
   return insert_key(SPrintF(format_helix_stacking, i1, j1, i2, j2));
 }
@@ -792,14 +787,10 @@ FeatureMap::
 initialize_cache_helix_closing()
 {
 #ifdef USE_CACHE
-  for (auto i: def_bases_)
+  for (auto bp: def_bps_)
   {
-    auto ii = is_base_[i];
-    for (auto j: def_bases_)
-    {
-      auto jj = is_base_[j];
-      cache_helix_closing_[ii][jj] = insert_key(SPrintF(format_helix_closing, i, j));
-    }
+    auto ij = is_complementary_[bp[0]][bp[1]];
+    cache_helix_closing_[ij] = insert_key(SPrintF(format_helix_closing, bp[0], bp[1]));
   }
 #endif
 }
@@ -809,9 +800,9 @@ FeatureMap::
 find_helix_closing(NUCL i, NUCL j) const
 {
 #ifdef USE_CACHE
-  auto ii=is_base_[i], jj=is_base_[j];
-  if (ii>=0 && jj>=0)
-    return cache_helix_closing_[ii][jj];
+  auto ij=is_complementary_[i][j];
+  if (ij>=0)
+    return cache_helix_closing_[ij];
 #endif
   return find_key(SPrintF(format_helix_closing, i, j));
 }
@@ -821,9 +812,9 @@ FeatureMap::
 insert_helix_closing(NUCL i, NUCL j)
 {
 #ifdef USE_CACHE
-  auto ii=is_base_[i], jj=is_base_[j];
-  if (ii>=0 && jj>=0)
-    return cache_helix_closing_[ii][jj];
+  auto ij=is_complementary_[i][j];
+  if (ij>=0)
+    return cache_helix_closing_[ij];
 #endif
   return insert_key(SPrintF(format_helix_closing, i, j));
 }
@@ -938,18 +929,15 @@ FeatureMap::
 initialize_cache_dangle_left()
 {
 #ifdef USE_CACHE
-  for (auto i1: def_bases_)
+  for (auto bp: def_bps_)
   {
-    auto ii1 = is_base_[i1];
-    for (auto j1: def_bases_)
+    auto ij = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
     {
-      auto jj1 = is_base_[j1];
-      for (auto i2: def_bases_)
-      {
-        auto ii2 = is_base_[i2];
-        cache_dangle_left_[ii1][jj1][ii2] = insert_key(SPrintF(format_dangle_left, i1, j1, i2));
-      }
+      auto ii2 = is_base_[i2];
+      cache_dangle_left_[ij][ii2] = insert_key(SPrintF(format_dangle_left, bp[0], bp[1], i2));
     }
+
   }
 #endif
 }
@@ -959,9 +947,10 @@ FeatureMap::
 find_dangle_left(NUCL i1, NUCL j1, NUCL i2) const
 {
 #ifdef USE_CACHE
-  auto ii1=is_base_[i1], jj1=is_base_[j1], ii2=is_base_[i2];
-  if (ii1>=0 && jj1>=0 && ii2>=0)
-    return cache_dangle_left_[ii1][jj1][ii2];
+  auto ij1=is_complementary_[i1][j1];
+  auto ii2=is_base_[i2];
+  if (ij1>=0)
+    return cache_dangle_left_[ij1][ii2];
 #endif
   return find_key(SPrintF(format_dangle_left, i1, j1, i2));
 }
@@ -971,9 +960,10 @@ FeatureMap::
 insert_dangle_left(NUCL i1, NUCL j1, NUCL i2)
 {
 #ifdef USE_CACHE
-  auto ii1=is_base_[i1], jj1=is_base_[j1], ii2=is_base_[i2];
-  if (ii1>=0 && jj1>=0 && ii2>=0)
-    return cache_dangle_left_[ii1][jj1][ii2];
+  auto ij1=is_complementary_[i1][j1];
+  auto ii2=is_base_[i2];
+  if (ij1>=0)
+    return cache_dangle_left_[ij1][ii2];
 #endif
   return insert_key(SPrintF(format_dangle_left, i1, j1, i2));
 }
@@ -985,17 +975,13 @@ FeatureMap::
 initialize_cache_dangle_right()
 {
 #ifdef USE_CACHE
-  for (auto i1: def_bases_)
+  for (auto bp: def_bps_)
   {
-    auto ii1 = is_base_[i1];
-    for (auto j1: def_bases_)
+    auto ij = is_complementary_[bp[0]][bp[1]];
+    for (auto j2: def_bases_)
     {
-      auto jj1 = is_base_[j1];
-      for (auto j2: def_bases_)
-      {
-        auto jj2 = is_base_[j2];
-        cache_dangle_right_[ii1][jj1][jj2] = insert_key(SPrintF(format_dangle_right, i1, j1, j2));
-      }
+      auto jj2 = is_base_[j2];
+      cache_dangle_right_[ij][jj2] = insert_key(SPrintF(format_dangle_right, bp[0], bp[1], j2));
     }
   }
 #endif
@@ -1006,9 +992,10 @@ FeatureMap::
 find_dangle_right(NUCL i1, NUCL j1, NUCL j2) const
 {
 #ifdef USE_CACHE
-  auto ii1=is_base_[i1], jj1=is_base_[j1], jj2=is_base_[j2];
-  if (ii1>=0 && jj1>=0 && jj2>=0)
-    return cache_dangle_right_[ii1][jj1][jj2];
+  auto ij1=is_complementary_[i1][j1];
+  auto jj2=is_base_[j2];
+  if (ij1>=0 && jj2>=0)
+    return cache_dangle_right_[ij1][jj2];
 #endif
     return find_key(SPrintF(format_dangle_right, i1, j1, j2));
 }
@@ -1018,9 +1005,10 @@ FeatureMap::
 insert_dangle_right(NUCL i1, NUCL j1, NUCL j2)
 {
 #ifdef USE_CACHE
-  auto ii1=is_base_[i1], jj1=is_base_[j1], jj2=is_base_[j2];
-  if (ii1>=0 && jj1>=0 && jj2>=0)
-    return cache_dangle_right_[ii1][jj1][jj2];
+  auto ij1=is_complementary_[i1][j1];
+  auto jj2=is_base_[j2];
+  if (ij1>=0 && jj2>=0)
+    return cache_dangle_right_[ij1][jj2];
 #endif
   return insert_key(SPrintF(format_dangle_right, i1, j1, j2));
 }
