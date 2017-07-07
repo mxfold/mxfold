@@ -23,6 +23,7 @@ public:
 
   std::vector<param_value_type> load_from_hash(const std::unordered_map<std::string, param_value_type>& hash);
   std::vector<param_value_type> read_from_file(const std::string& filename);
+  std::vector<param_value_type> import_from_vienna_parameters(const std::string& filename);
   void write_to_file(const std::string& filename, const std::vector<param_value_type>& vals) const;
 
 private:
@@ -31,6 +32,7 @@ private:
 public:
   size_t find_key(const std::string& key) const;
   size_t insert_key(const std::string& key);
+  size_t insert_keyval(const std::string& key, std::vector<param_value_type>& vals, param_value_type v);
   const std::string& name(size_t i) const { return keys_[i]; }
   int is_complementary(NUCL i, NUCL j) const { return is_complementary_[i][j]; }
 

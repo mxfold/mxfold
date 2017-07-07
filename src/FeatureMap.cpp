@@ -1,6 +1,8 @@
 #include "../config.h"
 #include "Config.hpp"
 #include "FeatureMap.hpp"
+#include "LogSpace.hpp"
+#include <sstream>
 
 FeatureMap::
 FeatureMap(const char* def_bases,
@@ -200,6 +202,16 @@ insert_key(const std::string& key)
   return keys_.size()-1;
 }
 
+size_t
+FeatureMap::
+insert_keyval(const std::string& key, std::vector<param_value_type>& vals, param_value_type v)
+{
+  size_t i = insert_key(key);
+  if (i>=vals.size()) vals.resize(i+1, 0.0);
+  vals[i] = v;
+  return i;
+}
+
 std::vector<param_value_type>
 FeatureMap::
 load_from_hash(const std::unordered_map<std::string, param_value_type>& h)
@@ -208,11 +220,7 @@ load_from_hash(const std::unordered_map<std::string, param_value_type>& h)
   hash_.clear();
   keys_.clear();
   for (auto e: h)
-  {
-    size_t i = insert_key(e.first);
-    if (i>=vals.size()) vals.resize(i+1, 0.0);
-    vals[i] = e.second;
-  }
+    insert_keyval(e.first, vals, e.second);
 
   initialize_cache()  ;
   return std::move(vals);
@@ -234,11 +242,7 @@ read_from_file(const std::string& filename)
   {
     while (is >> k >> v)
       if (v!=0.0)
-      {
-        size_t i = insert_key(k);
-        if (i>=vals.size()) vals.resize(i+1, 0.0);
-        vals[i] = v;
-      }
+        insert_keyval(k, vals, v);
   }
   else
   {
@@ -247,11 +251,191 @@ read_from_file(const std::string& filename)
     is >> eta >> lambda >> eps >> t;
     while (is >> k >> v >> s1 >> s2)
       if (v!=0.0)
+        insert_keyval(k, vals, v);
+  }
+
+  initialize_cache();
+  return std::move(vals);
+}
+
+std::string
+ignore_comment(const std::string& l)
+{
+  size_t cp1 = l.find("/*");
+  if (cp1 == std::string::npos) return l;
+  size_t cp2 = l.find("*/");
+  if (cp2 == std::string::npos)
+    throw std::runtime_error("unclosed comment");
+  return l.substr(0, cp1)+l.substr(cp2+2);
+}
+
+std::vector<param_value_type>
+get_array1(const std::string& l)
+{
+  std::vector<param_value_type> ret;
+
+  std::istringstream is(ignore_comment(l));
+  std::string s;
+  while (is >> s)
+  {
+    if (s=="DEF")
+      ret.push_back(0.);
+    else if (s=="INF")
+      ret.push_back(NEG_INF);
+    else if (s=="NST")
+      ret.push_back(50/100.);
+    else
+      ret.push_back(-atoi(s.c_str())/100.);
+  }
+  return std::move(ret);
+}
+
+std::vector<param_value_type>
+get_array(std::istream& is, size_t sz)
+{
+  std::vector<param_value_type> v;
+  v.reserve(sz);
+  std::string l;
+  while (v.size() < sz && std::getline(is, l))
+  {
+    auto w = get_array1(l);
+    v.insert(v.end(), w.begin(), w.end());
+  }
+  return std::move(v);
+}
+
+std::vector<param_value_type>
+FeatureMap::
+import_from_vienna_parameters(const std::string& filename)
+{
+  std::vector<param_value_type> vals;
+  hash_.clear();
+  keys_.clear();
+  std::ifstream is(filename.c_str());
+  if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
+
+  std::string line;
+  std::getline(is, line);
+  if (line.compare(0, 30, "## RNAfold parameter file v2.0") != 0)
+    throw std::runtime_error(std::string("Invalid file format: ") + filename);
+
+  while (std::getline(is, line))
+  {
+    size_t pos = line.find("# ");
+    if (pos == 0) {
+      std::string ident = line.substr(pos+2);
+      if (ident == "stack")
       {
-        size_t i = insert_key(k);
-        if (i>=vals.size()) vals.resize(i+1, 0.0);
-        vals[i] = v;
+        auto v = get_array(is, (NBPS+1)*(NBPS+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBPS+1; ++j, ++p)
+            if (i<NBPS && j<NBPS)
+              insert_keyval(std::string("helix_stacking_")+def_bps_[i]+def_bps_[j], vals, v[p]);
       }
+      else if (ident == "mismatch_hairpin")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k, ++p)
+              if (i<NBPS && j!=0 && k!=0)
+                insert_keyval(std::string("terminal_mismatch_hairpin_")+def_bps_[i]+def_bases_[j-1]+def_bases_[k-1], vals, v[p]);
+      }
+      else if (ident == "mismatch_interior")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k, ++p)
+              if (i<NBPS && j!=0 && k!=0)
+                insert_keyval(std::string("terminal_mismatch_internal_")+def_bps_[i]+def_bases_[j-1]+def_bases_[k-1], vals, v[p]);
+      }
+      else if (ident == "mismatch_interior_1n")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k, ++p)
+              if (i<NBPS && j!=0 && k!=0)
+                insert_keyval(std::string("terminal_mismatch_internal_1n_")+def_bps_[i]+def_bases_[j-1]+def_bases_[k-1], vals, v[p]);
+      }
+      else if (ident == "mismatch_interior_23")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k, ++p)
+              if (i<NBPS && j!=0 && k!=0)
+                insert_keyval(std::string("terminal_mismatch_internal_23_")+def_bps_[i]+def_bases_[j-1]+def_bases_[k-1], vals, v[p]);
+      }
+      else if (ident == "mismatch_multi")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k, ++p)
+              if (i<NBPS && j!=0 && k!=0)
+                insert_keyval(std::string("terminal_mismatch_multi_")+def_bps_[i]+def_bases_[j-1]+def_bases_[k-1], vals, v[p]);
+      }
+      else if (ident == "mismatch_exterior")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k, ++p)
+              if (i<NBPS && j!=0 && k!=0)
+                insert_keyval(std::string("terminal_mismatch_external_")+def_bps_[i]+def_bases_[j-1]+def_bases_[k-1], vals, v[p]);
+      }
+      else if (ident == "dangle5")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j, ++p)
+            if (i<NBPS && j!=0)
+              insert_keyval(std::string("dangle_left_")+def_bps_[i]+def_bases_[j-1], vals, v[p]);
+      }
+      else if (ident == "dangle3")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBASES+1; ++j, ++p)
+            if (i<NBPS && j!=0)
+              insert_keyval(std::string("dangle_right_")+def_bps_[i]+def_bases_[j-1], vals, v[p]);
+      }
+      else if (ident == "int11")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBPS+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBPS+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k)
+              for (size_t l=0; l!=NBASES+1; ++l, ++p)
+                if (i<NBPS && j<NBPS && k!=0 && l!=0)
+                  insert_keyval(std::string("internal_nucleotides_int11_")+def_bps_[i]+def_bps_[j]+"_"+def_bases_[k-1]+"_"+def_bases_[l-1], vals, v[p]);
+      }
+      else if (ident == "int21")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBPS+1)*(NBASES+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBPS+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k)
+              for (size_t l=0; l!=NBASES+1; ++l)
+                for (size_t m=0; m!=NBASES+1; ++m, ++p)
+                if (i<NBPS && j<NBPS && k!=0 && l!=0 && m!=0)
+                  insert_keyval(std::string("internal_nucleotides_int21_")+def_bps_[i]+def_bps_[j]+"_"+def_bases_[k-1]+def_bases_[l-1]+"_"+def_bases_[l-1], vals, v[p]);
+      }
+      else if (ident == "int22")
+      {
+        auto v = get_array(is, (NBPS+1)*(NBPS+1)*(NBASES+1)*(NBASES+1)*(NBASES+1)*(NBASES+1));
+        for (size_t i=0, p=0; i!=NBPS+1; ++i)
+          for (size_t j=0; j!=NBPS+1; ++j)
+            for (size_t k=0; k!=NBASES+1; ++k)
+              for (size_t l=0; l!=NBASES+1; ++l)
+                for (size_t m=0; m!=NBASES+1; ++m)
+                  for (size_t n=0; n!=NBASES+1; ++n, ++p)
+                  if (i<NBPS && j<NBPS && k!=0 && l!=0 && m!=0 && n!=0)
+                    insert_keyval(std::string("internal_nucleotides_int22_")+def_bps_[i]+def_bps_[j]+"_"+def_bases_[k-1]+def_bases_[l-1]+"_"+def_bases_[l-1]+def_bases_[n-1], vals, v[p]);
+      }
+    }
   }
 
   initialize_cache();
