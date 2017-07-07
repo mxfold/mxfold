@@ -375,12 +375,18 @@ NGSfold::predict()
   // set parameters
   FeatureMap fm;
   std::vector<param_value_type> params;
+
+  // for test
+  auto x = fm.import_from_vienna_parameters("rna_turner1999.par");
+  fm.write_to_file("xxx", x);
+
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
   else if (noncomplementary_)
     params = fm.load_from_hash(default_params_noncomplementary);
   else
     params = fm.load_from_hash(default_params_complementary);
+
 
   // predict ss
   InferenceEngine<param_value_type> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
