@@ -295,9 +295,16 @@ void InferenceEngine<RealT>::InitializeCache()
 #endif
 
 #if PARAMS_HAIRPIN_LENGTH
-    cache_score_hairpin_length[0].first = find_param(params_, fm_->find_hairpin_length_at_least(0));
-    for (int i = 1; i <= D_MAX_HAIRPIN_LENGTH; i++)
-        cache_score_hairpin_length[i].first = cache_score_hairpin_length[i-1].first + find_param(params_, fm_->find_hairpin_length_at_least(i));
+    {
+        int i;
+        for (i=0; i<=D_MAX_HAIRPIN_LENGTH; i++)
+        {
+            cache_score_hairpin_length[i].first = find_param(params_, fm_->find_hairpin_length_at_least(i));
+            if (cache_score_hairpin_length[i].first>=NEG_INF/2) break;
+        }
+        for (i=i+1; i<=D_MAX_HAIRPIN_LENGTH; i++)
+            cache_score_hairpin_length[i].first = cache_score_hairpin_length[i-1].first + find_param(params_, fm_->find_hairpin_length_at_least(i));
+    }
 #endif
 
 #if PARAMS_HELIX_LENGTH
@@ -308,16 +315,30 @@ void InferenceEngine<RealT>::InitializeCache()
 
 #if PARAMS_BULGE_LENGTH
     RealT temp_cache_score_bulge_length[D_MAX_BULGE_LENGTH+1];
-    temp_cache_score_bulge_length[0] = find_param(params_, fm_->find_bulge_length_at_least(0));
-    for (int i = 1; i <= D_MAX_BULGE_LENGTH; i++)
-        temp_cache_score_bulge_length[i] = temp_cache_score_bulge_length[i-1] + find_param(params_, fm_->find_bulge_length_at_least(i));
+    {
+        int i;
+        for (i = 0; i <= D_MAX_BULGE_LENGTH; i++)
+        {
+            temp_cache_score_bulge_length[i] = find_param(params_, fm_->find_bulge_length_at_least(i));
+            if (temp_cache_score_bulge_length[i]>=NEG_INF/2) break;
+        }
+        for (i = i+1; i <= D_MAX_BULGE_LENGTH; i++)
+            temp_cache_score_bulge_length[i] = temp_cache_score_bulge_length[i-1] + find_param(params_, fm_->find_bulge_length_at_least(i));
+    }
 #endif
 
 #if PARAMS_INTERNAL_LENGTH
     RealT temp_cache_score_internal_length[D_MAX_INTERNAL_LENGTH+1];
-    temp_cache_score_internal_length[0] = find_param(params_, fm_->find_internal_length_at_least(0));
-    for (int i = 1; i <= D_MAX_INTERNAL_LENGTH; i++)
-        temp_cache_score_internal_length[i] = temp_cache_score_internal_length[i-1] + find_param(params_, fm_->find_internal_length_at_least(i));
+    {
+        int i;
+        for (i = 0; i <= D_MAX_INTERNAL_LENGTH; i++)
+        {
+            temp_cache_score_internal_length[i] = find_param(params_, fm_->find_internal_length_at_least(i));
+            if (temp_cache_score_internal_length[i]>=NEG_INF/2) break;
+        }
+        for (i = i+1; i <= D_MAX_INTERNAL_LENGTH; i++)
+            temp_cache_score_internal_length[i] = temp_cache_score_internal_length[i-1] + find_param(params_, fm_->find_internal_length_at_least(i));
+    }
 #endif
 
 #if PARAMS_INTERNAL_SYMMETRY

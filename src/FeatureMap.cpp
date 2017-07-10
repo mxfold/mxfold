@@ -541,28 +541,20 @@ import_from_vienna_parameters(const std::string& filename)
       else if (ident == "hairpin")
       {
         auto v = get_array(is, 31);
-        for (size_t i = v.size()-1; i > 0; --i)
-          insert_keyval(SPrintF(s_hairpin_length_at_least.c_str(), i), vals, v[i]-v[i-1]);
+        for (size_t i=0; i!=v.size(); ++i)
+          insert_keyval(SPrintF(s_hairpin_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
       }
       else if (ident == "bulge")
       {
         auto v = get_array(is, 31);
-        for (size_t i = 0; i < v.size(); i++)
-        {
-          param_value_type w=0.0;
-          for (size_t j = i; j < v.size(); j++) w += v[j];
-          insert_keyval(SPrintF(s_bulge_length_at_least.c_str(), i), vals, w);
-        }
+        for (size_t i=0; i!=v.size(); ++i)
+          insert_keyval(SPrintF(s_bulge_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
       }
       else if (ident == "interior")
       {
         auto v = get_array(is, 31);
-        for (size_t i = 0; i < v.size(); i++)
-        {
-          param_value_type w=0.0;
-          for (size_t j = i; j < v.size(); j++) w += v[j];
-          insert_keyval(SPrintF(s_internal_length_at_least.c_str(), i), vals, w);
-        }
+        for (size_t i=0; i!=v.size(); ++i)
+          insert_keyval(SPrintF(s_internal_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
       }
       else if (ident == "NINIO")
       {
@@ -612,7 +604,7 @@ import_from_vienna_parameters(const std::string& filename)
     }
   }
 
-  //initialize_cache();
+  initialize_cache();
   return std::move(vals);
 }
 
@@ -628,7 +620,7 @@ write_to_file(const std::string& filename, const std::vector<param_value_type>& 
   std::sort(idx.begin(), idx.end(),
             [&](size_t i, size_t j) { return keys_[i] < keys_[j]; });
   for (auto i: idx)
-    if (vals[i]!=0.0)
+    if (std::abs(vals[i])>1e-20)
       os << keys_[i] << " " << vals[i] << std::endl;
 }
 
