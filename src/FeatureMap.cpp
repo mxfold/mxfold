@@ -29,6 +29,7 @@ const std::string s_dangle_right("dangle_right_");
 const std::string s_external_unpaired("external_unpaired");
 const std::string s_external_paired("external_paired");
 
+#ifdef PARAMS_VIENNA_COMPAT
 // for vienna compatibility
 const std::string s_hairpin_length("hairpin_length_%d");
 const std::string s_bulge_length("bulge_length_%d");
@@ -49,6 +50,7 @@ const std::string s_terminalAU("terminalAU");
 const std::string s_triloop("triloop_");
 const std::string s_tetraloop("tetraloop_");
 const std::string s_hexaloop("hexaloop_");
+#endif
 
 FeatureMap::
 FeatureMap(const char* def_bases,
@@ -239,6 +241,7 @@ insert_key(const std::string& key)
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
+#ifdef PARAMS_VIENNA_COMPAT
   else if (key.find(s_internal_nucleotides_int11) == 0)
   {
     const char nuc1 = key[s_internal_nucleotides_int11.size()+0];
@@ -291,6 +294,7 @@ insert_key(const std::string& key)
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
+#endif
 
   keys_.push_back(k.c_str());
   return keys_.size()-1;
@@ -412,6 +416,7 @@ get_loops(std::istream& is)
   return std::pair<std::string, param_value_type>();
 }
 
+#ifdef PARAMS_VIENNA_COMPAT
 std::vector<param_value_type>
 FeatureMap::
 import_from_vienna_parameters(const std::string& filename)
@@ -614,6 +619,7 @@ import_from_vienna_parameters(const std::string& filename)
   initialize_cache();
   return std::move(vals);
 }
+#endif
 
 void
 FeatureMap::
@@ -784,6 +790,7 @@ insert_hairpin_length_at_least(uint l)
 }
 #endif
 
+#if PARAMS_HAIRPIN_NUCLEOTIDES
 size_t
 FeatureMap::
 find_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const
@@ -801,6 +808,7 @@ insert_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l)
   std::copy(&s[i], &s[i]+l, h.begin());
   return insert_key(s_hairpin_nucleotides + h);
 }
+#endif
 
 #if PARAMS_HELIX_LENGTH
 void
@@ -1040,6 +1048,7 @@ insert_internal_asymmetry_at_least(uint l)
 }
 #endif
 
+#if PARAMS_INTERNAL_NUCLEOTIDES
 size_t
 FeatureMap::
 find_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const
@@ -1061,6 +1070,7 @@ insert_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, 
   std::reverse_copy(&s[j-m+1], &s[j+1], x);
   return insert_key(s_internal_nucleotides + nuc);
 }
+#endif
 
 #if PARAMS_HELIX_STACKING
 void
@@ -1393,7 +1403,7 @@ insert_external_paired()
 }
 #endif
 
-#if PARAM_VIENNA_COMPAT
+#if PARAMS_VIENNA_COMPAT
 
 size_t
 FeatureMap::

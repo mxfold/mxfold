@@ -63,14 +63,16 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_DANGLE                              1
 #define PARAMS_EXTERNAL_LENGTH                     1
 
-#else  // CONTRAFOLD_MODEL
+#define PARAMS_INTERNAL_NUCLEOTIDES                2
+#define PARAMS_HAIRPIN_NUCLEOTIDES                 0
 
+#else
+
+// our full model
 #define PARAMS_BASE_PAIR                           1
 #define PARAMS_BASE_PAIR_DIST                      1
 #define PARAMS_TERMINAL_MISMATCH                   1
 #define PARAMS_HAIRPIN_LENGTH                      1
-#define PARAMS_HAIRPIN_3_NUCLEOTIDES               1
-#define PARAMS_HAIRPIN_4_NUCLEOTIDES               1
 #define PARAMS_HELIX_LENGTH                        1
 #define PARAMS_ISOLATED_BASE_PAIR                  1
 #define PARAMS_INTERNAL_EXPLICIT                   1
@@ -78,12 +80,6 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_INTERNAL_LENGTH                     1
 #define PARAMS_INTERNAL_SYMMETRY                   1
 #define PARAMS_INTERNAL_ASYMMETRY                  1
-#define PARAMS_BULGE_0x1_NUCLEOTIDES               1
-#define PARAMS_BULGE_0x2_NUCLEOTIDES               1
-#define PARAMS_BULGE_0x3_NUCLEOTIDES               1
-#define PARAMS_INTERNAL_1x1_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_1x2_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_2x2_NUCLEOTIDES            1
 #define PARAMS_HELIX_STACKING                      1
 #define PARAMS_HELIX_CLOSING                       1
 #define PARAMS_MULTI_LENGTH                        1
@@ -91,28 +87,10 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_EXTERNAL_LENGTH                     1
 
 // extended parameters
-#define PARAMS_HAIRPIN_5_NUCLEOTIDES               1
-#define PARAMS_HAIRPIN_6_NUCLEOTIDES               1
-#define PARAMS_HAIRPIN_7_NUCLEOTIDES               0
+#define PARAMS_INTERNAL_NUCLEOTIDES                7
+#define PARAMS_HAIRPIN_NUCLEOTIDES                 7
 
-#define PARAMS_BULGE_0x4_NUCLEOTIDES               1
-#define PARAMS_BULGE_0x5_NUCLEOTIDES               1
-#define PARAMS_BULGE_0x6_NUCLEOTIDES               1
-#define PARAMS_BULGE_0x7_NUCLEOTIDES               0
-
-#define PARAMS_INTERNAL_1x3_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_2x3_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_3x3_NUCLEOTIDES            1
-
-#define PARAMS_INTERNAL_1x4_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_2x4_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_3x4_NUCLEOTIDES            1
-#define PARAMS_INTERNAL_4x4_NUCLEOTIDES            0
-
-#define PARAMS_INTERNAL_ANY_NUCLEOTIDES            7
-#define PARAMS_HAIRPIN_ANY_NUCLEOTIDES             7
-
-#define PARAM_VIENNA_COMPAT                        1
+//#define PARAMS_VIENNA_COMPAT                        1
 
 #endif  // CONTRAFOLD_MODEL
 

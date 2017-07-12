@@ -376,10 +376,6 @@ NGSfold::predict()
   FeatureMap fm;
   std::vector<param_value_type> params;
 
-  // for test
-  auto x = fm.import_from_vienna_parameters("rna_turner1999.par");
-  fm.write_to_file("xxx", x);
-
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
   else if (noncomplementary_)

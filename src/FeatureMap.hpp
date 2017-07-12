@@ -41,7 +41,7 @@ public:
   const_iterator begin() const { return keys_.begin(); }
   const_iterator end() const { return keys_.end(); }
 
-public:  
+public:
   // access to parameters
 #if PARAMS_BASE_PAIR
   size_t find_base_pair(NUCL i, NUCL j) const;
@@ -63,10 +63,10 @@ public:
   size_t insert_hairpin_length_at_least(uint l);
   void initialize_cache_hairpin_length_at_least();
 #endif
-
+#if PARAMS_HAIRPIN_NUCLEOTIDES
   size_t find_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   size_t insert_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
-
+#endif
 #if PARAMS_HELIX_LENGTH
   size_t find_helix_length_at_least(uint l) const;
   size_t insert_helix_length_at_least(uint l);
@@ -102,10 +102,10 @@ public:
   size_t insert_internal_asymmetry_at_least(uint l);
   void initialize_cache_internal_asymmetry_at_least();
 #endif
-
+#if PARAMS_INTERNAL_NUCLEOTIDES
   size_t find_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const;
   size_t insert_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m);
-
+#endif
 #if PARAMS_HELIX_STACKING
   size_t find_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
   size_t insert_helix_stacking(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
@@ -148,7 +148,7 @@ public:
   void initialize_cache_external_paired();
 #endif
 
-#if PARAM_VIENNA_COMPAT
+#if PARAMS_VIENNA_COMPAT
   size_t find_internal_loop_11(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const;
   size_t insert_internal_loop_11(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2);
   size_t find_internal_loop_21(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const;
