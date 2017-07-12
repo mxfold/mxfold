@@ -28,6 +28,27 @@ AC_TYPE_SIZE_T
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gettimeofday strtol strtoul strtoull])
 
+# Vienna RNA package
+AC_ARG_WITH([vienna-rna], AS_HELP_STRING([--with-vienna-rna=PATH], [support Vienna RNA package]),
+if test "$with_vienna_rna" != "yes" && test "$with_vienna_rna" != "no" ; then
+CPPFLAGS="-I${with_vienna_rna}/include $CPPFLAGS"
+LDFLAGS="-L${with_vienna_rna}/lib $LDFLAGS"
+fi
+)
+AC_CHECK_LIB([RNA], [pf_fold], [],
+[
+AC_MSG_NOTICE([try '-fopenmp'])
+CXXFLAGS_BAK=${CXXFLAGS}
+CXXFLAGS="-fopenmp ${CXXFLAGS}"
+unset ac_cv_lib_RNA_pf_fold
+AC_CHECK_LIB([RNA], [pf_fold], [], [ CXXFLAGS=${CXXFLAGS_BAK} ])
+])
+AC_CHECK_HEADER([ViennaRNA/ribo.h],
+[AC_DEFINE([HAVE_VIENNA18], [], [have the Vienna RNA package version 1.8 or above])])
+AC_CHECK_FUNC(energy_of_structure,
+[AC_DEFINE([HAVE_VIENNA20], [], [have the Vienna RNA package version 2.0 or above])])
+
+
 AC_CONFIG_FILES([Makefile
                  src/Makefile])
 AC_OUTPUT

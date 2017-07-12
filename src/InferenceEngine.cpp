@@ -73,7 +73,7 @@ template < typename T >
 T
 find_param(const std::vector<T>* params, size_t i)
 {
-    return /*params!=NULL && i!=-1u && */ i<params->size() ? (*params)[i] : T(0);
+    return /*params!=nullptr && i!=-1u && */ i<params->size() ? (*params)[i] : T(0);
 }
 
 template < typename T >
@@ -165,8 +165,14 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
     cache_initialized(false),
     L(0),
     SIZE(0),
+#ifdef HAVE_VIENNA20
+    vc_(nullptr),
+#endif
     cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
+#ifdef HAVE_VIENNA20
+    vrna_md_set_default(&md_);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -177,7 +183,11 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
 
 template<class RealT>
 InferenceEngine<RealT>::~InferenceEngine()
-{}
+{
+#ifdef HAVE_VIENNA20
+    if (vc_) vrna_fold_compound_free(vc_);
+#endif
+}
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::LoadSequence()
@@ -219,6 +229,9 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
     {
         s[i] = toupper(sequence[i]);
     }
+#ifdef HAVE_VIENNA20
+    vc_  = vrna_fold_compound(&sequence.c_str()[1], &md_, 0);
+#endif
 
     // compute indexing scheme for upper triangular arrays;
     // also allow each position to be unpaired by default, and
@@ -430,12 +443,14 @@ void InferenceEngine<RealT>::InitializeCache()
 template<class RealT>
 void
 InferenceEngine<RealT>::LoadValues(FeatureMap* fm, const std::vector<param_value_type>* params,
-                                   const std::vector<param_value_type>* params_base /* = NULL */)
+                                   const std::vector<param_value_type>* params_base /* = nullptr */)
 {
     cache_initialized = false;
     fm_ = fm;
     params_ = params;
+#ifdef PARAMS_VIENNA_COMPAT
     params_base_ = params_base;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -876,10 +891,16 @@ inline void InferenceEngine<RealT>::CountIsolated(RealT v)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiBase() const
 {
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+        e = vc_->params->MLclosing / -100.;
+#endif
+
 #if PARAMS_MULTI_LENGTH
-    return find_param(params_, params_base_, fm_->find_multi_base());
+    return e + find_param(params_, fm_->find_multi_base());
 #else
-    return RealT(0);
+    return e;
 #endif
 }
 
@@ -896,8 +917,12 @@ inline void InferenceEngine<RealT>::CountMultiBase(RealT v)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiPaired() const
 {
+#ifdef HAVE_VIENNA20
+    // the corresponding score of MLintern is included in E_MLstem() in ScoreJunctionMulti().
+#endif
+
 #if PARAMS_MULTI_LENGTH
-    return find_param(params_, params_base_, fm_->find_multi_paired());
+    return find_param(params_, fm_->find_multi_paired());
 #else
     return RealT(0);
 #endif
@@ -916,10 +941,16 @@ inline void InferenceEngine<RealT>::CountMultiPaired(RealT v)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreMultiUnpaired(int i) const
 {
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+        e = vc_->params->MLbase / -100.;
+#endif
+
 #if PARAMS_MULTI_LENGTH
-    return find_param(params_, params_base_, fm_->find_multi_unpaired()) + ScoreUnpairedPosition(i);
+    return e + find_param(params_, fm_->find_multi_unpaired()) + ScoreUnpairedPosition(i);
 #else
-    return ScoreUnpairedPosition(i);
+    return e + ScoreUnpairedPosition(i);
 #endif
 }
 
@@ -988,10 +1019,21 @@ inline void InferenceEngine<RealT>::CountExternalUnpaired(int i, RealT v)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreHelixStacking(int i, int j) const
 {
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+    {
+        short *S = vc_->sequence_encoding;
+        unsigned char type   = md_.pair[S[i]][S[j]];
+        unsigned char type2  = md_.pair[S[j-1]][S[i+1]];
+        e = VIENNA::E_IntLoop(0, 0, type, type2, S[i+1], S[j-1], S[i], S[j], vc_->params) / -100.;
+    }
+#endif
+
 #if PARAMS_HELIX_STACKING
-    return find_param(params_, params_base_, fm_->find_helix_stacking(s[i], s[j], s[i+1], s[j-1]));
+    return e + find_param(params_, fm_->find_helix_stacking(s[i], s[j], s[i+1], s[j-1]));
 #else
-    return RealT(0);
+    return e;
 #endif
 }
 
@@ -1066,7 +1108,16 @@ inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreJunctionMulti(int i, int j) const
 {
-    return ScoreJunctionA(i, j);
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+    {
+        short *S = vc_->sequence_encoding;
+        unsigned char type   = md_.pair[S[i]][S[j+1]];
+        e = VIENNA::E_MLstem(type, S[i+1], S[j], vc_->params) / -100.;
+    }
+#endif
+    return e + ScoreJunctionA(i, j);
 }
 
 template<class RealT>
@@ -1078,7 +1129,16 @@ inline void InferenceEngine<RealT>::CountJunctionMulti(int i, int j, RealT value
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreJunctionExt(int i, int j) const
 {
-    return ScoreJunctionA(i, j);
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+    {
+        short *S = vc_->sequence_encoding;
+        unsigned char type   = md_.pair[S[i]][S[j+1]];
+        e = VIENNA::E_ExtLoop(type, S[i+1], S[j], vc_->params) / -100.;
+    }
+#endif
+    return e + ScoreJunctionA(i, j);
 }
 
 template<class RealT>
@@ -1365,8 +1425,18 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 
     Assert(0 < i && i + C_MIN_HAIRPIN_LENGTH <= j && j < L, "Hairpin boundaries invalid.");
 
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+    {
+        short *S = vc_->sequence_encoding;
+        unsigned char type   = md_.pair[S[i]][S[j+1]];
+        e = VIENNA::E_Hairpin(j-i, type, S[i+1], S[j], vc_->sequence+i-1, vc_->params) / -100.;
+    }
+#endif
+
     return
-        ScoreUnpaired(i,j)
+        e + ScoreUnpaired(i,j)
         + ScoreJunctionHairpin(i,j)
 #if PARAMS_HAIRPIN_LENGTH
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
@@ -1585,8 +1655,19 @@ inline RealT InferenceEngine<RealT>::ScoreSingle(int i, int j, int p, int q) con
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
 
+    RealT e = RealT(0);
+#ifdef HAVE_VIENNA20
+    if (vc_)
+    {
+        short *S = vc_->sequence_encoding;
+        unsigned char type   = md_.pair[S[i]][S[j+1]];
+        unsigned char type2  = md_.pair[S[q]][S[p+1]];
+        e = VIENNA::E_IntLoop(l1, l2, type, type2, S[i+1], S[j], S[p], S[q+1], vc_->params) / -100.;
+    }
+#endif
+
     return
-        cache_score_single[l1][l2].first
+        e + cache_score_single[l1][l2].first
         + ScoreBasePair(p+1,q)
         + ScoreJunctionB(i,j)
         + ScoreJunctionB(q,p)

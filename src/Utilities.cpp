@@ -312,7 +312,7 @@ void WriteProgressMessage(const std::string &message)
 double GetSystemTime()
 {
     timeval t;
-    if (gettimeofday(&t, NULL) != 0) Error("Failed to obtain system time.");
+    if (gettimeofday(&t, nullptr) != 0) Error("Failed to obtain system time.");
     return t.tv_sec + 1e-6 * t.tv_usec;
 }
 
@@ -345,7 +345,7 @@ std::string MakeTempDirectory()
 
     // check for error
 
-    if (ret == NULL)
+    if (ret == nullptr)
     {
         delete [] temp_dir_name;
         Error("Unable to create temp directory!");

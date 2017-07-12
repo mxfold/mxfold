@@ -1443,10 +1443,10 @@ is_basepair_feature(const std::string& f) const
 #if PARAMS_EXTERNAL_LENGTH
     format_external_paired,
 #endif
-    NULL
+    nullptr
   };
 
-  for (uint i=0; bp_features[i]!=NULL; ++i)
+  for (uint i=0; bp_features[i]!=nullptr; ++i)
   {
     auto m = std::mismatch(f.begin(), f.end(), bp_features[i]);
     if (*m.second == 0 || *m.second == '%')
@@ -1478,10 +1478,10 @@ is_basepair_context_feature(const std::string& f) const
     format_dangle_left, 
     format_dangle_right,
 #endif
-    NULL
+    nullptr
   };
 
-  for (uint i=0; bp_features[i]!=NULL; ++i)
+  for (uint i=0; bp_features[i]!=nullptr; ++i)
   {
     auto m = std::mismatch(f.begin(), f.end(), bp_features[i]);
     if (is_base(*m.first) && *m.second == '%')
@@ -1497,10 +1497,10 @@ ParameterHash<ValueT>::
 is_context_feature(const std::string& f) const
 {
   static const char* context_features[] = {
-    "hairpin_", "bulge_", "internal_", NULL
+    "hairpin_", "bulge_", "internal_", nullptr
   };
 
-  for (uint i=0; context_features[i]!=NULL; ++i)
+  for (uint i=0; context_features[i]!=nullptr; ++i)
   {
     auto m = std::mismatch(f.begin(), f.end(), context_features[i]);
     if (isdigit(*m.first))

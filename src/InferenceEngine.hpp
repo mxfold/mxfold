@@ -5,6 +5,7 @@
 #ifndef INFERENCEENGINE_HPP
 #define INFERENCEENGINE_HPP
 
+#include "../config.h"
 #include <queue>
 #include <vector>
 #include <string>
@@ -15,6 +16,17 @@
 #include "Utilities.hpp"
 #include "LogSpace.hpp"
 #include <iostream>
+
+#ifdef HAVE_VIENNA20
+namespace VIENNA
+{
+    extern "C"
+    {
+#include <ViennaRNA/loop_energies.h>
+    }
+};
+#endif
+
 //////////////////////////////////////////////////////////////////////
 // class InferenceEngine
 //////////////////////////////////////////////////////////////////////
@@ -30,7 +42,9 @@ private:
     bool cache_initialized;
     FeatureMap* fm_;
     const std::vector<RealT>* params_;
+#ifdef PARAMS_VIENNA_COMPAT
     const std::vector<RealT>* params_base_; // vienna params
+#endif
     //std::vector<RealT>* counts_;
     std::unordered_map<size_t,RealT>* counts_;
 
@@ -48,6 +62,10 @@ private:
     std::vector<float> reactivity_unpaired_position;
     std::vector<float> reactivity_unpaired, reactivity_paired;
 
+#ifdef HAVE_VIENNA20
+    VIENNA::vrna_md_t md_;
+    VIENNA::vrna_fold_compound_t *vc_;
+#endif
 
     enum TRACEBACK_TYPE {
 #if PARAMS_HELIX_LENGTH || PARAMS_ISOLATED_BASE_PAIR
@@ -195,7 +213,7 @@ public:
 
     // load parameter values
     void LoadValues(FeatureMap* fm, const std::vector<param_value_type>* params, 
-                    const std::vector<param_value_type>* params_base=NULL);
+                    const std::vector<param_value_type>* params_base=nullptr);
 
     // load loss function
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);

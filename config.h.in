@@ -9,6 +9,9 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
+/* Define to 1 if you have the `RNA' library (-lRNA). */
+#undef HAVE_LIBRNA
+
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
 
@@ -53,6 +56,12 @@
 
 /* Define to 1 if you have the <unistd.h> header file. */
 #undef HAVE_UNISTD_H
+
+/* have the Vienna RNA package version 1.8 or above */
+#undef HAVE_VIENNA18
+
+/* have the Vienna RNA package version 2.0 or above */
+#undef HAVE_VIENNA20
 
 /* Define to 1 if the system has the type `_Bool'. */
 #undef HAVE__BOOL

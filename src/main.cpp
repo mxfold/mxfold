@@ -383,7 +383,6 @@ NGSfold::predict()
   else
     params = fm.load_from_hash(default_params_complementary);
 
-
   // predict ss
   InferenceEngine<param_value_type> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine.LoadValues(&fm, &params);

@@ -724,6 +724,7 @@ ac_user_opts='
 enable_option_checking
 enable_silent_rules
 enable_dependency_tracking
+with_vienna_rna
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1358,6 +1359,11 @@ Optional Features:
                           do not reject slow dependency extractors
   --disable-dependency-tracking
                           speeds up one-time build
+
+Optional Packages:
+  --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
+  --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+  --with-vienna-rna=PATH  support Vienna RNA package
 
 Some influential environment variables:
   CC          C compiler command
@@ -6042,6 +6048,134 @@ _ACEOF
 
 fi
 done
+
+
+# Vienna RNA package
+
+# Check whether --with-vienna-rna was given.
+if test "${with_vienna_rna+set}" = set; then :
+  withval=$with_vienna_rna; if test "$with_vienna_rna" != "yes" && test "$with_vienna_rna" != "no" ; then
+CPPFLAGS="-I${with_vienna_rna}/include $CPPFLAGS"
+LDFLAGS="-L${with_vienna_rna}/lib $LDFLAGS"
+fi
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pf_fold in -lRNA" >&5
+$as_echo_n "checking for pf_fold in -lRNA... " >&6; }
+if ${ac_cv_lib_RNA_pf_fold+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lRNA  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pf_fold ();
+int
+main ()
+{
+return pf_fold ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_RNA_pf_fold=yes
+else
+  ac_cv_lib_RNA_pf_fold=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_RNA_pf_fold" >&5
+$as_echo "$ac_cv_lib_RNA_pf_fold" >&6; }
+if test "x$ac_cv_lib_RNA_pf_fold" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBRNA 1
+_ACEOF
+
+  LIBS="-lRNA $LIBS"
+
+else
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: try '-fopenmp'" >&5
+$as_echo "$as_me: try '-fopenmp'" >&6;}
+CXXFLAGS_BAK=${CXXFLAGS}
+CXXFLAGS="-fopenmp ${CXXFLAGS}"
+unset ac_cv_lib_RNA_pf_fold
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for pf_fold in -lRNA" >&5
+$as_echo_n "checking for pf_fold in -lRNA... " >&6; }
+if ${ac_cv_lib_RNA_pf_fold+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lRNA  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char pf_fold ();
+int
+main ()
+{
+return pf_fold ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_cxx_try_link "$LINENO"; then :
+  ac_cv_lib_RNA_pf_fold=yes
+else
+  ac_cv_lib_RNA_pf_fold=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_RNA_pf_fold" >&5
+$as_echo "$ac_cv_lib_RNA_pf_fold" >&6; }
+if test "x$ac_cv_lib_RNA_pf_fold" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBRNA 1
+_ACEOF
+
+  LIBS="-lRNA $LIBS"
+
+else
+   CXXFLAGS=${CXXFLAGS_BAK}
+fi
+
+
+fi
+
+ac_fn_cxx_check_header_mongrel "$LINENO" "ViennaRNA/ribo.h" "ac_cv_header_ViennaRNA_ribo_h" "$ac_includes_default"
+if test "x$ac_cv_header_ViennaRNA_ribo_h" = xyes; then :
+
+$as_echo "#define HAVE_VIENNA18 /**/" >>confdefs.h
+
+fi
+
+
+ac_fn_cxx_check_func "$LINENO" "energy_of_structure" "ac_cv_func_energy_of_structure"
+if test "x$ac_cv_func_energy_of_structure" = xyes; then :
+
+$as_echo "#define HAVE_VIENNA20 /**/" >>confdefs.h
+
+fi
+
 
 
 ac_config_files="$ac_config_files Makefile src/Makefile"
