@@ -63,6 +63,7 @@ private:
     std::vector<float> reactivity_unpaired, reactivity_paired;
 
 #ifdef HAVE_VIENNA20
+    bool with_turner_;
     VIENNA::vrna_md_t md_;
     VIENNA::vrna_fold_compound_t *vc_;
 #endif
@@ -202,7 +203,8 @@ private:
 public:
 
     // constructor and destructor
-    InferenceEngine(bool allow_noncomplementary,
+    InferenceEngine(bool with_turner,
+                    bool allow_noncomplementary,
                     int max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH,
                     int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH,
                     int max_span = -1);

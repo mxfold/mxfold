@@ -16,6 +16,10 @@ option "param" p
   "Load parameters from parameter-file"
   string typestr="parameter-file" optional
 
+option "with-turner" t
+  "Use the Tuner energy model as the base"
+  flag off
+
 option "random-seed" -
   "Specify the seed of the random number generator"
   int default="-1" optional

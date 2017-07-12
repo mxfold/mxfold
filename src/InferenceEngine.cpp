@@ -154,8 +154,9 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 //////////////////////////////////////////////////////////////////////
 
 template<class RealT>
-InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary, 
-                                        int max_single_length /*= DEFAULT_C_MAX_SINGLE_LENGTH*/, 
+InferenceEngine<RealT>::InferenceEngine(bool with_turner,
+                                        bool allow_noncomplementary,
+                                        int max_single_length /*= DEFAULT_C_MAX_SINGLE_LENGTH*/,
                                         int min_hairpin_length /*= DEFAULT_C_MIN_HAIRPIN_LENGTH*/,
                                         int max_span /*= -1*/) :
     allow_noncomplementary(allow_noncomplementary),
@@ -166,12 +167,14 @@ InferenceEngine<RealT>::InferenceEngine(bool allow_noncomplementary,
     L(0),
     SIZE(0),
 #ifdef HAVE_VIENNA20
+    with_turner_(with_turner),
     vc_(nullptr),
 #endif
     cache_score_single(C_MAX_SINGLE_LENGTH+1, std::vector<std::pair<RealT,RealT>>(C_MAX_SINGLE_LENGTH+1))
 {
 #ifdef HAVE_VIENNA20
-    vrna_md_set_default(&md_);
+    if (with_turner_)
+        vrna_md_set_default(&md_);
 #endif
 }
 
@@ -230,7 +233,8 @@ void InferenceEngine<RealT>::LoadSequence(const SStruct &sstruct)
         s[i] = toupper(sequence[i]);
     }
 #ifdef HAVE_VIENNA20
-    vc_  = vrna_fold_compound(&sequence.c_str()[1], &md_, 0);
+    if (with_turner_)
+        vc_  = vrna_fold_compound(&sequence.c_str()[1], &md_, 0);
 #endif
 
     // compute indexing scheme for upper triangular arrays;

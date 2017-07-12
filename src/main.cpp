@@ -50,6 +50,7 @@ private:
   bool output_bpseq_;
   std::string out_file_;
   std::string param_file_;
+  bool with_turner_;
   std::vector<std::string> data_list_;
   std::vector<std::string> data_weak_list_;
   bool mea_;
@@ -128,6 +129,7 @@ NGSfold::parse_options(int& argc, char**& argv)
   if (args_info.out_param_given)
     out_param_ = args_info.out_param_arg;
 
+  with_turner_ = args_info.with_turner_flag==1;
   noncomplementary_ = args_info.noncomplementary_flag==1;
   output_bpseq_ = args_info.bpseq_flag==1;
   max_span_ = args_info.max_span_arg;
@@ -208,7 +210,8 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
     max_single_length = std::max<int>(s.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH);
   else
     max_span = max_span_;
-  InferenceEngine<param_value_type> inference_engine1(noncomplementary_, max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
+  InferenceEngine<param_value_type> inference_engine1(with_turner_, noncomplementary_,
+                                                      max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
   inference_engine1.LoadValues(fm, params);
   inference_engine1.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
@@ -241,7 +244,8 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
     grad.emplace(e.first, static_cast<param_value_type>(0)).first->second -= e.second;
 
   // count the occurence of parameters in the predicted structure
-  InferenceEngine<param_value_type> inference_engine0(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
+  InferenceEngine<param_value_type> inference_engine0(with_turner_, noncomplementary_,
+                                                      DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine0.LoadValues(fm, params);
   inference_engine0.LoadSequence(s);
   switch (s.GetType())
@@ -378,13 +382,17 @@ NGSfold::predict()
 
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
-  else if (noncomplementary_)
-    params = fm.load_from_hash(default_params_noncomplementary);
-  else
-    params = fm.load_from_hash(default_params_complementary);
+  if (!with_turner_)
+  {
+    if (noncomplementary_)
+      params = fm.load_from_hash(default_params_noncomplementary);
+    else
+      params = fm.load_from_hash(default_params_complementary);
+  }
 
   // predict ss
-  InferenceEngine<param_value_type> inference_engine(noncomplementary_, DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
+  InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_, 
+                                                     DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
   inference_engine.LoadValues(&fm, &params);
   for (auto s : args_)
   {
@@ -428,20 +436,24 @@ NGSfold::validate()
   // set parameters
   FeatureMap fm;
   std::vector<param_value_type> params;
+
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
-  else if (noncomplementary_)
-    params = fm.load_from_hash(default_params_noncomplementary);
-  else
-    params = fm.load_from_hash(default_params_complementary);
+  if (!with_turner_)
+  {
+    if (noncomplementary_)
+      params = fm.load_from_hash(default_params_noncomplementary);
+    else
+      params = fm.load_from_hash(default_params_complementary);
+  }
 
   for (auto s : args_)
   {
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    InferenceEngine<param_value_type> inference_engine(noncomplementary_, 
-                                             std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+    InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_, 
+                                                       std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
     inference_engine.LoadValues(&fm, &params);
     inference_engine.LoadSequence(sstruct);
     inference_engine.UseConstraints(sstruct.GetMapping());
@@ -466,12 +478,16 @@ NGSfold::count_features()
   // set parameters
   FeatureMap fm;
   std::vector<param_value_type> params;
+
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
-  else if (noncomplementary_)
-    params = fm.load_from_hash(default_params_noncomplementary);
-  else
-    params = fm.load_from_hash(default_params_complementary);
+  if (!with_turner_)
+  {
+    if (noncomplementary_)
+      params = fm.load_from_hash(default_params_noncomplementary);
+    else
+      params = fm.load_from_hash(default_params_complementary);
+  }
 
   std::unordered_map<size_t, param_value_type> cnt;
   for (auto s : args_)
@@ -479,7 +495,7 @@ NGSfold::count_features()
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    InferenceEngine<param_value_type> inference_engine(noncomplementary_,
+    InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_,
                                                        std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
     inference_engine.LoadValues(&fm, &params);
     inference_engine.LoadSequence(sstruct);
