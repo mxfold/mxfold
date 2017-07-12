@@ -2,6 +2,7 @@
 #include "Config.hpp"
 #include "FeatureMap.hpp"
 #include "LogSpace.hpp"
+#include <cassert>
 #include <sstream>
 
 // constants
@@ -23,12 +24,15 @@ const std::string s_helix_closing("helix_closing_");
 const std::string s_multi_base("multi_base");
 const std::string s_multi_unpaired("multi_unpaired");
 const std::string s_multi_paired("multi_paired");
-const std::string s_dangle_left = "dangle_left_";
-const std::string s_dangle_right = "dangle_right_";
-const std::string s_external_unpaired = "external_unpaired";
-const std::string s_external_paired = "external_paired";
+const std::string s_dangle_left("dangle_left_");
+const std::string s_dangle_right("dangle_right_");
+const std::string s_external_unpaired("external_unpaired");
+const std::string s_external_paired("external_paired");
 
 // for vienna compatibility
+const std::string s_hairpin_length("hairpin_length_%d");
+const std::string s_bulge_length("bulge_length_%d");
+const std::string s_internal_length("internal_length_%d");
 const std::string s_internal_nucleotides_int11("internal_loop_11_");
 const std::string s_internal_nucleotides_int21("internal_loop_21_");
 const std::string s_internal_nucleotides_int12("internal_loop_12_");
@@ -41,7 +45,7 @@ const std::string s_terminal_mismatch_multi("terminal_mismatch_multi_");
 const std::string s_terminal_mismatch_external("terminal_mismatch_external_");
 const std::string s_ninio("ninio");
 const std::string s_ninio_max("ninio_max");
-const std::string s_termialAU("termialAU");
+const std::string s_terminalAU("terminalAU");
 const std::string s_triloop("triloop_");
 const std::string s_tetraloop("tetraloop_");
 const std::string s_hexaloop("hexaloop_");
@@ -204,7 +208,7 @@ insert_key(const std::string& key)
     std::string nuc2 = key.substr(pos+1);
     std::reverse(nuc1.begin(), nuc1.end());
     std::reverse(nuc2.begin(), nuc2.end());
-    std::string key2 = s_internal_nucleotides + nuc2 + "_" + nuc1;
+    std::string key2 = s_internal_nucleotides + nuc2 + '_' + nuc1;
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
@@ -231,7 +235,7 @@ insert_key(const std::string& key)
     size_t pos=key.find("_", s_internal_explicit.size());
     std::string l1 = key.substr(s_internal_explicit.size(), pos-s_internal_explicit.size());
     std::string l2 = key.substr(pos+1);
-    std::string key2 = s_internal_explicit + l2 + "_" + l1;
+    std::string key2 = s_internal_explicit + l2 + '_' + l1;
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
@@ -243,7 +247,7 @@ insert_key(const std::string& key)
     const char nuc4 = key[s_internal_nucleotides_int11.size()+3];
     const char nuc5 = key[s_internal_nucleotides_int11.size()+5];
     const char nuc6 = key[s_internal_nucleotides_int11.size()+7];
-    std::string key2 = s_internal_nucleotides_int11 + nuc4 + nuc3 + nuc2 + nuc1 + "_" + nuc6 + "_" + nuc5;
+    std::string key2 = s_internal_nucleotides_int11 + nuc4 + nuc3 + nuc2 + nuc1 + '_' + nuc6 + '_' + nuc5;
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
@@ -256,7 +260,7 @@ insert_key(const std::string& key)
     const char nuc5 = key[s_internal_nucleotides_int21.size()+5];
     const char nuc6 = key[s_internal_nucleotides_int21.size()+6];
     const char nuc7 = key[s_internal_nucleotides_int21.size()+8];
-    std::string key2 = s_internal_nucleotides_int12 + nuc4 + nuc3 + nuc2 + nuc1 + "_" + nuc7 + "_" + nuc6 + nuc5;
+    std::string key2 = s_internal_nucleotides_int12 + nuc4 + nuc3 + nuc2 + nuc1 + '_' + nuc7 + '_' + nuc6 + nuc5;
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
@@ -269,7 +273,7 @@ insert_key(const std::string& key)
     const char nuc5 = key[s_internal_nucleotides_int12.size()+5];
     const char nuc6 = key[s_internal_nucleotides_int12.size()+7];
     const char nuc7 = key[s_internal_nucleotides_int12.size()+8];
-    std::string key2 = s_internal_nucleotides_int21 + nuc4 + nuc3 + nuc2 + nuc1 + "_" + nuc7 + nuc6 + "_" + nuc5;
+    std::string key2 = s_internal_nucleotides_int21 + nuc4 + nuc3 + nuc2 + nuc1 + '_' + nuc7 + nuc6 + '_' + nuc5;
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
@@ -283,7 +287,7 @@ insert_key(const std::string& key)
     const char nuc6 = key[s_internal_nucleotides_int22.size()+6];
     const char nuc7 = key[s_internal_nucleotides_int22.size()+8];
     const char nuc8 = key[s_internal_nucleotides_int22.size()+9];
-    std::string key2 = s_internal_nucleotides_int22 + nuc4 + nuc3 + nuc2 + nuc1 + "_" + nuc8 + nuc7 + "_" + nuc6 + nuc5;
+    std::string key2 = s_internal_nucleotides_int22 + nuc4 + nuc3 + nuc2 + nuc1 + '_' + nuc8 + nuc7 + '_' + nuc6 + nuc5;
     hash_[key2] = keys_.size();
     if (k>key2) k = key2;
   }
@@ -514,7 +518,7 @@ import_from_vienna_parameters(const std::string& filename)
             for (size_t k=0; k!=NBASES+1; ++k)
               for (size_t l=0; l!=NBASES+1; ++l, ++p)
                 if (i<NBPS && j<NBPS && k!=0 && l!=0)
-                  insert_keyval(s_internal_nucleotides_int11+def_bps_[i]+def_bps_[j]+"_"+def_bases_[k-1]+"_"+def_bases_[l-1], vals, v[p]);
+                  insert_keyval(s_internal_nucleotides_int11+def_bps_[i]+def_bps_[j]+'_'+def_bases_[k-1]+'_'+def_bases_[l-1], vals, v[p]);
       }
       else if (ident == "int21")
       {
@@ -525,7 +529,7 @@ import_from_vienna_parameters(const std::string& filename)
               for (size_t l=0; l!=NBASES+1; ++l)
                 for (size_t m=0; m!=NBASES+1; ++m, ++p)
                 if (i<NBPS && j<NBPS && k!=0 && l!=0 && m!=0)
-                  insert_keyval(s_internal_nucleotides_int21+def_bps_[i]+def_bps_[j]+"_"+def_bases_[k-1]+def_bases_[l-1]+"_"+def_bases_[m-1], vals, v[p]);
+                  insert_keyval(s_internal_nucleotides_int21+def_bps_[i]+def_bps_[j]+'_'+def_bases_[k-1]+def_bases_[l-1]+'_'+def_bases_[m-1], vals, v[p]);
       }
       else if (ident == "int22")
       {
@@ -536,25 +540,28 @@ import_from_vienna_parameters(const std::string& filename)
               for (size_t l=0; l!=NBASES; ++l)
                 for (size_t m=0; m!=NBASES; ++m)
                   for (size_t n=0; n!=NBASES; ++n, ++p)
-                    insert_keyval(s_internal_nucleotides_int22+def_bps_[i]+def_bps_[j]+"_"+def_bases_[k]+def_bases_[l]+"_"+def_bases_[m]+def_bases_[n], vals, v[p]);
+                    insert_keyval(s_internal_nucleotides_int22+def_bps_[i]+def_bps_[j]+'_'+def_bases_[k]+def_bases_[l]+'_'+def_bases_[m]+def_bases_[n], vals, v[p]);
       }
       else if (ident == "hairpin")
       {
         auto v = get_array(is, 31);
         for (size_t i=0; i!=v.size(); ++i)
-          insert_keyval(SPrintF(s_hairpin_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
+          //insert_keyval(SPrintF(s_hairpin_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
+          insert_keyval(SPrintF(s_hairpin_length.c_str(), i), vals, v[i]);
       }
       else if (ident == "bulge")
       {
         auto v = get_array(is, 31);
         for (size_t i=0; i!=v.size(); ++i)
-          insert_keyval(SPrintF(s_bulge_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
+          //insert_keyval(SPrintF(s_bulge_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
+          insert_keyval(SPrintF(s_bulge_length.c_str(), i), vals, v[i]);
       }
       else if (ident == "interior")
       {
         auto v = get_array(is, 31);
         for (size_t i=0; i!=v.size(); ++i)
-          insert_keyval(SPrintF(s_internal_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
+          //insert_keyval(SPrintF(s_internal_length_at_least.c_str(), i), vals, i>0 && v[i-1]>=NEG_INF/2 ? v[i]-v[i-1] : v[i]);
+          insert_keyval(SPrintF(s_internal_length.c_str(), i), vals, v[i]);
       }
       else if (ident == "NINIO")
       {
@@ -572,7 +579,7 @@ import_from_vienna_parameters(const std::string& filename)
       else if (ident == "Misc")
       {
         auto v = get_array(is, 6);
-        insert_keyval(s_termialAU, vals, v[2]);
+        insert_keyval(s_terminalAU, vals, v[2]);
       }
       else if (ident == "Triloops")
       {
@@ -1384,4 +1391,392 @@ insert_external_paired()
   return insert_key(s_external_paired);
 #endif
 }
+#endif
+
+#if PARAM_VIENNA_COMPAT
+
+size_t
+FeatureMap::
+find_internal_loop_11(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const
+{
+  assert(s1.size()==3);
+  assert(s2.size()==3);
+#if 0
+  auto bp1 = is_complementary_[s1.front()][s2.back()];
+  auto bp2 = is_complementary_[s1.back()][s2.front()];
+  auto i1 = is_base_[s1[1]];
+  auto j1 = is_base_[s2[1]];
+  if (bp1>=0 && bp2>=0 && i1>=0 && j1>=0)
+    return cache_internal_loop_11_[bp1][bp2][i1][j1];
+#endif
+  return find_key(s_internal_nucleotides_int11+s1.front()+s2.back()+s1.back()+s2.front()+'_'+s1[1]+'_'+s2[1]);
+}
+
+size_t
+FeatureMap::
+find_internal_loop_21(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const
+{
+  assert(s1.size()==4);
+  assert(s2.size()==3);
+#if 0
+  auto bp1 = is_complementary_[s1.front()][s2.back()];
+  auto bp2 = is_complementary_[s1.back()][s2.front()];
+  auto i1 = is_base_[s1[1]];
+  auto i2 = is_base_[s1[2]];
+  auto j1 = is_base_[s2[1]];
+  if (bp1>=0 && bp2>=0 && i1>=0 && i2>=0 && j1>=0)
+    return cache_internal_loop_21_[bp1][bp2][i1][i2][j1];
+#endif
+  return find_key(s_internal_nucleotides_int21+s1.front()+s2.back()+s1.back()+s2.front()+'_'+s1[1]+s1[2]+'_'+s2[1]);
+}
+
+size_t
+FeatureMap::
+find_internal_loop_12(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const
+{
+  assert(s1.size()==3);
+  assert(s2.size()==4);
+#if 0
+  auto bp1 = is_complementary_[s1.front()][s2.back()];
+  auto bp2 = is_complementary_[s1.back()][s2.front()];
+  auto i1 = is_base_[s1[1]];
+  auto j1 = is_base_[s2[1]];
+  auto j2 = is_base_[s2[2]];
+  if (bp1>=0 && bp2>=0 && i1>=0 && j1>=0 && j2>=0 )
+    return cache_internal_loop_12_[bp1][bp2][i1][j1][j2];
+#endif
+  return find_key(s_internal_nucleotides_int12+s1.front()+s2.back()+s1.back()+s2.front()+'_'+s1[1]+'_'+s2[1]+s2[2]);
+}
+
+size_t
+FeatureMap::
+find_internal_loop_22(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const
+{
+  assert(s1.size()==4);
+  assert(s2.size()==4);
+#if 0
+  auto bp1 = is_complementary_[s1.front()][s2.back()];
+  auto bp2 = is_complementary_[s1.back()][s2.front()];
+  auto i1 = is_base_[s1[1]];
+  auto i2 = is_base_[s1[2]];
+  auto j1 = is_base_[s2[1]];
+  auto j2 = is_base_[s2[2]];
+  if (bp1>=0 && bp2>=0 && i1>=0 && i2>=0 && j1>=0 && j2>=0 )
+    return cache_internal_loop_22_[bp1][bp2][i1][i2][j1][j2];
+#endif
+  return find_key(s_internal_nucleotides_int22+s1.front()+s2.back()+s1.back()+s2.front()+'_'+s1[1]+s1[2]+'_'+s2[1]+s2[2]);
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_hairpin()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_hairpin_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_hairpin+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_hairpin_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_hairpin+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_hairpin_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_hairpin+i1+j1+i2+j2);
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_internal_1n()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal_1n+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_internal_1n+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_internal_1n+i1+j1+i2+j2);
+}
+
+
+#if 0
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_internal_23()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_internal_23_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal_23+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_23_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_internal_23+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_23_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_internal_23+i1+j1+i2+j2);
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_multi()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_multi_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_multi+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_multi_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_multi+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_multi_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_multi+i1+j1+i2+j2);
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_external()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_external_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_external+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_external_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_external+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#if 0
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_external_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_external+i1+j1+i2+j2);
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_ninio()
+{
+#ifdef USE_CACHE
+  cache_ninio_ = insert_key(s_ninio);
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_ninio() const
+{
+#if 0
+  return cache_ninio_;
+#else
+  return find_key(s_ninio);
+#endif
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_ninio_max()
+{
+#ifdef USE_CACHE
+  cache_ninio_max_ = insert_key(s_ninio_max);
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_ninio_max() const
+{
+#if 0
+  return cache_ninio_max_;
+#else
+  return find_key(s_ninio_max);
+#endif
+}
+
+#if 0
+void
+FeatureMap::
+initialize_cache_terminalAU()
+{
+#ifdef USE_CACHE
+  cache_terminalAU_ = insert_key(s_terminalAU);
+#endif
+}
+#endif
+
+size_t
+FeatureMap::
+find_terminalAU() const
+{
+#if 0
+  return cache_terminalAU_;
+#else
+  return find_key(s_terminalAU);
+#endif
+}
+
 #endif

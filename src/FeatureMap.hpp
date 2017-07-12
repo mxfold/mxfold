@@ -148,6 +148,32 @@ public:
   void initialize_cache_external_paired();
 #endif
 
+#if PARAM_VIENNA_COMPAT
+  size_t find_internal_loop_11(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const;
+  size_t insert_internal_loop_11(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2);
+  size_t find_internal_loop_21(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const;
+  size_t insert_internal_loop_21(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2);
+  size_t find_internal_loop_12(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const;
+  size_t insert_internal_loop_12(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2);
+  size_t find_internal_loop_22(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) const;
+  size_t insert_internal_loop_22(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2);
+
+  size_t find_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  size_t find_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  size_t find_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  size_t find_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  size_t find_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+
+  size_t find_ninio() const;
+  size_t find_ninio_max() const;
+  size_t find_terminalAU() const;
+#endif
+
 private:
   const std::string def_bases_;
   size_t NBASES;

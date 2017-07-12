@@ -30,6 +30,7 @@ private:
     bool cache_initialized;
     FeatureMap* fm_;
     const std::vector<RealT>* params_;
+    const std::vector<RealT>* params_base_; // vienna params
     //std::vector<RealT>* counts_;
     std::unordered_map<size_t,RealT>* counts_;
 
@@ -124,8 +125,6 @@ private:
     RealT ScoreJunctionHairpin(int i, int j) const;
     RealT ScoreJunctionInt01(int i, int j) const;
     RealT ScoreJunctionInt10(int i, int j) const;
-    RealT ScoreJunctionInt02(int i, int j) const;
-    RealT ScoreJunctionInt20(int i, int j) const;
     RealT ScoreJunctionInt0N(int i, int j) const;
     RealT ScoreJunctionIntN0(int i, int j) const;
     RealT ScoreJunctionInt11(int i, int j) const;
@@ -159,8 +158,6 @@ private:
     void CountJunctionHairpin(int i, int j, RealT value);
     void CountJunctionInt01(int i, int j, RealT value);
     void CountJunctionInt10(int i, int j, RealT value);
-    void CountJunctionInt02(int i, int j, RealT value);
-    void CountJunctionInt20(int i, int j, RealT value);
     void CountJunctionInt0N(int i, int j, RealT value);
     void CountJunctionIntN0(int i, int j, RealT value);
     void CountJunctionInt11(int i, int j, RealT value);
@@ -197,7 +194,8 @@ public:
     void LoadSequence(const SStruct &sstruct);
 
     // load parameter values
-    void LoadValues(FeatureMap* fm, const std::vector<param_value_type>* params);
+    void LoadValues(FeatureMap* fm, const std::vector<param_value_type>* params, 
+                    const std::vector<param_value_type>* params_base=NULL);
 
     // load loss function
     void UseLoss(const std::vector<int> &true_mapping, RealT example_loss);

@@ -112,6 +112,8 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_INTERNAL_ANY_NUCLEOTIDES            7
 #define PARAMS_HAIRPIN_ANY_NUCLEOTIDES             7
 
+#define PARAM_VIENNA_COMPAT                        1
+
 #endif  // CONTRAFOLD_MODEL
 
 /*
