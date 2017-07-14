@@ -179,5 +179,6 @@ write_to_file(const std::string& filename) const
   std::sort(idx.begin(), idx.end(),
             [&](size_t i, size_t j) { return keys[i] < keys[j]; });
   for (auto i: idx)
-    os << keys[i] << " " << params_[i] << " " << 0.0 << sum_squared_grad_[i]  << std::endl;
+    os << keys[i] << " " << params_[i] << " " << 0.0 << " " 
+       << sum_squared_grad_[i]  << std::endl;
 }

@@ -198,6 +198,9 @@ std::unordered_map<size_t,param_value_type>
 NGSfold::
 compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params)
 {
+  if (verbose_>0)
+    std::cout << "Seq: " << s.GetNames()[0] << ", ";
+
   double starting_time = GetSystemTime();
   //std::vector<param_value_type> grad(params->size(), 0.0);
   std::unordered_map<size_t,param_value_type> grad;
@@ -275,8 +278,7 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
 
   if (verbose_>0)
   {
-    std::cout << "Seq: " << s.GetNames()[0] << ", "
-              << "Loss: " << loss0-loss1 << ", "
+    std::cout << "Loss: " << loss0-loss1 << ", "
               << "pos_w: " << pos_w_/np << ", " << "neg_w: " << neg_w_/np << ", "
               << "Time: " << GetSystemTime() - starting_time << "sec" << std::endl;
   }
