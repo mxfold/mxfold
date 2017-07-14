@@ -104,8 +104,8 @@ write_to_file(const std::string& filename, const ParameterHash<param_value_type>
 
 
 AdaGradFobosUpdater::
-AdaGradFobosUpdater(FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps)
-  : fm_(fm), params_(params), eta_(eta), lambda_(lambda), eps_(eps), sum_squared_grad_()
+AdaGradFobosUpdater(int verbose, FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps)
+  : fm_(fm), params_(params), eta_(eta), lambda_(lambda), eps_(eps), sum_squared_grad_(), verbose_(verbose)
 {
 }
 
@@ -116,9 +116,11 @@ update(size_t i, param_value_type grad, float weight)
   if (i>=sum_squared_grad_.size()) sum_squared_grad_.resize(i+1, 0.0);
   if (i>=params_.size()) params_.resize(i+1, 0.0);
   sum_squared_grad_[i] += grad*grad;
-  std::cout << "  " << fm_.name(i) << ": w=" << params_[i] << ", g=" << grad << ", g2s=" << sum_squared_grad_[i];
+  if (verbose_>2)
+    std::cout << "  " << fm_.name(i) << ": w=" << params_[i] << ", g=" << grad << ", g2s=" << sum_squared_grad_[i];
   params_[i] -= weight * eta_ / std::sqrt(sum_squared_grad_[i]) * grad;
-  std::cout << ", update=" << weight * eta_ / std::sqrt(sum_squared_grad_[i]) * grad << ", w_new=" << params_[i] << std::endl;
+  if (verbose_>2)
+    std::cout << ", update=" << weight * eta_ / std::sqrt(sum_squared_grad_[i]) * grad << ", w_new=" << params_[i] << std::endl;
 }
 
 void

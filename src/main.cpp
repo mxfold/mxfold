@@ -307,7 +307,7 @@ NGSfold::train()
   FeatureMap fm;
   std::vector<param_value_type> params;
   //AdaGradRDAUpdater optimizer(eta0_, lambda_);
-  AdaGradFobosUpdater optimizer(fm, params, eta0_, lambda_);
+  AdaGradFobosUpdater optimizer(verbose_, fm, params, eta0_, lambda_);
   if (!param_file_.empty())
   {
     params = fm.read_from_file(param_file_);

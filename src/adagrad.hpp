@@ -35,7 +35,7 @@ private:
 class AdaGradFobosUpdater
 {
 public:
-  AdaGradFobosUpdater(FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps=1e-8);
+  AdaGradFobosUpdater(int verbose, FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps=1e-8);
 
   void update(size_t i, param_value_type grad, float weight);
   void regularize_all(float weight) const;
@@ -51,6 +51,7 @@ private:
   float lambda_;
   float eps_;
   std::vector<param_value_type> sum_squared_grad_;
+  int verbose_;
 };
 
 #endif //  __INC_SGD_UPDATER_HPP__
