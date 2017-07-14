@@ -58,6 +58,36 @@ public:
   size_t insert_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
   void initialize_cache_terminal_mismatch();
 #endif
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+  size_t find_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  void initialize_cache_terminal_mismatch_hairpin();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+  size_t find_terminal_mismatch_internal(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_internal(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  void initialize_cache_terminal_mismatch_internal();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+  size_t find_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  void initialize_cache_terminal_mismatch_internal_1n();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+  size_t find_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  void initialize_cache_terminal_mismatch_internal_23();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+  size_t find_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  void initialize_cache_terminal_mismatch_multi();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_EXTERNAL
+  size_t find_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const;
+  size_t insert_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2);
+  void initialize_cache_terminal_mismatch_external();
+#endif
 #if PARAMS_HAIRPIN_LENGTH
   size_t find_hairpin_length_at_least(uint l) const;
   size_t insert_hairpin_length_at_least(uint l);
@@ -194,6 +224,24 @@ private:
 #endif
 #if PARAMS_TERMINAL_MISMATCH
   VVVI cache_terminal_mismatch_;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+  VVVI cache_terminal_mismatch_hairpin_;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+  VVVI cache_terminal_mismatch_internal_;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+  VVVI cache_terminal_mismatch_internal_1n_;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+  VVVI cache_terminal_mismatch_internal_23_;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+  VVVI cache_terminal_mismatch_multi_;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_EXTERNAL
+  VVVI cache_terminal_mismatch_external_;
 #endif
 #if PARAMS_HAIRPIN_LENGTH
   VI cache_hairpin_length_at_least_;

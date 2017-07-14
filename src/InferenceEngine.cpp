@@ -1112,6 +1112,14 @@ inline void InferenceEngine<RealT>::CountJunctionA(int i, int j, RealT value)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreJunctionMulti(int i, int j) const
 {
+    // i and j must be bounded away from the edges so that s[i] and s[j+1]
+    // refer to actual nucleotides.  To allow us to use this macro when
+    // scoring the asymmetric junction for an exterior loop whose closing
+    // base pair include the first and last nucleotides of the sequence,
+    // we allow i to be as large as L and j to be as small as 0.
+    
+    Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
+
     RealT e = RealT(0);
 #ifdef HAVE_VIENNA20
     if (vc_)
@@ -1121,18 +1129,47 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionMulti(int i, int j) const
         e = VIENNA::E_MLstem(type, S[i+1], S[j], vc_->params) / -100.;
     }
 #endif
-    return e + ScoreJunctionA(i, j);
+    return e
+#if PARAMS_HELIX_CLOSING
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+        + find_param(params_, fm_->find_terminal_mismatch_multi(s[i], s[j+1], s[i+1], s[j]))
+#endif
+#if PARAMS_DANGLE
+        + (i < L ? find_param(params_, fm_->find_dangle_left(s[i], s[j+1], s[i+1])) : RealT(0))
+        + (j > 0 ? find_param(params_, fm_->find_dangle_right(s[i], s[j+1], s[j])) : RealT(0))
+#endif
+        ;
 }
 
 template<class RealT>
 inline void InferenceEngine<RealT>::CountJunctionMulti(int i, int j, RealT value)
 {
-    CountJunctionA(i, j, value);
+    Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
+
+#if PARAMS_HELIX_CLOSING
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+    insert_param(counts_, fm_->insert_terminal_mismatch_multi(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
+#if PARAMS_DANGLE
+    if (i < L) insert_param(counts_, fm_->insert_dangle_left(s[i], s[j+1], s[i+1])) += value;
+    if (j > 0) insert_param(counts_, fm_->insert_dangle_right(s[i], s[j+1], s[j])) += value;
+#endif
 }
 
 template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionExt(int i, int j) const
+inline RealT InferenceEngine<RealT>::ScoreJunctionExternal(int i, int j) const
 {
+    // i and j must be bounded away from the edges so that s[i] and s[j+1]
+    // refer to actual nucleotides.  To allow us to use this macro when
+    // scoring the asymmetric junction for an exterior loop whose closing
+    // base pair include the first and last nucleotides of the sequence,
+    // we allow i to be as large as L and j to be as small as 0.
+    
+    Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
     RealT e = RealT(0);
 #ifdef HAVE_VIENNA20
     if (vc_)
@@ -1142,13 +1179,35 @@ inline RealT InferenceEngine<RealT>::ScoreJunctionExt(int i, int j) const
         e = VIENNA::E_ExtLoop(type, S[i+1], S[j], vc_->params) / -100.;
     }
 #endif
-    return e + ScoreJunctionA(i, j);
+    return e
+#if PARAMS_HELIX_CLOSING
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+        + find_param(params_, fm_->find_terminal_mismatch_external(s[i], s[j+1], s[i+1], s[j]))
+#endif
+#if PARAMS_DANGLE
+        + (i < L ? find_param(params_, fm_->find_dangle_left(s[i], s[j+1], s[i+1])) : RealT(0))
+        + (j > 0 ? find_param(params_, fm_->find_dangle_right(s[i], s[j+1], s[j])) : RealT(0))
+#endif
+        ;
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionExt(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountJunctionExternal(int i, int j, RealT value)
 {
-    CountJunctionA(i, j, value);
+    Assert(0 < i && i <= L && 0 <= j && j < L, "Invalid indices.");
+
+#if PARAMS_HELIX_CLOSING
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+    insert_param(counts_, fm_->insert_terminal_mismatch_external(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
+#if PARAMS_DANGLE
+    if (i < L) insert_param(counts_, fm_->insert_dangle_left(s[i], s[j+1], s[i+1])) += value;
+    if (j > 0) insert_param(counts_, fm_->insert_dangle_right(s[i], s[j+1], s[j])) += value;
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -1208,159 +1267,154 @@ inline void InferenceEngine<RealT>::CountJunctionB(int i, int j, RealT value)
 template<class RealT>
 inline RealT InferenceEngine<RealT>::ScoreJunctionHairpin(int i, int j) const
 {
-    return ScoreJunctionB(i, j);
+    // The bounds here are similar to the asymmetric junction case, with
+    // the main difference being that symmetric junctions are not allowed
+    // for the exterior loop.  For this reason, i and j are bounded away
+    // from the edges of the sequence (i.e., i < L && j > 0).
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+    return RealT(0)
+#if PARAMS_HELIX_CLOSING
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+        + find_param(params_, fm_->find_terminal_mismatch(s[i], s[j+1], s[i+1], s[j]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+        + find_param(params_, fm_->find_terminal_mismatch_hairpin(s[i], s[j+1], s[i+1], s[j]))
+#endif
+        ;
 }
 
 template<class RealT>
 inline void InferenceEngine<RealT>::CountJunctionHairpin(int i, int j, RealT value)
 {
-    CountJunctionB(i, j, value);
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+#if PARAMS_HELIX_CLOSING
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+    insert_param(counts_, fm_->insert_terminal_mismatch(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+    insert_param(counts_, fm_->insert_terminal_mismatch_hairpin(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
 }
 
 template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt01(int i, int j) const
+inline RealT InferenceEngine<RealT>::ScoreJunctionInternal(int i, int j) const
 {
-    return ScoreJunctionB(i, j);
+    // The bounds here are similar to the asymmetric junction case, with
+    // the main difference being that symmetric junctions are not allowed
+    // for the exterior loop.  For this reason, i and j are bounded away
+    // from the edges of the sequence (i.e., i < L && j > 0).
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+    return RealT(0)
+#if PARAMS_HELIX_CLOSING
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+        + find_param(params_, fm_->find_terminal_mismatch(s[i], s[j+1], s[i+1], s[j]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+        + find_param(params_, fm_->find_terminal_mismatch_internal(s[i], s[j+1], s[i+1], s[j]))
+#endif
+        ;
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt01(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountJunctionInternal(int i, int j, RealT value)
 {
-    CountJunctionB(i, j, value);
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+#if PARAMS_HELIX_CLOSING
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+    insert_param(counts_, fm_->insert_terminal_mismatch(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+    insert_param(counts_, fm_->insert_terminal_mismatch_internal(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
 }
 
 template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt10(int i, int j) const
+inline RealT InferenceEngine<RealT>::ScoreJunctionInternal1N(int i, int j) const
 {
-    return ScoreJunctionB(i, j);
+    // The bounds here are similar to the asymmetric junction case, with
+    // the main difference being that symmetric junctions are not allowed
+    // for the exterior loop.  For this reason, i and j are bounded away
+    // from the edges of the sequence (i.e., i < L && j > 0).
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+    return RealT(0)
+#if PARAMS_HELIX_CLOSING
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+        + find_param(params_, fm_->find_terminal_mismatch(s[i], s[j+1], s[i+1], s[j]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+        + find_param(params_, fm_->find_terminal_mismatch_internal_1n(s[i], s[j+1], s[i+1], s[j]))
+#endif
+        ;
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt10(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountJunctionInternal1N(int i, int j, RealT value)
 {
-    CountJunctionB(i, j, value);
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+#if PARAMS_HELIX_CLOSING
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+    insert_param(counts_, fm_->insert_terminal_mismatch(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+    insert_param(counts_, fm_->insert_terminal_mismatch_internal_1n(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
 }
 
 template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt0N(int i, int j) const
+inline RealT InferenceEngine<RealT>::ScoreJunctionInternal23(int i, int j) const
 {
-    return ScoreJunctionB(i, j);
+    // The bounds here are similar to the asymmetric junction case, with
+    // the main difference being that symmetric junctions are not allowed
+    // for the exterior loop.  For this reason, i and j are bounded away
+    // from the edges of the sequence (i.e., i < L && j > 0).
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
+
+    return RealT(0)
+#if PARAMS_HELIX_CLOSING
+        + find_param(params_, fm_->find_helix_closing(s[i], s[j+1]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+        + find_param(params_, fm_->find_terminal_mismatch(s[i], s[j+1], s[i+1], s[j]))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+        + find_param(params_, fm_->find_terminal_mismatch_internal_23(s[i], s[j+1], s[i+1], s[j]))
+#endif
+        ;
 }
 
 template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt0N(int i, int j, RealT value)
+inline void InferenceEngine<RealT>::CountJunctionInternal23(int i, int j, RealT value)
 {
-    CountJunctionB(i, j, value);
-}
+    Assert(0 < i && i < L && 0 < j && j < L, "Invalid indices.");
 
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionIntN0(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
+#if PARAMS_HELIX_CLOSING
+    insert_param(counts_, fm_->insert_helix_closing(s[i], s[j+1])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH
+    insert_param(counts_, fm_->insert_terminal_mismatch(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+    insert_param(counts_, fm_->insert_terminal_mismatch_internal_23(s[i], s[j+1], s[i+1], s[j])) += value;
+#endif
 }
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionIntN0(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt11(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt11(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt12(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt12(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt21(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt21(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt1N(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt1N(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionIntN1(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionIntN1(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt22(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt22(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt23(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt23(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
-template<class RealT>
-inline RealT InferenceEngine<RealT>::ScoreJunctionInt32(int i, int j) const
-{
-    return ScoreJunctionB(i, j);
-}
-
-template<class RealT>
-inline void InferenceEngine<RealT>::CountJunctionInt32(int i, int j, RealT value)
-{
-    CountJunctionB(i, j, value);
-}
-
 
 //////////////////////////////////////////////////////////////////////
 // InferenceEngine::ScoreBasePair()
@@ -2109,7 +2163,7 @@ void InferenceEngine<RealT>::ComputeViterbi()
             {
                 UPDATE_MAX(best_v, best_t,
                            F5v[k] + FCv[offset[k+1]+j-1] + ScoreExternalPaired() +
-                           ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k),
+                           ScoreBasePair(k+1,j) + ScoreJunctionExternal(j,k),
                            EncodeTraceback(TB_F5_BIFURCATION,k));
             }
         }
@@ -2465,7 +2519,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
                 const int k = traceback.second;
                 CountExternalPaired(1);
                 CountBasePair(k+1,j,1);
-                CountJunctionExt(j,k,1);
+                CountJunctionExternal(j,k,1);
                 traceback_queue.push(make_triple(&F5t[0], 0, k));
                 traceback_queue.push(make_triple(&FCt[0], k+1, j-1));
             }
@@ -2779,7 +2833,7 @@ void InferenceEngine<RealT>::ComputeInside()
 
         for (int k = 0; k < j; k++)
             if (allow_paired[offset[k+1]+j])
-                Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
+                Fast_LogPlusEquals(sum_i, F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExternal(j,k));
 
         F5i[j] = sum_i;
     }
@@ -2838,7 +2892,7 @@ void InferenceEngine<RealT>::ComputeOutside()
             {
                 if (allow_paired[offset[k+1]+j])
                 {
-                    RealT temp = F5o[j] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k);
+                    RealT temp = F5o[j] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExternal(j,k);
                     Fast_LogPlusEquals(F5o[k], temp + FCi[offset[k+1]+j-1]);
                     Fast_LogPlusEquals(FCo[offset[k+1]+j-1], temp + F5i[k]);
                 }
@@ -3409,10 +3463,10 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
         {
             if (allow_paired[offset[k+1]+j])
             {
-                RealT value = Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
+                RealT value = Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExternal(j,k));
                 CountExternalPaired(value);
                 CountBasePair(k+1,j,value);
-                CountJunctionExt(j,k,value);
+                CountJunctionExternal(j,k,value);
             }
         }
     }
@@ -3683,7 +3737,7 @@ void InferenceEngine<RealT>::ComputePosterior()
         for (int k = 0; k < j; k++)
         {
             if (allow_paired[offset[k+1]+j])
-                posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExt(j,k));
+                posterior[offset[k+1]+j] += Fast_Exp(outside + F5i[k] + FCi[offset[k+1]+j-1] + ScoreExternalPaired() + ScoreBasePair(k+1,j) + ScoreJunctionExternal(j,k));
         }
     }
 

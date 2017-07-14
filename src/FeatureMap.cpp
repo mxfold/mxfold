@@ -9,6 +9,12 @@
 const std::string s_base_pair("base_pair_");
 const std::string s_base_pair_dist_at_least("base_pair_dist_at_least_%d");
 const std::string s_terminal_mismatch("terminal_mismatch_");
+const std::string s_terminal_mismatch_hairpin("terminal_mismatch_hairpin_");
+const std::string s_terminal_mismatch_internal("terminal_mismatch_internal_");
+const std::string s_terminal_mismatch_internal_1n("terminal_mismatch_internal_1n_");
+const std::string s_terminal_mismatch_internal_23("terminal_mismatch_internal_23_");
+const std::string s_terminal_mismatch_multi("terminal_mismatch_multi_");
+const std::string s_terminal_mismatch_external("terminal_mismatch_external_");
 const std::string s_hairpin_length_at_least("hairpin_length_at_least_%d");
 const std::string s_hairpin_nucleotides("hairpin_nucleotides_");
 const std::string s_helix_length_at_least("helix_length_at_least_%d");
@@ -38,12 +44,6 @@ const std::string s_internal_nucleotides_int11("internal_loop_11_");
 const std::string s_internal_nucleotides_int21("internal_loop_21_");
 const std::string s_internal_nucleotides_int12("internal_loop_12_");
 const std::string s_internal_nucleotides_int22("internal_loop_22_");
-const std::string s_terminal_mismatch_hairpin("terminal_mismatch_hairpin_");
-const std::string s_terminal_mismatch_internal("terminal_mismatch_internal_");
-const std::string s_terminal_mismatch_internal_1n("terminal_mismatch_internal_1n_");
-const std::string s_terminal_mismatch_internal_23("terminal_mismatch_internal_23_");
-const std::string s_terminal_mismatch_multi("terminal_mismatch_multi_");
-const std::string s_terminal_mismatch_external("terminal_mismatch_external_");
 const std::string s_ninio("ninio");
 const std::string s_ninio_max("ninio_max");
 const std::string s_terminalAU("terminalAU");
@@ -67,6 +67,24 @@ FeatureMap(const char* def_bases,
 #endif
 #if PARAMS_TERMINAL_MISMATCH
   , cache_terminal_mismatch_(NBPS, VVI(NBASES, VI(NBASES, -1)))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+  , cache_terminal_mismatch_hairpin_(NBPS, VVI(NBASES, VI(NBASES, -1)))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+  , cache_terminal_mismatch_internal_(NBPS, VVI(NBASES, VI(NBASES, -1)))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+  , cache_terminal_mismatch_internal_1n_(NBPS, VVI(NBASES, VI(NBASES, -1)))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+  , cache_terminal_mismatch_internal_23_(NBPS, VVI(NBASES, VI(NBASES, -1)))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+  , cache_terminal_mismatch_multi_(NBPS, VVI(NBASES, VI(NBASES, -1)))
+#endif
+#if PARAMS_TERMINAL_MISMATCH_EXTERNAL
+  , cache_terminal_mismatch_external_(NBPS, VVI(NBASES, VI(NBASES, -1)))
 #endif
 #if PARAMS_HAIRPIN_LENGTH
   , cache_hairpin_length_at_least_(D_MAX_HAIRPIN_LENGTH, -1)
@@ -138,6 +156,24 @@ initialize_cache()
 #endif
 #if PARAMS_TERMINAL_MISMATCH
   initialize_cache_terminal_mismatch();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+  initialize_cache_terminal_mismatch_hairpin();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+  initialize_cache_terminal_mismatch_internal();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+  initialize_cache_terminal_mismatch_internal_1n();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+  initialize_cache_terminal_mismatch_internal_23();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+  initialize_cache_terminal_mismatch_multi();
+#endif
+#if PARAMS_TERMINAL_MISMATCH_EXTERNAL
+  initialize_cache_terminal_mismatch_external();
 #endif
 #if PARAMS_HAIRPIN_LENGTH
   initialize_cache_hairpin_length_at_least();
@@ -753,6 +789,300 @@ insert_terminal_mismatch(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
     return cache_terminal_mismatch_[ij1][ii2][jj2];
 #endif
   return insert_key(s_terminal_mismatch+i1+j1+i2+j2);
+}
+#endif
+
+#if PARAMS_TERMINAL_MISMATCH_HAIRPIN
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_hairpin()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_hairpin_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_hairpin+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+
+size_t
+FeatureMap::
+find_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_hairpin_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_hairpin+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_hairpin_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_hairpin+i1+j1+i2+j2);
+}
+#endif
+
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_internal()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_internal_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+
+size_t
+FeatureMap::
+find_terminal_mismatch_internal(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_internal+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_internal(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_internal+i1+j1+i2+j2);
+}
+#endif
+
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_1N
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_internal_1n()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal_1n+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+
+size_t
+FeatureMap::
+find_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_internal_1n+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_internal_1n+i1+j1+i2+j2);
+}
+#endif
+
+#if PARAMS_TERMINAL_MISMATCH_INTERNAL_23
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_internal_23()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_internal_23_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal_23+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+
+size_t
+FeatureMap::
+find_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_23_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_internal_23+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_internal_23_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_internal_23+i1+j1+i2+j2);
+}
+#endif
+
+#if PARAMS_TERMINAL_MISMATCH_MULTI
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_multi()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_multi_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_multi+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+
+size_t
+FeatureMap::
+find_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_multi_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_multi+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_multi_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_multi+i1+j1+i2+j2);
+}
+#endif
+
+#if PARAMS_TERMINAL_MISMATCH_EXTERNAL
+void
+FeatureMap::
+initialize_cache_terminal_mismatch_external()
+{
+#ifdef USE_CACHE
+  for (auto bp : def_bps_)
+  {
+    auto ij1 = is_complementary_[bp[0]][bp[1]];
+    for (auto i2: def_bases_)
+    {
+      auto ii2 = is_base_[i2];
+      for (auto j2: def_bases_)
+      {
+        auto jj2 = is_base_[j2];
+        cache_terminal_mismatch_external_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_external+bp+i2+j2);
+      }
+    }
+  }
+#endif
+}
+
+size_t
+FeatureMap::
+find_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_external_[ij1][ii2][jj2];
+#endif
+  return find_key(s_terminal_mismatch_external+i1+j1+i2+j2);
+}
+
+size_t
+FeatureMap::
+insert_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
+{
+#ifdef USE_CACHE
+  auto ij1 = is_complementary_[i1][j1];
+  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
+  if (ij1>=0 && ii2>=0 && jj2>=0)
+    return cache_terminal_mismatch_external_[ij1][ii2][jj2];
+#endif
+  return insert_key(s_terminal_mismatch_external+i1+j1+i2+j2);
 }
 #endif
 
@@ -1477,252 +1807,8 @@ find_internal_loop_22(const std::vector<NUCL>& s1, const std::vector<NUCL>& s2) 
   return find_key(s_internal_nucleotides_int22+s1.front()+s2.back()+s1.back()+s2.front()+'_'+s1[1]+s1[2]+'_'+s2[1]+s2[2]);
 }
 
-#if 0
-void
-FeatureMap::
-initialize_cache_terminal_mismatch_hairpin()
-{
-#ifdef USE_CACHE
-  for (auto bp : def_bps_)
-  {
-    auto ij1 = is_complementary_[bp[0]][bp[1]];
-    for (auto i2: def_bases_)
-    {
-      auto ii2 = is_base_[i2];
-      for (auto j2: def_bases_)
-      {
-        auto jj2 = is_base_[j2];
-        cache_terminal_mismatch_hairpin_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_hairpin+bp+i2+j2);
-      }
-    }
-  }
-#endif
-}
-#endif
 
-size_t
-FeatureMap::
-find_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_hairpin_[ij1][ii2][jj2];
-#endif
-  return find_key(s_terminal_mismatch_hairpin+i1+j1+i2+j2);
-}
-
-size_t
-FeatureMap::
-insert_terminal_mismatch_hairpin(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_hairpin_[ij1][ii2][jj2];
-#endif
-  return insert_key(s_terminal_mismatch_hairpin+i1+j1+i2+j2);
-}
-
-#if 0
-void
-FeatureMap::
-initialize_cache_terminal_mismatch_internal_1n()
-{
-#ifdef USE_CACHE
-  for (auto bp : def_bps_)
-  {
-    auto ij1 = is_complementary_[bp[0]][bp[1]];
-    for (auto i2: def_bases_)
-    {
-      auto ii2 = is_base_[i2];
-      for (auto j2: def_bases_)
-      {
-        auto jj2 = is_base_[j2];
-        cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal_1n+bp+i2+j2);
-      }
-    }
-  }
-#endif
-}
-#endif
-
-size_t
-FeatureMap::
-find_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2];
-#endif
-  return find_key(s_terminal_mismatch_internal_1n+i1+j1+i2+j2);
-}
-
-size_t
-FeatureMap::
-insert_terminal_mismatch_internal_1n(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_internal_1n_[ij1][ii2][jj2];
-#endif
-  return insert_key(s_terminal_mismatch_internal_1n+i1+j1+i2+j2);
-}
-
-
-#if 0
-void
-FeatureMap::
-initialize_cache_terminal_mismatch_internal_23()
-{
-#ifdef USE_CACHE
-  for (auto bp : def_bps_)
-  {
-    auto ij1 = is_complementary_[bp[0]][bp[1]];
-    for (auto i2: def_bases_)
-    {
-      auto ii2 = is_base_[i2];
-      for (auto j2: def_bases_)
-      {
-        auto jj2 = is_base_[j2];
-        cache_terminal_mismatch_internal_23_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_internal_23+bp+i2+j2);
-      }
-    }
-  }
-#endif
-}
-#endif
-
-size_t
-FeatureMap::
-find_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_internal_23_[ij1][ii2][jj2];
-#endif
-  return find_key(s_terminal_mismatch_internal_23+i1+j1+i2+j2);
-}
-
-size_t
-FeatureMap::
-insert_terminal_mismatch_internal_23(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_internal_23_[ij1][ii2][jj2];
-#endif
-  return insert_key(s_terminal_mismatch_internal_23+i1+j1+i2+j2);
-}
-
-#if 0
-void
-FeatureMap::
-initialize_cache_terminal_mismatch_multi()
-{
-#ifdef USE_CACHE
-  for (auto bp : def_bps_)
-  {
-    auto ij1 = is_complementary_[bp[0]][bp[1]];
-    for (auto i2: def_bases_)
-    {
-      auto ii2 = is_base_[i2];
-      for (auto j2: def_bases_)
-      {
-        auto jj2 = is_base_[j2];
-        cache_terminal_mismatch_multi_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_multi+bp+i2+j2);
-      }
-    }
-  }
-#endif
-}
-#endif
-
-size_t
-FeatureMap::
-find_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_multi_[ij1][ii2][jj2];
-#endif
-  return find_key(s_terminal_mismatch_multi+i1+j1+i2+j2);
-}
-
-size_t
-FeatureMap::
-insert_terminal_mismatch_multi(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_multi_[ij1][ii2][jj2];
-#endif
-  return insert_key(s_terminal_mismatch_multi+i1+j1+i2+j2);
-}
-
-#if 0
-void
-FeatureMap::
-initialize_cache_terminal_mismatch_external()
-{
-#ifdef USE_CACHE
-  for (auto bp : def_bps_)
-  {
-    auto ij1 = is_complementary_[bp[0]][bp[1]];
-    for (auto i2: def_bases_)
-    {
-      auto ii2 = is_base_[i2];
-      for (auto j2: def_bases_)
-      {
-        auto jj2 = is_base_[j2];
-        cache_terminal_mismatch_external_[ij1][ii2][jj2] = insert_key(s_terminal_mismatch_external+bp+i2+j2);
-      }
-    }
-  }
-#endif
-}
-#endif
-
-size_t
-FeatureMap::
-find_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2) const
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_external_[ij1][ii2][jj2];
-#endif
-  return find_key(s_terminal_mismatch_external+i1+j1+i2+j2);
-}
-
-size_t
-FeatureMap::
-insert_terminal_mismatch_external(NUCL i1, NUCL j1, NUCL i2, NUCL j2)
-{
-#if 0
-  auto ij1 = is_complementary_[i1][j1];
-  auto ii2 = is_base_[i2], jj2 = is_base_[j2];
-  if (ij1>=0 && ii2>=0 && jj2>=0)
-    return cache_terminal_mismatch_external_[ij1][ii2][jj2];
-#endif
-  return insert_key(s_terminal_mismatch_external+i1+j1+i2+j2);
-}
-
+#ifdef PARAMS_VIENNA_COMPAT
 #if 0
 void
 FeatureMap::
@@ -1789,4 +1875,5 @@ find_terminalAU() const
 #endif
 }
 
+#endif
 #endif

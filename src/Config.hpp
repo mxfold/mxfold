@@ -89,8 +89,14 @@ typedef std::vector<VVVI> VVVVI;
 // extended parameters
 #define PARAMS_INTERNAL_NUCLEOTIDES                7
 #define PARAMS_HAIRPIN_NUCLEOTIDES                 7
+#define PARAMS_TERMINAL_MISMATCH_HAIRPIN           0
+#define PARAMS_TERMINAL_MISMATCH_INTERNAL          0
+#define PARAMS_TERMINAL_MISMATCH_INTERNAL_1N       0
+#define PARAMS_TERMINAL_MISMATCH_INTERNAL_23       0
+#define PARAMS_TERMINAL_MISMATCH_MULTI             0
+#define PARAMS_TERMINAL_MISMATCH_EXTERNAL          0
 
-//#define PARAMS_VIENNA_COMPAT                        1
+//#define PARAMS_VIENNA_COMPAT                     1
 
 #endif  // CONTRAFOLD_MODEL
 
