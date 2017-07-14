@@ -151,7 +151,11 @@ read_from_file(const std::string& filename)
     double p, s1, s2;
     while (is >> fname >> p >> s1 >> s2)
       if (p!=0.0 || s1!=0.0 || s2!=0.0)
-        sum_squared_grad_[fm_.find_key(fname)] = s2;
+      {
+        auto i = fm_.insert_key(fname);
+        if (i>=sum_squared_grad_.size()) sum_squared_grad_.resize(i+1, 0.0);
+        sum_squared_grad_[i] = s2;
+      }
   }
   else
   {
@@ -159,7 +163,11 @@ read_from_file(const std::string& filename)
     double p;
     while (is >> fname >> p)
       if (p!=0.0)
-        sum_squared_grad_[fm_.find_key(fname)] = 0.0;
+      {
+        auto i = fm_.insert_key(fname);
+        if (i>=sum_squared_grad_.size()) sum_squared_grad_.resize(i+1, 0.0);
+        sum_squared_grad_[i] = 0.0;
+      }
   }
 }
 

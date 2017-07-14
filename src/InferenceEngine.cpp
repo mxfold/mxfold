@@ -312,7 +312,7 @@ void InferenceEngine<RealT>::InitializeCache()
     for (int j = 0; j <= BP_DIST_LAST_THRESHOLD; j++)
         cache_score_base_pair_dist[j].first = RealT(0);
     for (int j = 0; j < BP_DIST_THRESHOLDS[0]; j++)
-        cache_score_base_pair_dist[j].first = NEG_INF;
+        cache_score_base_pair_dist[j].first = NEG_INF/100;
     for (int i = 0; i < D_MAX_BP_DIST_THRESHOLDS; i++)
         for (int j = BP_DIST_THRESHOLDS[i]; j <= BP_DIST_LAST_THRESHOLD; j++)
             cache_score_base_pair_dist[j].first += find_param(params_, fm_->find_base_pair_dist_at_least(i));

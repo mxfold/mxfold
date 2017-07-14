@@ -198,9 +198,6 @@ std::unordered_map<size_t,param_value_type>
 NGSfold::
 compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params)
 {
-  if (verbose_>0)
-    std::cout << "Seq: " << s.GetNames()[0] << ", ";
-
   double starting_time = GetSystemTime();
   //std::vector<param_value_type> grad(params->size(), 0.0);
   std::unordered_map<size_t,param_value_type> grad;
@@ -350,6 +347,8 @@ NGSfold::train()
       auto eta_w = is_weak_label ? eta0_weak_labeled_/eta0_ : 1.0;
 
       // gradient
+      if (verbose_>0)
+        std::cout << "Step: " << k << " Seq: " << data[i].GetNames()[0] << ", ";
       auto grad = compute_gradients(data[i], &fm, &params);
 
       // update

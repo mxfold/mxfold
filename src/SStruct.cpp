@@ -6,11 +6,11 @@
 #include "SStruct.hpp"
 
 enum FileFormat
-{ 
+{
     FileFormat_FASTA,
     FileFormat_BPSEQ,
     FileFormat_RAW
-};                  
+};
 
 //////////////////////////////////////////////////////////////////////
 // SStruct::SStruct()
@@ -147,14 +147,14 @@ void SStruct::LoadFASTA(const std::string &filename)
             }
         }
     }
-    
+
     // sanity-checks
     if (sequences.size() == 0) Error("No sequences read.");
     if (sequences[0].length() == 1) Error("Zero-length sequence read.");
     for (size_t i = 1; i < sequences.size(); i++)
         if (sequences[i].length() != sequences[0].length())
             Error("Not all sequences have the same length.");
- 
+
     // determine if any of the sequences could be a consensus sequence
     bool consensus_found = false;
     size_t i = 0;
@@ -189,7 +189,7 @@ void SStruct::LoadFASTA(const std::string &filename)
     }
 
     reactivity_unpair.resize(sequences[0].length(), 0);
-    reactivity_pair.resize(sequences[0].length(), 0);    
+    reactivity_pair.resize(sequences[0].length(), 0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -215,8 +215,8 @@ void SStruct::LoadRAW(const std::string &filename)
     // open file for reading
     std::ifstream data(filename.c_str());
     if (data.fail()) Error("Unable to open input file: %s", filename.c_str());
-    
-    // now retrieve sequence data    
+
+    // now retrieve sequence data
     std::string s;
     while (std::getline(data, s))
     {
@@ -234,7 +234,7 @@ void SStruct::LoadRAW(const std::string &filename)
     mapping.resize(sequences[0].length(), UNKNOWN);
 
     reactivity_unpair.resize(sequences[0].length(), 0);
-    reactivity_pair.resize(sequences[0].length(), 0);    
+    reactivity_pair.resize(sequences[0].length(), 0);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -272,7 +272,7 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
     int row = 0;
     while (data >> token)
     {
-        // read row        
+        // read row
         int index = 0;
         if (!ConvertToNumber(token, index)) Error("Could not read row number: %s", filename.c_str());
         if (index <= 0) Error("Row numbers must be positive: %s", filename.c_str());
@@ -281,12 +281,12 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
 
         // read sequence letter
         if (!(data >> token)) Error("Expected sequence letter after row number: %s", filename.c_str());
-        if (token.length() != 1) Error("Expected sequence letter after row number: %s", filename.c_str());      
+        if (token.length() != 1) Error("Expected sequence letter after row number: %s", filename.c_str());
         char ch = token[0];
-        
-        switch (type) 
+
+        switch (type)
         {
-          case REACTIVITY_UNPAIRED: 
+          case REACTIVITY_UNPAIRED:
           {
               float reactivity=0;
               if (!(data >> token)) Error("Expected real number after sequence letter: %s", filename.c_str());
@@ -328,19 +328,25 @@ void SStruct::LoadBPSEQ(const std::string &filename, int type /*= NO_REACTIVITY 
           case NO_REACTIVITY:
           default:
           {
-              // read mapping        
+              // read mapping
               int maps_to = 0;
               if (!(data >> token)) Error("Expected mapping after sequence letter: %s", filename.c_str());
               if (!ConvertToNumber(token, maps_to)) Error("Could not read matching row number: %s", filename.c_str());
-              if (maps_to < PAIRED) Error("Matching row numbers must be greater than or equal to -2: %s", filename.c_str());  
+              if (maps_to < PAIRED) Error("Matching row numbers must be greater than or equal to -2: %s", filename.c_str());
               sequences.back().push_back(ch);
+#if 0
+              if (maps_to>0 && std::abs(int(mapping.size())-maps_to) < 3)
+              {
+                  maps_to = 0;
+              }
+#endif
               mapping.push_back(maps_to);
               reactivity_unpair.push_back(0);
               reactivity_pair.push_back(0);
               this->type = type;
               break;
           }
-        }          
+        }
     }
 }
 
@@ -527,6 +533,10 @@ void SStruct::ValidateMapping(const std::vector<int> &mapping) const
             continue;
         if (mapping[i] < 1 || mapping[i] >= int(mapping.size()))
             Error("Position %d of sequence maps to invalid position.", i);
+#if 0
+        if (std::abs(mapping[i] - i)<3)
+            Error("Positions %d and %d of sequence do not make a base pair.", i, mapping[i]);
+#endif
         if (mapping[mapping[i]] != i)
             Error("Positions %d and %d of sequence do not map to each other.", i, mapping[i]);
         if (mapping[i] == i)
