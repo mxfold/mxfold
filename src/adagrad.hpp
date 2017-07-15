@@ -38,7 +38,7 @@ public:
   AdaGradFobosUpdater(int verbose, FeatureMap& fm, std::vector<param_value_type>& params, float eta, float lambda, float eps=1e-8);
 
   void update(size_t i, param_value_type grad, float weight);
-  void regularize_all(float weight) const;
+  void regularize_all(float weight);
   void proceed_timestamp() { }
 
   void read_from_file(const std::string& filename);

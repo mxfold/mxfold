@@ -40,6 +40,7 @@ public:
   iterator end() { return keys_.end(); }
   const_iterator begin() const { return keys_.begin(); }
   const_iterator end() const { return keys_.end(); }
+  size_t size() const { return keys_.size(); }
 
 public:
   // access to parameters

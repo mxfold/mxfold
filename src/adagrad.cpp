@@ -113,8 +113,9 @@ void
 AdaGradFobosUpdater::
 update(size_t i, param_value_type grad, float weight)
 {
-  if (i>=sum_squared_grad_.size()) sum_squared_grad_.resize(i+1, 0.0);
-  if (i>=params_.size()) params_.resize(i+1, 0.0);
+  assert(i<fm_.size());
+  params_.resize(fm_.size(), param_value_type(0));
+  sum_squared_grad_.resize(fm_.size(), param_value_type(0));
   sum_squared_grad_[i] += grad*grad;
   if (verbose_>2)
     std::cout << "  " << fm_.name(i) << ": w=" << params_[i] << ", g=" << grad << ", g2s=" << sum_squared_grad_[i];
@@ -125,8 +126,10 @@ update(size_t i, param_value_type grad, float weight)
 
 void
 AdaGradFobosUpdater::
-regularize_all(float weight) const
+regularize_all(float weight)
 {
+  params_.resize(fm_.size(), param_value_type(0));
+  sum_squared_grad_.resize(fm_.size(), param_value_type(0));
   assert(params_.size()==sum_squared_grad_.size());
   for (size_t i=0; i!=params_.size(); ++i)
     if (sum_squared_grad_[i]>0.0)
@@ -175,6 +178,9 @@ void
 AdaGradFobosUpdater::
 write_to_file(const std::string& filename) const
 {
+  assert(fm_.size()==params_.size());
+  assert(fm_.size()==sum_squared_grad_.size());
+
   std::ofstream os(filename.c_str());
   if (!os) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 

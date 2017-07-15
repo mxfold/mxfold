@@ -88,7 +88,7 @@ T&
 insert_param(std::vector<T>* params, size_t i)
 {
     assert(i!=-1u);
-    if (i>=params->size()) params->resize(i+1, 0.0);
+    if (i>=params->size()) params->resize(i+1, T(0));
     return (*params)[i];
 }
 
@@ -97,7 +97,7 @@ T&
 insert_param(std::unordered_map<size_t, T>* params, size_t i)
 {
     assert(i!=-1u);
-    auto r = params->emplace(i, static_cast<T>(0));
+    auto r = params->emplace(i, T(0));
     return r.first->second;
 }
 

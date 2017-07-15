@@ -1606,7 +1606,7 @@ find_dangle_left(NUCL i1, NUCL j1, NUCL i2) const
 #ifdef USE_CACHE
   auto ij1=is_complementary_[i1][j1];
   auto ii2=is_base_[i2];
-  if (ij1>=0)
+  if (ij1>=0 && ii2>=0)
     return cache_dangle_left_[ij1][ii2];
 #endif
   return find_key(s_dangle_left+i1+j1+i2);
@@ -1619,7 +1619,7 @@ insert_dangle_left(NUCL i1, NUCL j1, NUCL i2)
 #ifdef USE_CACHE
   auto ij1=is_complementary_[i1][j1];
   auto ii2=is_base_[i2];
-  if (ij1>=0)
+  if (ij1>=0 && ii2>=0)
     return cache_dangle_left_[ij1][ii2];
 #endif
   return insert_key(s_dangle_left+i1+j1+i2);
