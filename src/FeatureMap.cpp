@@ -341,7 +341,7 @@ FeatureMap::
 insert_keyval(const std::string& key, std::vector<param_value_type>& vals, param_value_type v)
 {
   size_t i = insert_key(key);
-  if (i>=vals.size()) vals.resize(i+1, 0.0);
+  if (i>=vals.size()) vals.resize(i+1, param_value_type(0.0));
   vals[i] = v;
   return i;
 }
@@ -353,10 +353,11 @@ load_from_hash(const std::unordered_map<std::string, param_value_type>& h)
   std::vector<param_value_type> vals;
   hash_.clear();
   keys_.clear();
+  initialize_cache()  ;
+
   for (auto e: h)
     insert_keyval(e.first, vals, e.second);
 
-  initialize_cache()  ;
   return std::move(vals);
 }
 
@@ -367,6 +368,8 @@ read_from_file(const std::string& filename)
   std::vector<param_value_type> vals;
   hash_.clear();
   keys_.clear();
+  initialize_cache();
+
   std::ifstream is(filename.c_str());
   if (!is) throw std::runtime_error(std::string(strerror(errno)) + ": " + filename);
 
@@ -388,7 +391,6 @@ read_from_file(const std::string& filename)
         insert_keyval(k, vals, v);
   }
 
-  initialize_cache();
   return std::move(vals);
 }
 

@@ -383,7 +383,7 @@ NGSfold::predict()
 
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
-  if (!with_turner_)
+  else if (!with_turner_)
   {
     if (noncomplementary_)
       params = fm.load_from_hash(default_params_noncomplementary);
@@ -440,7 +440,7 @@ NGSfold::validate()
 
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
-  if (!with_turner_)
+  else if (!with_turner_)
   {
     if (noncomplementary_)
       params = fm.load_from_hash(default_params_noncomplementary);
