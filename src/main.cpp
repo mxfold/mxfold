@@ -391,8 +391,8 @@ int
 NGSfold::predict()
 {
   // set parameters
-  FeatureMap fm;
-  std::vector<param_value_type> params;
+  FeatureMap fm, fm2;
+  std::vector<param_value_type> params, params2;
 
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
@@ -409,6 +409,7 @@ NGSfold::predict()
                                                      DEFAULT_C_MAX_SINGLE_LENGTH, max_single_nucleotides_length,
                                                      DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span_);
   inference_engine.LoadValues(&fm, &params);
+
   for (auto s : args_)
   {
     SStruct sstruct;
@@ -440,6 +441,29 @@ NGSfold::predict()
       solution.WriteBPSEQ(std::cout);
     else
       solution.WriteParens(std::cout);
+
+    if (verbose_>0)
+    {
+      if (!mea_ && !gce_)
+      {
+        auto v = inference_engine.GetViterbiScore();
+        std::cerr << "Viterbi score: " <<  v;
+
+        if (with_turner_)
+        {
+          InferenceEngine<param_value_type> inference_engine2(true, noncomplementary_,
+                                                              DEFAULT_C_MAX_SINGLE_LENGTH, max_single_nucleotides_length,
+                                                              DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span_);
+          inference_engine2.LoadValues(&fm, &params2);
+          inference_engine2.LoadSequence(sstruct);
+          inference_engine2.UseConstraints(solution.GetMapping());
+          inference_engine2.ComputeViterbi();
+          auto e = inference_engine2.GetViterbiScore();
+          std::cerr << " ( " << v-e << " + " << e << " )";
+        }
+        std::cerr << std::endl;
+      }
+    }
   }
 
   return 0;
