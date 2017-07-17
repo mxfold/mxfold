@@ -156,10 +156,10 @@ bool InferenceEngine<RealT>::IsComplementary(int i, int j) const
 template<class RealT>
 InferenceEngine<RealT>::InferenceEngine(bool with_turner,
                                         bool allow_noncomplementary,
-                                        int max_single_length /*= DEFAULT_C_MAX_SINGLE_LENGTH*/,
+                                        int max_single_length /*= DEFAULT_C_MAX_SINGLE_NUCLEOTIDES_LENGTH */,
                                         int max_single_nucleotides_length /*= PARAMS_INTERNAL_NUCLEOTIDES */,
                                         int min_hairpin_length /*= DEFAULT_C_MIN_HAIRPIN_LENGTH*/,
-                                        int max_hairpin_nucleotides_length /*= PARAMS_HAIRPIN_NUCLEOTIDES */,
+                                        int max_hairpin_nucleotides_length /*= DEFAULT_C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH */,
                                         int max_span /*= -1*/) :
     allow_noncomplementary(allow_noncomplementary),
     C_MAX_SINGLE_LENGTH(max_single_length),
@@ -1508,6 +1508,12 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
 #if PARAMS_HAIRPIN_NUCLEOTIDES
         + (j-i >= 3 && j-i <= C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+        + (j-i == 3 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+        + (j-i == 4 ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
+#endif
       ;
 }
 
@@ -1523,6 +1529,12 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
 #endif
 #if PARAMS_HAIRPIN_NUCLEOTIDES
     if (j-i >= 3 && j-i <= C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
+#endif
+#if PARAMS_HAIRPIN_3_NUCLEOTIDES
+    if (j-i == 3) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
+#endif
+#if PARAMS_HAIRPIN_4_NUCLEOTIDES
+    if (j-i == 4) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 }
 
@@ -1645,10 +1657,10 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
 
-#if (!defined(NDEBUG) || PARAMS_INTERNAL_NUCLEOTIDES )
     const int l1 = p - i;
     const int l2 = j - q;
 
+#if (!defined(NDEBUG) || PARAMS_INTERNAL_NUCLEOTIDES || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES || PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES)
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
 #endif
 
@@ -1658,6 +1670,24 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
 #if PARAMS_INTERNAL_NUCLEOTIDES
         + (l1+l2 <= C_MAX_SINGLE_NUCLEOTIDES_LENGTH ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
+        + ((l1==0 && l2==1) || (l1==1 && l2==0) ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+#endif
+#if PARAMS_BULGE_0x2_NUCLEOTIDES
+        + ((l1==0 && l2==2) || (l1==2 && l2==0) ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+#endif
+#if PARAMS_BULGE_0x3_NUCLEOTIDES
+        + ((l1==0 && l2==3) || (l1==3 && l2==0) ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+        + ((l1==1 && l2==1) || (l1==1 && l2==1) ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+#endif
+#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
+        + ((l1==1 && l2==2) || (l1==2 && l2==1) ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+#endif
+#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
+        + ((l1==2 && l2==2) || (l1==2 && l2==2) ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+#endif
       ;
 }
 
@@ -1666,10 +1696,10 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
 {
     Assert(0 < i && i <= p && p + 2 <= q && q <= j && j < L, "Single-branch loop boundaries invalid.");
 
-#if (!defined(NDEBUG) || PARAMS_INTERNAL_NUCLEOTIDES )
     const int l1 = p - i;
     const int l2 = j - q;
 
+#if (!defined(NDEBUG) || PARAMS_INTERNAL_NUCLEOTIDES || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES || PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES)
     Assert(l1 + l2 > 0 && l1 >= 0 && l2 >= 0 && l1 + l2 <= C_MAX_SINGLE_LENGTH, "Invalid single-branch loop size.");
 #endif
 
@@ -1677,6 +1707,24 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     CountUnpaired(q,j,value);
 #if PARAMS_INTERNAL_NUCLEOTIDES
     if (l1+l2 <= C_MAX_SINGLE_NUCLEOTIDES_LENGTH) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+#endif
+#if PARAMS_BULGE_0x1_NUCLEOTIDES
+    if ((l1==0 && l2==1) || (l1==1 && l2==0)) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+#endif
+#if PARAMS_BULGE_0x2_NUCLEOTIDES
+    if ((l1==0 && l2==2) || (l1==2 && l2==0)) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+#endif
+#if PARAMS_BULGE_0x3_NUCLEOTIDES
+    if ((l1==0 && l2==3) || (l1==3 && l2==0)) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+#endif
+#if PARAMS_INTERNAL_1x1_NUCLEOTIDES
+    if ((l1==1 && l2==1) || (l1==1 && l2==1)) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+#endif
+#if PARAMS_INTERNAL_1x2_NUCLEOTIDES
+    if ((l1==1 && l2==2) || (l1==2 && l2==1)) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+#endif
+#if PARAMS_INTERNAL_2x2_NUCLEOTIDES
+    if ((l1==2 && l2==2) || (l1==2 && l2==2)) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 }
 

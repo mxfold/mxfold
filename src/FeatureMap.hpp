@@ -94,7 +94,7 @@ public:
   size_t insert_hairpin_length_at_least(uint l);
   void initialize_cache_hairpin_length_at_least();
 #endif
-#if PARAMS_HAIRPIN_NUCLEOTIDES
+#if PARAMS_HAIRPIN_NUCLEOTIDES || PARAMS_HAIRPIN_3_NUCLEOTIDES || PARAMS_HAIRPIN_4_NUCLEOTIDES
   size_t find_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l) const;
   size_t insert_hairpin_nucleotides(const std::vector<NUCL>& s, uint i, uint l);
 #endif
@@ -133,7 +133,7 @@ public:
   size_t insert_internal_asymmetry_at_least(uint l);
   void initialize_cache_internal_asymmetry_at_least();
 #endif
-#if PARAMS_INTERNAL_NUCLEOTIDES
+#if PARAMS_INTERNAL_NUCLEOTIDES || PARAMS_BULGE_0x1_NUCLEOTIDES || PARAMS_BULGE_0x2_NUCLEOTIDES || PARAMS_BULGE_0x3_NUCLEOTIDES || PARAMS_INTERNAL_1x1_NUCLEOTIDES || PARAMS_INTERNAL_1x2_NUCLEOTIDES || PARAMS_INTERNAL_2x2_NUCLEOTIDES
   size_t find_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m) const;
   size_t insert_internal_nucleotides(const std::vector<NUCL>& s, uint i, uint l, uint j, uint m);
 #endif

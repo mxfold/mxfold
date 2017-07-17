@@ -63,9 +63,6 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_DANGLE                              1
 #define PARAMS_EXTERNAL_LENGTH                     1
 
-#define PARAMS_INTERNAL_NUCLEOTIDES                2
-#define PARAMS_HAIRPIN_NUCLEOTIDES                 0
-
 #else
 
 // our full model
@@ -87,8 +84,8 @@ typedef std::vector<VVVI> VVVVI;
 #define PARAMS_EXTERNAL_LENGTH                     1
 
 // extended parameters
-#define PARAMS_INTERNAL_NUCLEOTIDES                7
-#define PARAMS_HAIRPIN_NUCLEOTIDES                 7
+#define PARAMS_INTERNAL_NUCLEOTIDES                1
+#define PARAMS_HAIRPIN_NUCLEOTIDES                 1
 #define PARAMS_TERMINAL_MISMATCH_HAIRPIN           0
 #define PARAMS_TERMINAL_MISMATCH_INTERNAL          0
 #define PARAMS_TERMINAL_MISMATCH_INTERNAL_1N       0
@@ -132,7 +129,9 @@ typedef std::vector<VVVI> VVVVI;
 //////////////////////////////////////////////////////////////////////
 
 const int DEFAULT_C_MIN_HAIRPIN_LENGTH = 0;
+const int DEFAULT_C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH = 7;
 const int DEFAULT_C_MAX_SINGLE_LENGTH = 40;
+const int DEFAULT_C_MAX_SINGLE_NUCLEOTIDES_LENGTH = 7;
 
 const int D_MAX_HAIRPIN_LENGTH = 30;
 const int D_MAX_BP_DIST_THRESHOLDS = 10;

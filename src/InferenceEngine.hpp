@@ -190,9 +190,9 @@ public:
     InferenceEngine(bool with_turner,
                     bool allow_noncomplementary,
                     int max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH,
-                    int max_single_nucleotides_length = PARAMS_INTERNAL_NUCLEOTIDES,
+                    int max_single_nucleotides_length = DEFAULT_C_MAX_SINGLE_NUCLEOTIDES_LENGTH,
                     int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH,
-                    int max_hairpin_nucleotides_length = PARAMS_HAIRPIN_NUCLEOTIDES,
+                    int max_hairpin_nucleotides_length = DEFAULT_C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH,
                     int max_span = -1);
     ~InferenceEngine();
 
