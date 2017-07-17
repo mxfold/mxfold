@@ -37,7 +37,9 @@ class InferenceEngine
 private:
     const bool allow_noncomplementary;
     const int C_MAX_SINGLE_LENGTH;
+    const int C_MAX_SINGLE_NUCLEOTIDES_LENGTH;
     const int C_MIN_HAIRPIN_LENGTH;
+    const int C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH;
     const int C_MAX_SPAN;
     bool cache_initialized;
     FeatureMap* fm_;
@@ -188,7 +190,9 @@ public:
     InferenceEngine(bool with_turner,
                     bool allow_noncomplementary,
                     int max_single_length = DEFAULT_C_MAX_SINGLE_LENGTH,
+                    int max_single_nucleotides_length = PARAMS_INTERNAL_NUCLEOTIDES,
                     int min_hairpin_length = DEFAULT_C_MIN_HAIRPIN_LENGTH,
+                    int max_hairpin_nucleotides_length = PARAMS_HAIRPIN_NUCLEOTIDES,
                     int max_span = -1);
     ~InferenceEngine();
 

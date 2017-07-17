@@ -72,6 +72,8 @@ private:
   float threshold_unpaired_reactivity_;
   float threshold_paired_reactivity_;
   bool discretize_reactivity_;
+  int max_single_nucleotides_length;
+  int max_hairpin_nucleotides_length;
   //bool use_bp_context_;
   int verbose_;
   std::string out_param_;
@@ -148,6 +150,8 @@ NGSfold::parse_options(int& argc, char**& argv)
   threshold_paired_reactivity_ = args_info.threshold_paired_reactivity_arg;
   per_bp_loss_ = args_info.per_bp_loss_flag==1;
   discretize_reactivity_ = args_info.discretize_reactivity_flag==1;
+  max_single_nucleotides_length = args_info.max_single_nucleotides_length_arg;
+  max_hairpin_nucleotides_length = args_info.max_hairpin_nucleotides_length_arg;
   verbose_ = args_info.verbose_arg;
   use_constraints_ = args_info.constraints_flag==1;
   use_soft_constraints_ = args_info.soft_constraints_flag==1;
@@ -211,7 +215,8 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
   else
     max_span = max_span_;
   InferenceEngine<param_value_type> inference_engine1(with_turner_, noncomplementary_,
-                                                      max_single_length, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span);
+                                                      max_single_length, max_single_nucleotides_length,
+                                                      DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span);
   inference_engine1.LoadValues(fm, params);
   inference_engine1.LoadSequence(s);
   if (s.GetType() == SStruct::NO_REACTIVITY || discretize_reactivity_)
@@ -245,7 +250,8 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
 
   // count the occurence of parameters in the predicted structure
   InferenceEngine<param_value_type> inference_engine0(with_turner_, noncomplementary_,
-                                                      DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
+                                                      DEFAULT_C_MAX_SINGLE_LENGTH, max_single_nucleotides_length,
+                                                      DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span_);
   inference_engine0.LoadValues(fm, params);
   inference_engine0.LoadSequence(s);
   switch (s.GetType())
@@ -363,8 +369,15 @@ NGSfold::train()
       if (!out_param_.empty())
       {
         //fm.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), params);
-        optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++));
+        optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k));
       }
+      k++;
+    }
+
+    if (!out_param_.empty())
+    {
+      //fm.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), params);
+      optimizer.write_to_file(SPrintF("%s/Epoch%d.param", out_param_.c_str(), t));
     }
   }
 
@@ -392,8 +405,9 @@ NGSfold::predict()
   }
 
   // predict ss
-  InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_, 
-                                                     DEFAULT_C_MAX_SINGLE_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH, max_span_);
+  InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_,
+                                                     DEFAULT_C_MAX_SINGLE_LENGTH, max_single_nucleotides_length,
+                                                     DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span_);
   inference_engine.LoadValues(&fm, &params);
   for (auto s : args_)
   {
@@ -453,8 +467,9 @@ NGSfold::validate()
     SStruct sstruct;
     sstruct.Load(s);
     SStruct solution(sstruct);
-    InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_, 
-                                                       std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+    InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_,
+                                                       std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH), max_single_nucleotides_length,
+                                                       DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length);
     inference_engine.LoadValues(&fm, &params);
     inference_engine.LoadSequence(sstruct);
     inference_engine.UseConstraints(sstruct.GetMapping());
@@ -497,7 +512,8 @@ NGSfold::count_features()
     sstruct.Load(s);
     SStruct solution(sstruct);
     InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_,
-                                                       std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH));
+                                                       std::max<int>(sstruct.GetLength()/2., DEFAULT_C_MAX_SINGLE_LENGTH), max_single_nucleotides_length,
+                                                       DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length);
     inference_engine.LoadValues(&fm, &params);
     inference_engine.LoadSequence(sstruct);
     inference_engine.UseConstraints(sstruct.GetMapping());

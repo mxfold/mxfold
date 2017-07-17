@@ -69,6 +69,8 @@ const char *gengetopt_args_info_full_help[] = {
   "      --threshold-unpaired-reactivity=FLOAT\n                                The threshold of reactiviy for unpaired bases\n                                  (default=`0.0')",
   "      --threshold-paired-reactivity=FLOAT\n                                The threshold of reactiviy for paired bases\n                                  (default=`0.0')",
   "      --discretize-reactivity   Discretize reactivity with reactivity\n                                  thresholds  (default=off)",
+  "      --max-single-nucleotides-length=INT\n                                the maximum length of single loop nucleotide\n                                  features  (default=`7')",
+  "      --max-hairpin-nucleotides-length=INT\n                                the maximum length of hairpin loop nucleotide\n                                  features  (default=`7')",
   "      --out-param=dirname       Output parameter sets for each step",
   "\nValidation mode:",
   "      --validate                Validation mode: validate the given structure\n                                  can be parsed  (default=off)",
@@ -105,13 +107,15 @@ init_help_array(void)
   gengetopt_args_info_help[24] = gengetopt_args_info_full_help[26];
   gengetopt_args_info_help[25] = gengetopt_args_info_full_help[30];
   gengetopt_args_info_help[26] = gengetopt_args_info_full_help[31];
-  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[36];
-  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[37];
-  gengetopt_args_info_help[29] = 0; 
+  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[35];
+  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[36];
+  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[38];
+  gengetopt_args_info_help[30] = gengetopt_args_info_full_help[39];
+  gengetopt_args_info_help[31] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[30];
+const char *gengetopt_args_info_help[32];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -171,6 +175,8 @@ void clear_given (struct gengetopt_args_info *args_info)
   args_info->threshold_unpaired_reactivity_given = 0 ;
   args_info->threshold_paired_reactivity_given = 0 ;
   args_info->discretize_reactivity_given = 0 ;
+  args_info->max_single_nucleotides_length_given = 0 ;
+  args_info->max_hairpin_nucleotides_length_given = 0 ;
   args_info->out_param_given = 0 ;
   args_info->validate_given = 0 ;
 }
@@ -231,6 +237,10 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->threshold_paired_reactivity_arg = 0.0;
   args_info->threshold_paired_reactivity_orig = NULL;
   args_info->discretize_reactivity_flag = 0;
+  args_info->max_single_nucleotides_length_arg = 7;
+  args_info->max_single_nucleotides_length_orig = NULL;
+  args_info->max_hairpin_nucleotides_length_arg = 7;
+  args_info->max_hairpin_nucleotides_length_orig = NULL;
   args_info->out_param_arg = NULL;
   args_info->out_param_orig = NULL;
   args_info->validate_flag = 0;
@@ -283,8 +293,10 @@ void init_args_info(struct gengetopt_args_info *args_info)
   args_info->threshold_unpaired_reactivity_help = gengetopt_args_info_full_help[32] ;
   args_info->threshold_paired_reactivity_help = gengetopt_args_info_full_help[33] ;
   args_info->discretize_reactivity_help = gengetopt_args_info_full_help[34] ;
-  args_info->out_param_help = gengetopt_args_info_full_help[35] ;
-  args_info->validate_help = gengetopt_args_info_full_help[37] ;
+  args_info->max_single_nucleotides_length_help = gengetopt_args_info_full_help[35] ;
+  args_info->max_hairpin_nucleotides_length_help = gengetopt_args_info_full_help[36] ;
+  args_info->out_param_help = gengetopt_args_info_full_help[37] ;
+  args_info->validate_help = gengetopt_args_info_full_help[39] ;
   
 }
 
@@ -470,6 +482,8 @@ cmdline_parser_release (struct gengetopt_args_info *args_info)
   free_string_field (&(args_info->scale_reactivity_orig));
   free_string_field (&(args_info->threshold_unpaired_reactivity_orig));
   free_string_field (&(args_info->threshold_paired_reactivity_orig));
+  free_string_field (&(args_info->max_single_nucleotides_length_orig));
+  free_string_field (&(args_info->max_hairpin_nucleotides_length_orig));
   free_string_field (&(args_info->out_param_arg));
   free_string_field (&(args_info->out_param_orig));
   
@@ -577,6 +591,10 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "threshold-paired-reactivity", args_info->threshold_paired_reactivity_orig, 0);
   if (args_info->discretize_reactivity_given)
     write_into_file(outfile, "discretize-reactivity", 0, 0 );
+  if (args_info->max_single_nucleotides_length_given)
+    write_into_file(outfile, "max-single-nucleotides-length", args_info->max_single_nucleotides_length_orig, 0);
+  if (args_info->max_hairpin_nucleotides_length_given)
+    write_into_file(outfile, "max-hairpin-nucleotides-length", args_info->max_hairpin_nucleotides_length_orig, 0);
   if (args_info->out_param_given)
     write_into_file(outfile, "out-param", args_info->out_param_orig, 0);
   if (args_info->validate_given)
@@ -1187,6 +1205,8 @@ cmdline_parser_internal (
         { "threshold-unpaired-reactivity",	1, NULL, 0 },
         { "threshold-paired-reactivity",	1, NULL, 0 },
         { "discretize-reactivity",	0, NULL, 0 },
+        { "max-single-nucleotides-length",	1, NULL, 0 },
+        { "max-hairpin-nucleotides-length",	1, NULL, 0 },
         { "out-param",	1, NULL, 0 },
         { "validate",	0, NULL, 0 },
         { 0,  0, 0, 0 }
@@ -1588,6 +1608,34 @@ cmdline_parser_internal (
             if (update_arg((void *)&(args_info->discretize_reactivity_flag), 0, &(args_info->discretize_reactivity_given),
                 &(local_args_info.discretize_reactivity_given), optarg, 0, 0, ARG_FLAG,
                 check_ambiguity, override, 1, 0, "discretize-reactivity", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* the maximum length of single loop nucleotide features.  */
+          else if (strcmp (long_options[option_index].name, "max-single-nucleotides-length") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->max_single_nucleotides_length_arg), 
+                 &(args_info->max_single_nucleotides_length_orig), &(args_info->max_single_nucleotides_length_given),
+                &(local_args_info.max_single_nucleotides_length_given), optarg, 0, "7", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "max-single-nucleotides-length", '-',
+                additional_error))
+              goto failure;
+          
+          }
+          /* the maximum length of hairpin loop nucleotide features.  */
+          else if (strcmp (long_options[option_index].name, "max-hairpin-nucleotides-length") == 0)
+          {
+          
+          
+            if (update_arg( (void *)&(args_info->max_hairpin_nucleotides_length_arg), 
+                 &(args_info->max_hairpin_nucleotides_length_orig), &(args_info->max_hairpin_nucleotides_length_given),
+                &(local_args_info.max_hairpin_nucleotides_length_given), optarg, 0, "7", ARG_INT,
+                check_ambiguity, override, 0, 0,
+                "max-hairpin-nucleotides-length", '-',
                 additional_error))
               goto failure;
           

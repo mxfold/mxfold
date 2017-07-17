@@ -130,6 +130,12 @@ struct gengetopt_args_info
   const char *threshold_paired_reactivity_help; /**< @brief The threshold of reactiviy for paired bases help description.  */
   int discretize_reactivity_flag;	/**< @brief Discretize reactivity with reactivity thresholds (default=off).  */
   const char *discretize_reactivity_help; /**< @brief Discretize reactivity with reactivity thresholds help description.  */
+  int max_single_nucleotides_length_arg;	/**< @brief the maximum length of single loop nucleotide features (default='7').  */
+  char * max_single_nucleotides_length_orig;	/**< @brief the maximum length of single loop nucleotide features original value given at command line.  */
+  const char *max_single_nucleotides_length_help; /**< @brief the maximum length of single loop nucleotide features help description.  */
+  int max_hairpin_nucleotides_length_arg;	/**< @brief the maximum length of hairpin loop nucleotide features (default='7').  */
+  char * max_hairpin_nucleotides_length_orig;	/**< @brief the maximum length of hairpin loop nucleotide features original value given at command line.  */
+  const char *max_hairpin_nucleotides_length_help; /**< @brief the maximum length of hairpin loop nucleotide features help description.  */
   char * out_param_arg;	/**< @brief Output parameter sets for each step.  */
   char * out_param_orig;	/**< @brief Output parameter sets for each step original value given at command line.  */
   const char *out_param_help; /**< @brief Output parameter sets for each step help description.  */
@@ -169,6 +175,8 @@ struct gengetopt_args_info
   unsigned int threshold_unpaired_reactivity_given ;	/**< @brief Whether threshold-unpaired-reactivity was given.  */
   unsigned int threshold_paired_reactivity_given ;	/**< @brief Whether threshold-paired-reactivity was given.  */
   unsigned int discretize_reactivity_given ;	/**< @brief Whether discretize-reactivity was given.  */
+  unsigned int max_single_nucleotides_length_given ;	/**< @brief Whether max-single-nucleotides-length was given.  */
+  unsigned int max_hairpin_nucleotides_length_given ;	/**< @brief Whether max-hairpin-nucleotides-length was given.  */
   unsigned int out_param_given ;	/**< @brief Whether out-param was given.  */
   unsigned int validate_given ;	/**< @brief Whether validate was given.  */
 

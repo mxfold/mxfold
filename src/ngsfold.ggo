@@ -137,6 +137,14 @@ option "discretize-reactivity" -
   "Discretize reactivity with reactivity thresholds"
   flag off hidden
 
+option "max-single-nucleotides-length" -
+  "the maximum length of single loop nucleotide features"
+  int default="7" optional
+
+option "max-hairpin-nucleotides-length" -
+  "the maximum length of hairpin loop nucleotide features"
+  int default="7" optional
+
 #option "bp-context" -
 #  "Train the features for base-pair contexts in weak label traing "
 #  flag off hidden

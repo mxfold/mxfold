@@ -157,11 +157,15 @@ template<class RealT>
 InferenceEngine<RealT>::InferenceEngine(bool with_turner,
                                         bool allow_noncomplementary,
                                         int max_single_length /*= DEFAULT_C_MAX_SINGLE_LENGTH*/,
+                                        int max_single_nucleotides_length /*= PARAMS_INTERNAL_NUCLEOTIDES */,
                                         int min_hairpin_length /*= DEFAULT_C_MIN_HAIRPIN_LENGTH*/,
+                                        int max_hairpin_nucleotides_length /*= PARAMS_HAIRPIN_NUCLEOTIDES */,
                                         int max_span /*= -1*/) :
     allow_noncomplementary(allow_noncomplementary),
     C_MAX_SINGLE_LENGTH(max_single_length),
+    C_MAX_SINGLE_NUCLEOTIDES_LENGTH(max_single_nucleotides_length),
     C_MIN_HAIRPIN_LENGTH(min_hairpin_length),
+    C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH(max_hairpin_nucleotides_length),
     C_MAX_SPAN(max_span),
     cache_initialized(false),
     L(0),
@@ -1502,7 +1506,7 @@ inline RealT InferenceEngine<RealT>::ScoreHairpin(int i, int j) const
         + cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].first
 #endif
 #if PARAMS_HAIRPIN_NUCLEOTIDES
-        + (j-i >= 3 && j-i <= PARAMS_HAIRPIN_NUCLEOTIDES ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
+        + (j-i >= 3 && j-i <= C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH ? find_param(params_, fm_->find_hairpin_nucleotides(s, i+1, j-i)) : RealT(0))
 #endif
       ;
 }
@@ -1518,7 +1522,7 @@ inline void InferenceEngine<RealT>::CountHairpin(int i, int j, RealT value)
     cache_score_hairpin_length[std::min(j - i, D_MAX_HAIRPIN_LENGTH)].second += value;
 #endif
 #if PARAMS_HAIRPIN_NUCLEOTIDES
-    if (j-i >= 3 && j-i <= PARAMS_HAIRPIN_NUCLEOTIDES) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
+    if (j-i >= 3 && j-i <= C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH) insert_param(counts_, fm_->insert_hairpin_nucleotides(s, i+1, j-i)) += value;
 #endif
 }
 
@@ -1652,7 +1656,7 @@ inline RealT InferenceEngine<RealT>::ScoreSingleNucleotides(int i, int j, int p,
         ScoreUnpaired(i,p)
         + ScoreUnpaired(q,j)
 #if PARAMS_INTERNAL_NUCLEOTIDES
-        + (l1+l2 <= PARAMS_INTERNAL_NUCLEOTIDES ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
+        + (l1+l2 <= C_MAX_SINGLE_NUCLEOTIDES_LENGTH ? find_param(params_, fm_->find_internal_nucleotides(s, i+1, l1, j, l2)) : RealT(0))
 #endif
       ;
 }
@@ -1672,7 +1676,7 @@ inline void InferenceEngine<RealT>::CountSingleNucleotides(int i, int j, int p, 
     CountUnpaired(i,p,value);
     CountUnpaired(q,j,value);
 #if PARAMS_INTERNAL_NUCLEOTIDES
-    if (l1+l2 <= PARAMS_INTERNAL_NUCLEOTIDES) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
+    if (l1+l2 <= C_MAX_SINGLE_NUCLEOTIDES_LENGTH) insert_param(counts_, fm_->insert_internal_nucleotides(s, i+1, l1, j, l2)) += value;
 #endif
 }
 
