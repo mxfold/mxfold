@@ -358,7 +358,7 @@ load_from_hash(const std::unordered_map<std::string, param_value_type>& h)
   for (auto e: h)
     insert_keyval(e.first, vals, e.second);
 
-  return std::move(vals);
+  return vals;
 }
 
 std::vector<param_value_type>
@@ -391,7 +391,7 @@ read_from_file(const std::string& filename)
         insert_keyval(k, vals, v);
   }
 
-  return std::move(vals);
+  return vals;
 }
 
 std::string
@@ -423,7 +423,7 @@ get_array1(const std::string& l)
     else
       ret.push_back(-atoi(s.c_str())/100.);
   }
-  return std::move(ret);
+  return ret;
 }
 
 std::vector<param_value_type>
@@ -437,7 +437,7 @@ get_array(std::istream& is, size_t sz)
     auto w = get_array1(l);
     v.insert(v.end(), w.begin(), w.end());
   }
-  return std::move(v);
+  return v;
 }
 
 std::pair<std::string, param_value_type>
@@ -655,7 +655,7 @@ import_from_vienna_parameters(const std::string& filename)
   }
 
   initialize_cache();
-  return std::move(vals);
+  return vals;
 }
 #endif
 

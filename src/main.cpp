@@ -41,8 +41,7 @@ private:
   int validate();
   int count_features();
   std::pair<uint,uint> read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const;
-  //std::vector<param_value_type> compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params);
-  std::unordered_map<size_t,param_value_type> compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params);
+  std::pair<std::unordered_map<size_t,param_value_type>,float> compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params);
 
 private:
   bool train_mode_;
@@ -198,7 +197,7 @@ read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int
 }
 
 //std::vector<param_value_type>
-std::unordered_map<size_t,param_value_type>
+std::pair<std::unordered_map<size_t,param_value_type>,float>
 NGSfold::
 compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params)
 {
@@ -242,9 +241,6 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
 
   auto loss1 = inference_engine1.GetViterbiScore();
   auto corr = inference_engine1.ComputeViterbiFeatureCounts();
-  //if (grad.size()<corr.size()) grad.resize(corr.size(), 0.0);
-  //for (size_t i=0; i!=corr.size(); ++i) grad[i] -= corr[i];
-  //corr.clear();
   for (auto e : corr)
     grad.emplace(e.first, static_cast<param_value_type>(0)).first->second -= e.second;
 
@@ -273,9 +269,6 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
   inference_engine0.ComputeViterbi();
   auto loss0 = inference_engine0.GetViterbiScore();
   auto pred = inference_engine0.ComputeViterbiFeatureCounts();
-  //if (grad.size()<pred.size()) grad.resize(pred.size(), 0.0);
-  //for (size_t i=0; i!=pred.size(); ++i) grad[i] += pred[i];
-  //pred.clear();
   for (auto e : pred)
     grad.emplace(e.first, static_cast<param_value_type>(0)).first->second += e.second;
 
@@ -298,7 +291,7 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
     std::cout << std::endl;
   }
 
-  return std::move(grad);
+  return std::make_pair(std::move(grad), loss0-loss1);
 }
 
 int
@@ -322,8 +315,10 @@ NGSfold::train()
   // run max-margin training
   for (uint t=0, k=0; t!=t_max_; ++t)
   {
+    float loss = 0.0;
+
     if (verbose_>0)
-      std::cout << std::endl << "=== Epoch " << t << " ===" << std::endl;
+      std::cout << std::endl << "=== Start Epoch " << t << " ===" << std::endl;
 
     std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_weak.second);
     std::iota(idx.begin(), idx.end(), 0);
@@ -354,8 +349,10 @@ NGSfold::train()
 
       // gradient
       if (verbose_>0)
-        std::cout << "Step: " << k << " Seq: " << data[i].GetNames()[0] << ", ";
-      auto grad = compute_gradients(data[i], &fm, &params);
+        std::cout << "Step: " << k << ", Seq: " << data[i].GetNames()[0] << ", ";
+      const auto ret = compute_gradients(data[i], &fm, &params);
+      const auto& grad = ret.first;
+      loss += ret.second;
 
       // update
       for (auto g : grad)
@@ -371,6 +368,7 @@ NGSfold::train()
         //fm.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), params);
         optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k));
       }
+
       k++;
     }
 
@@ -379,6 +377,12 @@ NGSfold::train()
       //fm.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), params);
       optimizer.write_to_file(SPrintF("%s/Epoch%d.param", out_param_.c_str(), t));
     }
+
+    if (verbose_>0)
+      std::cout << std::endl 
+                << "=== Finish Epoch " << t 
+                << ", Loss = " << loss << " ===" 
+                << std::endl;
   }
 
   //fm.write_to_file(out_file_, params);

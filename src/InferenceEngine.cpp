@@ -2584,7 +2584,7 @@ InferenceEngine<RealT>::ComputeViterbiFeatureCounts()
     }
 
     FinalizeCounts();
-    return std::move(cnt);
+    return cnt;
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -3531,7 +3531,7 @@ InferenceEngine<RealT>::ComputeFeatureCountExpectations()
     std::cerr << "Feature expectations (" << GetSystemTime() - starting_time << " seconds)" << std::endl;
 #endif
 
-    return std::move(cnt);
+    return cnt;
 }
 
 //////////////////////////////////////////////////////////////////////
