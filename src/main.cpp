@@ -363,7 +363,7 @@ NGSfold::train()
       optimizer.regularize_all(eta_w);
 
       optimizer.proceed_timestamp();
-      if (!out_param_.empty())
+      if (verbose_>2 && !out_param_.empty())
       {
         //fm.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k++), params);
         optimizer.write_to_file(SPrintF("%s/%d.param", out_param_.c_str(), k));
