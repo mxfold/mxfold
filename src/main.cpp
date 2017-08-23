@@ -16,14 +16,15 @@
 #include "adagrad.hpp"
 
 extern std::unordered_map<std::string, param_value_type> default_params_complementary;
+extern std::unordered_map<std::string, param_value_type> trained_params_complementary;
 extern std::unordered_map<std::string, param_value_type> default_params_noncomplementary;
 
-class NGSfold
+class MXfold
 {
 public:
-  NGSfold() : train_mode_(false), mea_(false), gce_(false), validation_mode_(false) { }
+  MXfold() : train_mode_(false), mea_(false), gce_(false), validation_mode_(false) { }
 
-  NGSfold& parse_options(int& argc, char**& argv);
+  MXfold& parse_options(int& argc, char**& argv);
 
   int run()
   {
@@ -82,8 +83,8 @@ private:
   std::vector<std::string> args_;
 };
 
-NGSfold&
-NGSfold::parse_options(int& argc, char**& argv)
+MXfold&
+MXfold::parse_options(int& argc, char**& argv)
 {
   gengetopt_args_info args_info;
   if (cmdline_parser(argc, argv, &args_info)!=0) exit(1);
@@ -176,7 +177,7 @@ NGSfold::parse_options(int& argc, char**& argv)
 }
 
 std::pair<uint,uint>
-NGSfold::
+MXfold::
 read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int type) const
 {
   std::pair<uint,uint> pos = std::make_pair(data.size(), data.size());
@@ -198,7 +199,7 @@ read_data(std::vector<SStruct>& data, const std::vector<std::string>& lists, int
 
 //std::vector<param_value_type>
 std::pair<std::unordered_map<size_t,param_value_type>,float>
-NGSfold::
+MXfold::
 compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_value_type>* params)
 {
   double starting_time = GetSystemTime();
@@ -295,7 +296,7 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
 }
 
 int
-NGSfold::train()
+MXfold::train()
 {
   // read traing data
   std::vector<SStruct> data;
@@ -392,7 +393,7 @@ NGSfold::train()
 }
 
 int
-NGSfold::predict()
+MXfold::predict()
 {
   // set parameters
   FeatureMap fm, fm2;
@@ -401,12 +402,15 @@ NGSfold::predict()
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
   else if (!with_turner_)
-  {
     if (noncomplementary_)
       params = fm.load_from_hash(default_params_noncomplementary);
     else
       params = fm.load_from_hash(default_params_complementary);
-  }
+  else
+    if (noncomplementary_)
+      params = fm.load_from_hash(default_params_noncomplementary);
+    else
+      params = fm.load_from_hash(trained_params_complementary);
 
   // predict ss
   InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_,
@@ -474,7 +478,7 @@ NGSfold::predict()
 }
 
 int
-NGSfold::validate()
+MXfold::validate()
 {
   // set parameters
   FeatureMap fm;
@@ -483,12 +487,15 @@ NGSfold::validate()
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
   else if (!with_turner_)
-  {
     if (noncomplementary_)
       params = fm.load_from_hash(default_params_noncomplementary);
     else
       params = fm.load_from_hash(default_params_complementary);
-  }
+  else
+    if (noncomplementary_)
+      params = fm.load_from_hash(default_params_noncomplementary);
+    else
+      params = fm.load_from_hash(trained_params_complementary);
 
   for (auto s : args_)
   {
@@ -517,7 +524,7 @@ NGSfold::validate()
 
 // for debug
 int
-NGSfold::count_features()
+MXfold::count_features()
 {
   // set parameters
   FeatureMap fm;
@@ -525,13 +532,16 @@ NGSfold::count_features()
 
   if (!param_file_.empty())
     params = fm.read_from_file(param_file_);
-  if (!with_turner_)
-  {
+  else if (!with_turner_)
     if (noncomplementary_)
       params = fm.load_from_hash(default_params_noncomplementary);
     else
       params = fm.load_from_hash(default_params_complementary);
-  }
+  else
+    if (noncomplementary_)
+      params = fm.load_from_hash(default_params_noncomplementary);
+    else
+      params = fm.load_from_hash(trained_params_complementary);
 
   std::unordered_map<size_t, param_value_type> cnt;
   for (auto s : args_)
@@ -567,7 +577,7 @@ int
 main(int argc, char* argv[])
 {
   try {
-    return NGSfold().parse_options(argc, argv).run();
+    return MXfold().parse_options(argc, argv).run();
   } catch (const char* str) {
     std::cerr << str << std::endl;
   } catch (std::runtime_error e) {

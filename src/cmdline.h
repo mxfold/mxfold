@@ -21,12 +21,12 @@ extern "C" {
 
 #ifndef CMDLINE_PARSER_PACKAGE
 /** @brief the program name (used for printing errors) */
-#define CMDLINE_PARSER_PACKAGE "ngsfold"
+#define CMDLINE_PARSER_PACKAGE "MXfold"
 #endif
 
 #ifndef CMDLINE_PARSER_PACKAGE_NAME
 /** @brief the complete program name (used for help and version) */
-#define CMDLINE_PARSER_PACKAGE_NAME "ngsfold"
+#define CMDLINE_PARSER_PACKAGE_NAME "MXfold"
 #endif
 
 #ifndef CMDLINE_PARSER_VERSION
@@ -45,7 +45,7 @@ struct gengetopt_args_info
   char * param_arg;	/**< @brief Load parameters from parameter-file.  */
   char * param_orig;	/**< @brief Load parameters from parameter-file original value given at command line.  */
   const char *param_help; /**< @brief Load parameters from parameter-file help description.  */
-  int with_turner_flag;	/**< @brief Use the Tuner energy model as the base (default=off).  */
+  int with_turner_flag;	/**< @brief Use the Tuner energy model as the base (default=on).  */
   const char *with_turner_help; /**< @brief Use the Tuner energy model as the base help description.  */
   int random_seed_arg;	/**< @brief Specify the seed of the random number generator (default='-1').  */
   char * random_seed_orig;	/**< @brief Specify the seed of the random number generator original value given at command line.  */

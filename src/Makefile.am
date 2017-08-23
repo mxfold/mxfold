@@ -1,6 +1,6 @@
-bin_PROGRAMS = ngsfold
+bin_PROGRAMS = mxfold
 
-ngsfold_SOURCES = \
+mxfold_SOURCES = \
 	main.cpp cmdline.c cmdline.h \
 	Config.hpp LogSpace.hpp default_params.cpp \
 	InferenceEngine.hpp InferenceEngine.cpp \

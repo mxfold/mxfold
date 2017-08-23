@@ -86,7 +86,7 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-bin_PROGRAMS = ngsfold$(EXEEXT)
+bin_PROGRAMS = mxfold$(EXEEXT)
 subdir = src
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
@@ -99,12 +99,12 @@ CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
-am_ngsfold_OBJECTS = main.$(OBJEXT) cmdline.$(OBJEXT) \
+am_mxfold_OBJECTS = main.$(OBJEXT) cmdline.$(OBJEXT) \
 	default_params.$(OBJEXT) InferenceEngine.$(OBJEXT) \
 	FeatureMap.$(OBJEXT) SStruct.$(OBJEXT) Utilities.$(OBJEXT) \
 	adagrad.$(OBJEXT)
-ngsfold_OBJECTS = $(am_ngsfold_OBJECTS)
-ngsfold_LDADD = $(LDADD)
+mxfold_OBJECTS = $(am_mxfold_OBJECTS)
+mxfold_LDADD = $(LDADD)
 AM_V_P = $(am__v_P_@AM_V@)
 am__v_P_ = $(am__v_P_@AM_DEFAULT_V@)
 am__v_P_0 = false
@@ -146,8 +146,8 @@ AM_V_CXXLD = $(am__v_CXXLD_@AM_V@)
 am__v_CXXLD_ = $(am__v_CXXLD_@AM_DEFAULT_V@)
 am__v_CXXLD_0 = @echo "  CXXLD   " $@;
 am__v_CXXLD_1 = 
-SOURCES = $(ngsfold_SOURCES)
-DIST_SOURCES = $(ngsfold_SOURCES)
+SOURCES = $(mxfold_SOURCES)
+DIST_SOURCES = $(mxfold_SOURCES)
 am__can_run_installinfo = \
   case $$AM_UPDATE_INFO_DIR in \
     n|no|NO) false;; \
@@ -267,7 +267,7 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-ngsfold_SOURCES = \
+mxfold_SOURCES = \
 	main.cpp cmdline.c cmdline.h \
 	Config.hpp LogSpace.hpp default_params.cpp \
 	InferenceEngine.hpp InferenceEngine.cpp \
@@ -352,9 +352,9 @@ uninstall-binPROGRAMS:
 clean-binPROGRAMS:
 	-test -z "$(bin_PROGRAMS)" || rm -f $(bin_PROGRAMS)
 
-ngsfold$(EXEEXT): $(ngsfold_OBJECTS) $(ngsfold_DEPENDENCIES) $(EXTRA_ngsfold_DEPENDENCIES) 
-	@rm -f ngsfold$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(ngsfold_OBJECTS) $(ngsfold_LDADD) $(LIBS)
+mxfold$(EXEEXT): $(mxfold_OBJECTS) $(mxfold_DEPENDENCIES) $(EXTRA_mxfold_DEPENDENCIES) 
+	@rm -f mxfold$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(mxfold_OBJECTS) $(mxfold_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)

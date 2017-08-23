@@ -25,9 +25,9 @@
 
 #include "cmdline.h"
 
-const char *gengetopt_args_info_purpose = "NGSfold: Improving RNA secondary structure prediction with weak label learning\nfrom NGS data.";
+const char *gengetopt_args_info_purpose = "";
 
-const char *gengetopt_args_info_usage = "Usage: ngsfold [OPTIONS]";
+const char *gengetopt_args_info_usage = "Usage: mxfold [OPTIONS] fasta_or_bpseq";
 
 const char *gengetopt_args_info_versiontext = "";
 
@@ -39,7 +39,7 @@ const char *gengetopt_args_info_full_help[] = {
   "  -V, --version                 Print version and exit",
   "      --noncomplementary        Allow non-canonical base pairs  (default=off)",
   "  -p, --param=parameter-file    Load parameters from parameter-file",
-  "  -t, --with-turner             Use the Tuner energy model as the base\n                                  (default=off)",
+  "  -t, --with-turner             Use the Tuner energy model as the base\n                                  (default=on)",
   "      --random-seed=INT         Specify the seed of the random number generator\n                                  (default=`-1')",
   "      --max-span=INT            The maximum distance between bases of base\n                                  pairs  (default=`-1')",
   "  -v, --verbose=INT             Verbose output  (default=`0')",
@@ -83,39 +83,33 @@ init_help_array(void)
   gengetopt_args_info_help[0] = gengetopt_args_info_full_help[0];
   gengetopt_args_info_help[1] = gengetopt_args_info_full_help[1];
   gengetopt_args_info_help[2] = gengetopt_args_info_full_help[2];
-  gengetopt_args_info_help[3] = gengetopt_args_info_full_help[3];
-  gengetopt_args_info_help[4] = gengetopt_args_info_full_help[4];
-  gengetopt_args_info_help[5] = gengetopt_args_info_full_help[5];
-  gengetopt_args_info_help[6] = gengetopt_args_info_full_help[6];
-  gengetopt_args_info_help[7] = gengetopt_args_info_full_help[7];
-  gengetopt_args_info_help[8] = gengetopt_args_info_full_help[8];
-  gengetopt_args_info_help[9] = gengetopt_args_info_full_help[9];
-  gengetopt_args_info_help[10] = gengetopt_args_info_full_help[10];
-  gengetopt_args_info_help[11] = gengetopt_args_info_full_help[11];
-  gengetopt_args_info_help[12] = gengetopt_args_info_full_help[12];
-  gengetopt_args_info_help[13] = gengetopt_args_info_full_help[13];
-  gengetopt_args_info_help[14] = gengetopt_args_info_full_help[14];
-  gengetopt_args_info_help[15] = gengetopt_args_info_full_help[15];
-  gengetopt_args_info_help[16] = gengetopt_args_info_full_help[16];
-  gengetopt_args_info_help[17] = gengetopt_args_info_full_help[17];
-  gengetopt_args_info_help[18] = gengetopt_args_info_full_help[18];
-  gengetopt_args_info_help[19] = gengetopt_args_info_full_help[19];
-  gengetopt_args_info_help[20] = gengetopt_args_info_full_help[20];
-  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[21];
-  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[22];
-  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[25];
-  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[26];
-  gengetopt_args_info_help[25] = gengetopt_args_info_full_help[30];
-  gengetopt_args_info_help[26] = gengetopt_args_info_full_help[31];
-  gengetopt_args_info_help[27] = gengetopt_args_info_full_help[35];
-  gengetopt_args_info_help[28] = gengetopt_args_info_full_help[36];
-  gengetopt_args_info_help[29] = gengetopt_args_info_full_help[38];
-  gengetopt_args_info_help[30] = gengetopt_args_info_full_help[39];
-  gengetopt_args_info_help[31] = 0; 
+  gengetopt_args_info_help[3] = gengetopt_args_info_full_help[4];
+  gengetopt_args_info_help[4] = gengetopt_args_info_full_help[6];
+  gengetopt_args_info_help[5] = gengetopt_args_info_full_help[7];
+  gengetopt_args_info_help[6] = gengetopt_args_info_full_help[8];
+  gengetopt_args_info_help[7] = gengetopt_args_info_full_help[9];
+  gengetopt_args_info_help[8] = gengetopt_args_info_full_help[10];
+  gengetopt_args_info_help[9] = gengetopt_args_info_full_help[11];
+  gengetopt_args_info_help[10] = gengetopt_args_info_full_help[12];
+  gengetopt_args_info_help[11] = gengetopt_args_info_full_help[13];
+  gengetopt_args_info_help[12] = gengetopt_args_info_full_help[14];
+  gengetopt_args_info_help[13] = gengetopt_args_info_full_help[15];
+  gengetopt_args_info_help[14] = gengetopt_args_info_full_help[16];
+  gengetopt_args_info_help[15] = gengetopt_args_info_full_help[17];
+  gengetopt_args_info_help[16] = gengetopt_args_info_full_help[18];
+  gengetopt_args_info_help[17] = gengetopt_args_info_full_help[21];
+  gengetopt_args_info_help[18] = gengetopt_args_info_full_help[25];
+  gengetopt_args_info_help[19] = gengetopt_args_info_full_help[26];
+  gengetopt_args_info_help[20] = gengetopt_args_info_full_help[30];
+  gengetopt_args_info_help[21] = gengetopt_args_info_full_help[35];
+  gengetopt_args_info_help[22] = gengetopt_args_info_full_help[36];
+  gengetopt_args_info_help[23] = gengetopt_args_info_full_help[38];
+  gengetopt_args_info_help[24] = gengetopt_args_info_full_help[39];
+  gengetopt_args_info_help[25] = 0; 
   
 }
 
-const char *gengetopt_args_info_help[32];
+const char *gengetopt_args_info_help[26];
 
 typedef enum {ARG_NO
   , ARG_FLAG
@@ -188,7 +182,7 @@ void clear_args (struct gengetopt_args_info *args_info)
   args_info->noncomplementary_flag = 0;
   args_info->param_arg = NULL;
   args_info->param_orig = NULL;
-  args_info->with_turner_flag = 0;
+  args_info->with_turner_flag = 1;
   args_info->random_seed_arg = -1;
   args_info->random_seed_orig = NULL;
   args_info->max_span_arg = -1;

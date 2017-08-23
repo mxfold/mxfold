@@ -2,15 +2,15 @@
 
 args "-u"
 
-package "ngsfold"
+package "MXfold"
 version "0.0.1"
-purpose "NGSfold: Improving RNA secondary structure prediction with weak label learning from NGS data."
+# purpose "MXfold: the max-margin based RNA folding algorigthm."
 
-usage "ngsfold [OPTIONS]"
+usage "mxfold [OPTIONS] fasta_or_bpseq"
 
 option "noncomplementary" - 
   "Allow non-canonical base pairs"
-  flag off
+  flag off hidden
 
 option "param" p
   "Load parameters from parameter-file"
@@ -18,7 +18,7 @@ option "param" p
 
 option "with-turner" t
   "Use the Tuner energy model as the base"
-  flag off
+  flag on hidden
 
 option "random-seed" -
   "Specify the seed of the random number generator"
@@ -75,11 +75,11 @@ option "max-iter" i
 
 option "burn-in" b
   "The number of iterations for initial training from labeled data"
-  int default="10" optional
+  int default="10" optional hidden
 
 option "weight-weak-label" -
   "The weight for weak labeled data"
-  float default="0.1" optional
+  float default="0.1" optional hidden
 
 option "structure" T
   "The lists of training data with full structures"
@@ -87,7 +87,7 @@ option "structure" T
 
 option "reactivity" R
   "The lists of training data with reactivity, i.e. weak labeled data"
-  string typestr="filename-list" optional multiple
+  string typestr="filename-list" optional multiple hidden
 
 option "eta" -
   "Initial step width of the subgradient optimization"
@@ -123,7 +123,7 @@ option "lambda" -
 
 option "scale-reactivity" -
   "The scale of reactivity"
-  float default="1.0" optional
+  float default="1.0" optional hidden
 
 option "threshold-unpaired-reactivity" -
   "The threshold of reactiviy for unpaired bases"
