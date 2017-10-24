@@ -31,4 +31,4 @@ References
 
 * Akiyama, M., Sato, K., Sakakibara, Y.: A max-margin training of RNA
   secondary structure prediction integrated with the thermodynamic
-  model, submitted.
+  model, submitted. [preprint](https://www.biorxiv.org/content/early/2017/10/18/205047)
