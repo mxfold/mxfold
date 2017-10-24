@@ -29,8 +29,8 @@ its secondary structure.
 License
 ---------
 
-Copyright (c) 2017 Kengo Sato, Manato Akiyama
-Released under the MIT license
+Copyright (c) 2017 Kengo Sato, Manato Akiyama  
+Released under the MIT license  
 http://opensource.org/licenses/mit-license.php
 
 
