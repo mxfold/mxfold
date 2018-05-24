@@ -12,7 +12,13 @@ Install
 
 	./configure --with-vienna-rna=/path/to/vienna-rna
     make
-    make install # optional
+
+or
+
+    export PKG_CONFIG_PATH=/path/to/vienna-rna/lib/pkgconfig:${PKG_CONFIG_PATH}
+    cmake -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG"
+    make
+
 
 Usage
 ------

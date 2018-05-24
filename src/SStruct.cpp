@@ -2,7 +2,9 @@
 // SStruct.cpp
 //////////////////////////////////////////////////////////////////////
 
+#ifdef HAVE_CONFIG_H
 #include "../config.h"
+#endif
 #include "SStruct.hpp"
 
 enum FileFormat

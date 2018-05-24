@@ -5,7 +5,9 @@
 #ifndef INFERENCEENGINE_HPP
 #define INFERENCEENGINE_HPP
 
+#ifdef HAVE_CONFIG_H
 #include "../config.h"
+#endif
 #include <queue>
 #include <vector>
 #include <string>

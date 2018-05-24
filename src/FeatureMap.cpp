@@ -1,4 +1,6 @@
+#ifdef HAVE_CONFIG_H
 #include "../config.h"
+#endif
 #include "Config.hpp"
 #include "FeatureMap.hpp"
 #include "LogSpace.hpp"

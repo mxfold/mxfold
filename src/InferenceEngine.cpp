@@ -2,7 +2,9 @@
 // InferenceEngine.cpp
 //////////////////////////////////////////////////////////////////////
 
+#ifdef HAVE_CONFIG_H
 #include "../config.h"
+#endif
 #include "InferenceEngine.hpp"
 #include "FeatureMap.hpp"
 #include <algorithm>
