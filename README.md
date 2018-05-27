@@ -16,7 +16,7 @@ Install
 or
 
     export PKG_CONFIG_PATH=/path/to/vienna-rna/lib/pkgconfig:${PKG_CONFIG_PATH}
-    cmake -DCMAKE_CXX_FLAGS="-O3 -DNDEBUG" .
+    cmake -DCMAKE_BUILD_TYPE=Release .
     make
 
 

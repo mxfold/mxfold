@@ -7,6 +7,7 @@
 #include <utility>
 #include <string>
 #include <stdexcept>
+#include <algorithm>
 #include <cassert>
 #include <ctime>
 #include "cmdline.h"
@@ -417,7 +418,8 @@ MXfold::predict()
   // predict ss
   InferenceEngine<param_value_type> inference_engine(with_turner_, noncomplementary_,
                                                      DEFAULT_C_MAX_SINGLE_LENGTH, max_single_nucleotides_length,
-                                                     DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span_);
+                                                     std::max(DEFAULT_C_MIN_HAIRPIN_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH_PREDICT), 
+                                                     max_hairpin_nucleotides_length, max_span_);
   inference_engine.LoadValues(&fm, &params);
 
   for (auto s : args_)
@@ -463,7 +465,8 @@ MXfold::predict()
         {
           InferenceEngine<param_value_type> inference_engine2(true, noncomplementary_,
                                                               DEFAULT_C_MAX_SINGLE_LENGTH, max_single_nucleotides_length,
-                                                              DEFAULT_C_MIN_HAIRPIN_LENGTH, max_hairpin_nucleotides_length, max_span_);
+                                                              std::max(DEFAULT_C_MIN_HAIRPIN_LENGTH, DEFAULT_C_MIN_HAIRPIN_LENGTH_PREDICT), 
+                                                              max_hairpin_nucleotides_length, max_span_);
           inference_engine2.LoadValues(&fm, &params2);
           inference_engine2.LoadSequence(sstruct);
           inference_engine2.UseConstraints(solution.GetMapping());
