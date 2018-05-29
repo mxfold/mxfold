@@ -20,6 +20,10 @@ option "with-turner" t
   "Use the Tuner energy model as the base"
   flag on hidden
 
+option "without-turner" -
+  "Do not use the Tuner energy model as the base"
+  flag off hidden
+
 option "random-seed" -
   "Specify the seed of the random number generator"
   int default="-1" optional

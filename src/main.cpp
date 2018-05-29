@@ -134,7 +134,7 @@ MXfold::parse_options(int& argc, char**& argv)
   if (args_info.out_param_given)
     out_param_ = args_info.out_param_arg;
 
-  with_turner_ = args_info.with_turner_flag==1;
+  with_turner_ = args_info.without_turner_flag!=1;
   noncomplementary_ = args_info.noncomplementary_flag==1;
   output_bpseq_ = args_info.bpseq_flag==1;
   max_span_ = args_info.max_span_arg;
