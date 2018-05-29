@@ -10,8 +10,9 @@ project(MxFold)
 find_package(PkgConfig REQUIRED)
 
 pkg_check_modules(VIENNARNA REQUIRED RNAlib2)
-
 include_directories(${VIENNARNA_INCLUDE_DIRS})
+add_definitions(-DHAVE_VIENNA18)
+add_definitions(-DHAVE_VIENNA20)
 
 add_executable(
   mxfold
