@@ -7,7 +7,7 @@
 #include <utility>
 #include <string>
 #include <stdexcept>
-#include <algorithm>
+#include <random>
 #include <cassert>
 #include <ctime>
 #include "cmdline.h"
@@ -301,6 +301,9 @@ compute_gradients(const SStruct& s, FeatureMap* fm, const std::vector<param_valu
 int
 MXfold::train()
 {
+  std::random_device seed_gen;
+  std::mt19937 rnd(seed_gen());
+
   // read traing data
   std::vector<SStruct> data;
   auto pos_str = read_data(data, data_list_, SStruct::NO_REACTIVITY);
@@ -326,7 +329,7 @@ MXfold::train()
 
     std::vector<uint> idx(t<t_burn_in_ ? pos_str.second : pos_weak.second);
     std::iota(idx.begin(), idx.end(), 0);
-    std::random_shuffle(idx.begin(), idx.end());
+    std::shuffle(idx.begin(), idx.end(), rnd);
 
     for (auto i : idx)
     {
