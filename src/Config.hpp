@@ -128,8 +128,8 @@ typedef std::vector<VVVI> VVVVI;
 // (F) Miscellaneous model constants
 //////////////////////////////////////////////////////////////////////
 
-const int DEFAULT_C_MIN_HAIRPIN_LENGTH = 0;
-const int DEFAULT_C_MIN_HAIRPIN_LENGTH_PREDICT = 3;
+const int DEFAULT_C_MIN_HAIRPIN_LENGTH = 3;
+//const int DEFAULT_C_MIN_HAIRPIN_LENGTH_PREDICT = 3;
 const int DEFAULT_C_MAX_HAIRPIN_NUCLEOTIDES_LENGTH = 7;
 const int DEFAULT_C_MAX_SINGLE_LENGTH = 40;
 const int DEFAULT_C_MAX_SINGLE_NUCLEOTIDES_LENGTH = 7;

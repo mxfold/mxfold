@@ -807,6 +807,7 @@ void InferenceEngine<RealT>::UseConstraints(const std::vector<int> &true_mapping
         allow_unpaired_position[i] =
             (true_mapping[i] == SStruct::UNKNOWN ||
              true_mapping[i] == SStruct::UNPAIRED ||
+             std::abs(i-true_mapping[i]) < C_MIN_HAIRPIN_LENGTH ||
              (!allow_noncomplementary && true_mapping[i]>0 && !IsComplementary(i, true_mapping[i])));
     }
 
