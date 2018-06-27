@@ -3,7 +3,7 @@
 args "-u"
 
 package "MXfold"
-version "0.0.1"
+version "0.0.2"
 # purpose "MXfold: the max-margin based RNA folding algorigthm."
 
 usage "mxfold [OPTIONS] fasta_or_bpseq"
