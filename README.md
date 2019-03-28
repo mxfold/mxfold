@@ -10,15 +10,10 @@ Requirements
 Install
 ---------
 
-	./configure --with-vienna-rna=/path/to/vienna-rna
-    make
-
-or
-
     export PKG_CONFIG_PATH=/path/to/vienna-rna/lib/pkgconfig:${PKG_CONFIG_PATH}
-    cmake -DCMAKE_BUILD_TYPE=Release .
+    mkdir build && cd build
+    cmake -DCMAKE_BUILD_TYPE=Release ..
     make
-
 
 Usage
 ------
@@ -35,7 +30,7 @@ its secondary structure.
 License
 ---------
 
-Copyright (c) 2017 Kengo Sato, Manato Akiyama  
+Copyright (c) 2017-2019 Kengo Sato, Manato Akiyama  
 Released under the MIT license  
 http://opensource.org/licenses/mit-license.php
 
@@ -49,6 +44,4 @@ MXfold is based on the source code of [CONTRAfold](http://contra.stanford.edu/co
 References
 -------------
 
-* Akiyama, M., Sato, K., Sakakibara, Y.: A max-margin training of RNA
-  secondary structure prediction integrated with the thermodynamic
-  model, submitted. [preprint](https://www.biorxiv.org/content/early/2017/10/18/205047)
+* Akiyama, M., Sato, K., Sakakibara, Y.: A max-margin training of RNA secondary structure prediction integrated with the thermodynamic model, _J. Bioinform. Comput. Biol._, 16(6), 1840025 (2018), DOI: [10.1142/S0219720018400255](https://doi.org/10.1142/S0219720018400255).

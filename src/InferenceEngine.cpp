@@ -410,7 +410,12 @@ void InferenceEngine<RealT>::InitializeCache()
             {
 #if PARAMS_INTERNAL_EXPLICIT
                 if (l1 <= D_MAX_INTERNAL_EXPLICIT_LENGTH && l2 <= D_MAX_INTERNAL_EXPLICIT_LENGTH)
-                    cache_score_single[l1][l2].first += find_param(params_, fm_->find_internal_explicit(l1, l2));
+                {
+                    if (l1 <= l2)
+                        cache_score_single[l1][l2].first += find_param(params_, fm_->find_internal_explicit(l1, l2));
+                    else    
+                        cache_score_single[l1][l2].first += find_param(params_, fm_->find_internal_explicit(l2, l1));
+                }
 #endif
 #if PARAMS_INTERNAL_LENGTH
                 cache_score_single[l1][l2].first += temp_cache_score_internal_length[std::min(D_MAX_INTERNAL_LENGTH, l1+l2)];
@@ -602,7 +607,12 @@ void InferenceEngine<RealT>::FinalizeCounts()
             {
 #if PARAMS_INTERNAL_EXPLICIT
                 if (l1 <= D_MAX_INTERNAL_EXPLICIT_LENGTH && l2 <= D_MAX_INTERNAL_EXPLICIT_LENGTH)
-                    insert_param(counts_, fm_->insert_internal_explicit(l1, l2)) += cache_score_single[l1][l2].second;
+                {
+                    if (l1 <= l2)
+                        insert_param(counts_, fm_->insert_internal_explicit(l1, l2)) += cache_score_single[l1][l2].second;
+                    else
+                        insert_param(counts_, fm_->insert_internal_explicit(l2, l1)) += cache_score_single[l1][l2].second;
+                }
 #endif
 #if PARAMS_INTERNAL_LENGTH
                 temp_cache_counts_internal_length[std::min(D_MAX_INTERNAL_LENGTH, l1+l2)] += cache_score_single[l1][l2].second;
