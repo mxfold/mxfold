@@ -27,6 +27,11 @@ its secondary structure.
     >structure
     (((((((........(((((..(((.......)))...)))))..(((((......))))).(((((.......)))))))))))).
 
+Web server
+----------
+
+A web server is working at http://www.dna.bio.keio.ac.jp/mxfold/.
+
 License
 ---------
 
